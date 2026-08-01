@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+:root{
+--ui:'Geist',system-ui,-apple-system,sans-serif;
+--mono:'Geist Mono',ui-monospace,Menlo,monospace;
+--g05:#f6f7f9;--g10:#eceef1;--g20:#dfe3e8;--g30:#cbd1d9;--g40:#aab3be;--g50:#8a94a1;--g60:#68727f;--g70:#4b545f;--g80:#2f363f;--g90:#1a1f26;--g95:#0f1318;
+--bg:#f2f4f6;--bg2:#e8ebef;--surf:#ffffff;--surf2:#f8f9fb;
+--txt:#12161c;--txt2:#5b6470;--txt3:#8a939f;
+--line:#e3e7eb;--line2:#d2d8df;
+--acc:#6d94ab;--accS:#e7eff4;--accT:#2b4757;
+--sig:#c9db63;--sigS:#f2f6dd;--sigT:#3e4a12;
+--neg:#bd4239;--negS:#fbecea;--negT:#7d251e;
+--btn:#12161c;--btnT:#ffffff;
+--sh:0 1px 2px rgba(16,20,28,.04),0 10px 28px -14px rgba(16,20,28,.12);
+--shL:0 1px 2px rgba(16,20,28,.05),0 24px 60px -24px rgba(16,20,28,.22);
+--glass:rgba(255,255,255,.72);
+}
+[data-theme=dark]{
+--bg:#0d0f12;--bg2:#15181c;--surf:#171a1f;--surf2:#1c2026;
+--txt:#f1f3f5;--txt2:#a3acb6;--txt3:#6e7883;
+--line:#272c33;--line2:#343a42;
+--acc:#5e8ca6;--accS:#1a262e;--accT:#cde0ea;
+--sig:#a9bc4f;--sigS:#232910;--sigT:#dfeaa9;
+--neg:#d05b51;--negS:#2a1614;--negT:#f0bdb7;
+--btn:#f1f3f5;--btnT:#12161c;
+--sh:0 1px 2px rgba(0,0,0,.5),0 12px 30px -16px rgba(0,0,0,.7);
+--shL:0 1px 2px rgba(0,0,0,.5),0 28px 70px -28px rgba(0,0,0,.85);
+--glass:rgba(28,32,38,.72);
+}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--ui);-webkit-font-smoothing:antialiased}
+a{color:var(--acc)}a:hover{color:var(--txt)}
+image-slot{--is-bg:var(--bg2)}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:.9}}
+[data-reveal]{opacity:0;max-height:0;overflow:hidden;transition:opacity .18s ease,max-height .26s ease}
+[data-card]:hover [data-reveal]{opacity:1;max-height:760px}
+[data-reveal=open]{opacity:1;max-height:760px}
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;gap:0;padding:0 0 80px">
+
+<div style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 44px;background:var(--glass);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)">
+<div style="display:flex;align-items:baseline;gap:12px">
+<span style="font:600 14px/1 var(--ui);letter-spacing:-.01em">Creonome</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Screen catalog · v2 · MVP scope</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px">
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">{{ themeLabel }} mode</span>
+<button type="button" onClick="{{ toggleTheme }}" style="font:500 12px/1 var(--ui);padding:9px 14px;border-radius:999px;border:1px solid var(--line2);background:var(--surf);color:var(--txt);cursor:pointer;min-height:36px" style-hover="background:var(--bg2);border-color:var(--txt3)">Switch theme</button>
+</div>
+<div style="display:flex;align-items:center;gap:6px;padding:4px;border-radius:999px;background:var(--bg2);margin-left:20px"><a href="Creonome%20Catalog%20-%201%20Core%20loop.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">1 · Core loop</a><a href="Creonome%20Catalog%20-%202%20Profile%20-%20DNA.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--acc);color:#fff">2 · Profile & DNA</a><a href="Creonome%20Catalog%20-%203%20Ops-%20mobile%20-%20states.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">3 · Ops, mobile & states</a><a href="Creonome%20Catalog%20-%204%20Management%20screens.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">4 · Management</a></div>
+</div>
+
+<section style="padding:36px 44px 0;display:flex;flex-direction:column;gap:56px">
+<div id="1h" style="display:flex;flex-direction:column;gap:12px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+<a href="#1h" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">1h</a>
+<span style="font:600 15px/1.3 var(--ui)">Onboarding · choose your sources</span>
+</div>
+<div data-screen-label="Sources" style="width:860px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="height:58px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 22px">
+<span style="width:22px;height:22px;border-radius:7px;background:var(--btn);flex:none"></span>
+<span style="font:600 13.5px/1 var(--ui)">Creonome</span>
+<div style="margin-left:auto;display:flex;align-items:center;gap:12px;min-width:280px">
+<div style="flex:1;height:6px;border-radius:3px;background:var(--bg2);overflow:hidden"><div style="width:33%;height:100%;background:var(--acc);border-radius:3px"></div></div>
+<span style="font:500 11px/1 var(--mono);color:var(--txt2);white-space:nowrap;font-variant-numeric:tabular-nums">33% · step 2 of 6</span>
+</div>
+</div>
+<div style="padding:36px 56px 40px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-direction:column;gap:10px;max-width:560px">
+<h2 style="margin:0;font:600 30px/1.2 var(--ui);letter-spacing:-.025em;text-wrap:pretty">Let's start with what already sounds like you.</h2>
+<p style="margin:0;font:400 15px/1.6 var(--ui);color:var(--txt2)">Pick any combination. Every route ends in the same place, and you can add more later.</p>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div style="border:1px solid var(--line2);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:190px" style-hover="border-color:var(--txt);background:var(--surf2)">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:9px;background:var(--bg2);flex:none"></span><span style="font:600 15px/1 var(--ui)">Connect TikTok</span></div>
+<p style="margin:0;font:400 13px/1.55 var(--ui);color:var(--txt2)">Your profile and your own recent videos, read once to learn your patterns.</p>
+<div style="font:400 11.5px/1.7 var(--mono);color:var(--txt3)">profile + your video list<br>no comments, no DMs · revocable</div>
+<button type="button" style="margin-top:auto;min-height:44px;border:none;border-radius:13px;background:var(--btn);color:var(--btnT);font:500 13px/1 var(--ui);cursor:pointer">Connect</button>
+</div>
+<div style="border:1px solid var(--line2);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:190px" style-hover="border-color:var(--txt);background:var(--surf2)">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:9px;background:var(--bg2);flex:none"></span><span style="font:600 15px/1 var(--ui)">Connect Instagram</span></div>
+<p style="margin:0;font:400 13px/1.55 var(--ui);color:var(--txt2)">Reels you own, plus available insights. Best with a professional account.</p>
+<div style="font:400 11.5px/1.7 var(--mono);color:var(--txt3)">your own media only<br>personal accounts: limited</div>
+<button type="button" style="margin-top:auto;min-height:44px;border:none;border-radius:13px;background:var(--btn);color:var(--btnT);font:500 13px/1 var(--ui);cursor:pointer">Connect</button>
+</div>
+<div style="border:1.5px solid var(--acc);background:var(--accS);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:190px">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:9px;background:var(--surf);flex:none"></span><span style="font:600 15px/1 var(--ui)">Import files</span><span style="margin-left:auto;font:500 10.5px/1 var(--mono);padding:4px 7px;border-radius:5px;background:var(--surf);color:var(--accT)">FASTEST</span></div>
+<p style="margin:0;font:400 13px/1.55 var(--ui);color:var(--accT)">Drop videos, voice notes, stems, lyrics or references. No account needed.</p>
+<div style="font:400 11.5px/1.7 var(--mono);color:var(--accT)">mp4 · mov · mp3 · wav · pdf · txt<br>three representative pieces is enough</div>
+<button type="button" style="margin-top:auto;min-height:44px;border:none;border-radius:13px;background:var(--btn);color:var(--btnT);font:500 13px/1 var(--ui);cursor:pointer">Choose files</button>
+</div>
+<div style="border:1px dashed var(--line2);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:190px">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:9px;border:1px solid var(--line2);flex:none"></span><span style="font:600 15px/1 var(--ui);color:var(--txt2)">Describe myself instead</span></div>
+<p style="margin:0;font:400 13px/1.55 var(--ui);color:var(--txt2)">Fill the profile by hand. Lower confidence at first — it sharpens as you accept or reject work.</p>
+<button type="button" style="margin-top:auto;min-height:44px;border:1px solid var(--line2);border-radius:13px;background:transparent;color:var(--txt);font:500 13px/1 var(--ui);cursor:pointer">Continue manually</button>
+</div>
+</div>
+<p style="margin:0;font:400 11.5px/1.7 var(--mono);color:var(--txt3);max-width:560px">Imported media builds your profile and nothing else. Delete a source and everything derived from it goes with it.</p>
+</div>
+</div>
+</div>
+
+<div id="1i" style="display:flex;flex-direction:column;gap:12px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+<a href="#1i" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">1i</a>
+<span style="font:600 15px/1.3 var(--ui)">Upload queue · marking what represents you</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">analysis runs in seconds — no waiting screen</span>
+</div>
+<div data-screen-label="Upload queue" style="width:860px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="height:58px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 22px">
+<span style="width:22px;height:22px;border-radius:7px;background:var(--btn);flex:none"></span>
+<span style="font:600 13.5px/1 var(--ui)">Import files</span>
+<div style="margin-left:auto;display:flex;align-items:center;gap:12px;min-width:280px">
+<div style="flex:1;height:6px;border-radius:3px;background:var(--bg2);overflow:hidden"><div style="width:50%;height:100%;background:var(--acc);border-radius:3px"></div></div>
+<span style="font:500 11px/1 var(--mono);color:var(--txt2);white-space:nowrap;font-variant-numeric:tabular-nums">50% · step 3 of 6</span>
+</div>
+</div>
+<div style="padding:26px 30px 32px;display:flex;flex-direction:column;gap:18px">
+<div style="border:1px dashed var(--line2);border-radius:18px;padding:22px;display:flex;align-items:center;gap:18px;background:var(--surf2)">
+<span style="width:44px;height:44px;border-radius:12px;background:var(--bg2);flex:none"></span>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font:500 14px/1 var(--ui)">Drop more anywhere on this panel</span><span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">or paste a link · mp4 mov webm mp3 wav png jpg pdf txt</span></div>
+<button type="button" style="margin-left:auto;min-height:40px;padding:0 14px;border:1px solid var(--line2);border-radius:12px;background:var(--surf);color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Browse</button>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:14px">
+<image-slot id="c2-up1" style="width:46px;height:64px;flex:none" radius="8" placeholder=""></image-slot>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><span style="font:500 13px/1 var(--ui)">warehouse_session_01.mov</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">0:41 · 62 MB · analysed</span></div>
+<div style="display:flex;gap:6px"><span style="font:500 11px/1 var(--ui);padding:7px 10px;border-radius:999px;background:var(--sigS);color:var(--sigT)">very representative</span><span style="font:500 11px/1 var(--ui);padding:7px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--txt3)">not my style</span></div>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:14px">
+<image-slot id="c2-up2" style="width:46px;height:64px;flex:none" radius="8" placeholder=""></image-slot>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><span style="font:500 13px/1 var(--ui)">reel_tape_loop.mp4</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">0:29 · 38 MB · analysing…</span><div style="height:3px;border-radius:2px;background:var(--line);overflow:hidden;max-width:220px"><div style="width:70%;height:100%;background:var(--acc)"></div></div></div>
+<span style="font:400 11px/1 var(--mono);color:var(--txt3)">~4 s</span>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:14px">
+<span style="width:46px;height:64px;border-radius:8px;background:var(--bg2);flex:none;display:flex;align-items:center;justify-content:center;font:400 9px/1 var(--mono);color:var(--txt3)">WAV</span>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><span style="font:500 13px/1 var(--ui)">voicenote_hook_ideas.wav</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">2:12 · 21 MB · analysed</span></div>
+<span style="font:500 11px/1 var(--ui);padding:7px 10px;border-radius:999px;background:var(--bg2);color:var(--txt2)">reference only</span>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--neg);border-radius:14px;background:var(--negS)">
+<span style="width:46px;height:64px;border-radius:8px;background:var(--surf);flex:none;display:flex;align-items:center;justify-content:center;font:400 9px/1 var(--mono);color:var(--neg)">AVI</span>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font:500 13px/1 var(--ui);color:var(--negT)">liveset_2019.avi</span><span style="font:400 11px/1.4 var(--ui);color:var(--negT)">Container not supported. Convert to MP4, or drop the audio track instead.</span></div>
+<button type="button" style="min-height:36px;padding:0 12px;border:1px solid var(--neg);border-radius:10px;background:transparent;color:var(--negT);font:500 12px/1 var(--ui);cursor:pointer">Remove</button>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding-top:4px">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font:500 13px/1 var(--ui)">2 of 3 representative pieces marked</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">three gives a noticeably sharper first profile</span></div>
+<button type="button" style="margin-left:auto;min-height:46px;padding:0 20px;border:none;border-radius:14px;background:var(--btn);color:var(--btnT);font:500 13.5px/1 var(--ui);cursor:pointer">Review my profile</button>
+</div>
+</div>
+</div>
+<sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}">
+<div style="width:860px;display:flex;gap:22px;flex-wrap:wrap;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">
+<p style="margin:0;flex:1 1 230px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc)">01 </span>A real progress bar with a percentage replaces the step dashes, in the same place on every onboarding step.</p>
+<p style="margin:0;flex:1 1 230px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc)">02 </span>The multi-minute analysis screen is gone: files analyse inline in seconds, then the primary action goes straight to the profile review.</p>
+<p style="margin:0;flex:1 1 230px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc)">03 </span>An unsupported file fails in its own row with a way out, and never blocks the queue.</p>
+</div>
+</sc-if>
+</div>
+
+</div>
+
+<div id="1k" style="display:flex;flex-direction:column;gap:12px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+<a href="#1k" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">1k</a>
+<span style="font:600 15px/1.3 var(--ui)">Creator DNA · 14 dimensions, no version numbers</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">default view: ID cards · tree as second tab</span>
+</div>
+<div style="display:flex;gap:24px;align-items:flex-start">
+<div data-screen-label="Creator DNA" style="width:1280px;flex:none;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden;display:flex;flex-direction:column">
+
+<div style="padding:22px 26px;border-bottom:1px solid var(--line);display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:7px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">ADN ARTISTIQUE ET CRÉATIF</span>
+<h2 style="margin:0;font:600 26px/1.15 var(--ui);letter-spacing:-.02em">Nova Sainte</h2>
+<span style="font:400 12px/1 var(--mono);color:var(--txt3)">artiste musicale · indie electronic · FR / EN · 14 dimensions renseignées</span>
+</div>
+<div style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:5px;border-radius:999px;background:var(--bg2)">
+<span style="font:500 12px/1 var(--ui);padding:9px 13px;border-radius:999px;background:var(--acc);color:#fff">ID cards</span>
+<span style="font:500 12px/1 var(--ui);padding:9px 13px;border-radius:999px;background:var(--surf);color:var(--txt2)">Tree</span>
+</div>
+<button type="button" style="min-height:38px;padding:0 13px;border:1px solid var(--line2);border-radius:11px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Export JSON</button>
+</div>
+
+<div style="display:flex;align-items:stretch">
+<div style="flex:1;min-width:0;padding:22px 26px 30px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;background:var(--btn);color:var(--btnT)">Tout · 14</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Observé 7</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Déclaré 4</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Appris 2</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--neg);color:var(--neg)">Interdit 1</span>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:20px;background:var(--surf2);padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:10px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">VUE ARBORESCENTE · RÉSUMÉ</span>
+<span style="font:400 11px/1 var(--mono);color:var(--txt3)">l'identité en un coup d'œil, avant le détail</span>
+<button type="button" style="margin-left:auto;min-height:34px;padding:0 11px;border:1px solid var(--line2);border-radius:10px;background:var(--surf);color:var(--txt2);font:500 11.5px/1 var(--ui);cursor:pointer">Réduire</button>
+</div>
+<div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:3px;background:var(--txt);flex:none"></span><span style="font:600 13.5px/1 var(--ui)">Nova Sainte</span><span style="font:400 10px/1 var(--mono);color:var(--txt3)">artiste musicale · indie electronic</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+<div style="min-width:0;padding-left:13px;border-left:2px solid var(--acc);display:flex;flex-direction:column;gap:6px">
+<span style="font:500 12.5px/1 var(--ui)">Direction artistique</span>
+<span style="font:400 12px/1.5 var(--ui);color:var(--txt2)">Palettes — gris froids<br>Matières — béton, vinyle<br>Lumières — rasante<br>Époque — grain 70s</span>
+</div>
+<div style="min-width:0;padding-left:13px;border-left:2px solid var(--acc);display:flex;flex-direction:column;gap:6px">
+<span style="font:500 12.5px/1 var(--ui)">Ligne éditoriale</span>
+<span style="font:400 12px/1.5 var(--ui);color:var(--txt2)">Thèmes — mémoire, nuit<br>Narration — intime<br>Émotions — nostalgie<br>Objectifs — faire ressentir</span>
+</div>
+<div style="min-width:0;padding-left:13px;border-left:2px solid var(--g40);display:flex;flex-direction:column;gap:6px">
+<span style="font:500 12.5px/1 var(--ui)">Métier</span>
+<span style="font:400 12px/1.5 var(--ui);color:var(--txt2)">Genres — downtempo, dub<br>Outils — MPC, Ableton<br>Formats — shorts d'atelier<br>Public — diggers FR / EN</span>
+</div>
+<div style="min-width:0;padding-left:13px;border-left:2px solid var(--neg);display:flex;flex-direction:column;gap:6px">
+<span style="font:500 12.5px/1 var(--ui);color:var(--neg)">Limites</span>
+<span style="font:400 12px/1.5 var(--ui);color:var(--txt2)">pas de danse<br>pas de clone vocal<br>pas de fausse urgence<br>pas de face-cam</span>
+</div>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--surf)">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">OBSERVÉ</span><span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--txt3)">élevée</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Disciplines et médiums</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">production musicale</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">sampling</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">vidéo DIY</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">photo argentique</span>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">OBSERVÉ</span><span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--txt3)">élevée</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Signature créative</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Boucles tape jamais quantisées, plans fixes serrés sur les mains, silence avant le drop, gestes visibles plutôt que paroles.</p>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">OBSERVÉ</span><span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--txt3)">moyenne</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Direction artistique</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">gris froids</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">lumière rasante</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">béton, vinyle</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">grain 70s</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">typo minimale</span>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">DÉCLARÉ</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Thèmes</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">mémoire</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">nuit urbaine</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">artisanat</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">solitude douce</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">technologie tangible</span>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--accS);color:var(--accT);letter-spacing:.06em">APPRIS</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Émotions</span>
+<div style="display:flex;flex-direction:column;gap:7px">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:74px;flex:none;font:400 11px/1 var(--ui);color:var(--txt2)">nostalgie</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:88%;height:100%;background:var(--acc)"></span></span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="width:74px;flex:none;font:400 11px/1 var(--ui);color:var(--txt2)">apaisement</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:74%;height:100%;background:var(--acc)"></span></span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="width:74px;flex:none;font:400 11px/1 var(--ui);color:var(--txt2)">fascination</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:63%;height:100%;background:var(--acc)"></span></span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="width:74px;flex:none;font:400 11px/1 var(--ui);color:var(--txt2)">tension</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:34%;height:100%;background:var(--g40)"></span></span></div>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">DÉCLARÉ</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Valeurs et intentions</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">authenticité</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">transmission</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">expérimentation</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">accessibilité</span>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">OBSERVÉ</span><span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--txt3)">élevée</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Narration et tonalité</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Intime et documentaire, contemplative, sans commentaire parlé. Jamais provocatrice, jamais pédagogique.</p>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">OBSERVÉ</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Formats de création</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">titres musicaux</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">shorts d'atelier</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">clips courts</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">live tape</span>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">DÉCLARÉ</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Processus et outils</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">MPC, Ableton, quatre-pistes cassette. Montage minimal. L'IA sert à l'idéation, jamais à la voix ni à l'image finale.</p>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">DÉCLARÉ</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Références culturelles</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">dub jamaïcain</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">krautrock</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">library music 70s</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">cinéma nocturne</span>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">OBSERVÉ</span><span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--txt3)">moyenne</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Public recherché</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Diggers et producteurs débutants, 18–34, FR et EN, découverte sur TikTok puis Reels. Villes, écoute au casque, la nuit.</p>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">DÉCLARÉ</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Relation avec la communauté</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Proche mais peu bavarde. Coulisses oui, co-création sur les remix, pas de réponses en direct.</p>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--accS);color:var(--accT);letter-spacing:.06em">APPRIS</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Objectifs créatifs</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Faire ressentir avant d'expliquer. Faire découvrir le sampling. Fédérer une petite communauté fidèle plutôt que convertir.</p>
+</div>
+
+<div style="border:1px solid var(--neg);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--negS)">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--surf);color:var(--negT);letter-spacing:.06em">INTERDIT</span><span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--negT)">jamais contourné</span></div>
+<span style="font:600 14.5px/1.25 var(--ui);color:var(--negT)">Limites et contre-références</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--surf);color:var(--negT)">pas de danse</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--surf);color:var(--negT)">pas de clone vocal</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--surf);color:var(--negT)">pas de fausse urgence</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--surf);color:var(--negT)">pas de face-cam</span>
+</div>
+<span style="font:400 10.5px/1.4 var(--mono);color:var(--negT)">4 opportunités filtrées cette semaine</span>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;grid-column:span 2">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">OBSERVÉ</span><span style="font:400 10px/1 var(--mono);color:var(--txt3)">spécifique aux artistes musicaux</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Genres musicaux, en détail</span>
+<div style="display:flex;gap:18px;flex-wrap:wrap">
+<div style="flex:1 1 200px;display:flex;flex-direction:column;gap:7px">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:110px;flex:none;font:400 11.5px/1 var(--ui)">downtempo / trip-hop</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:82%;height:100%;background:var(--acc)"></span></span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="width:110px;flex:none;font:400 11.5px/1 var(--ui)">dub techno</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:64%;height:100%;background:var(--acc)"></span></span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="width:110px;flex:none;font:400 11.5px/1 var(--ui)">lo-fi house</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:52%;height:100%;background:var(--acc)"></span></span></div>
+</div>
+<div style="flex:1 1 200px;display:flex;flex-direction:column;gap:7px">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:110px;flex:none;font:400 11.5px/1 var(--ui)">ambient tape</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:48%;height:100%;background:var(--acc)"></span></span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="width:110px;flex:none;font:400 11.5px/1 var(--ui)">boom bap instr.</span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:36%;height:100%;background:var(--g40)"></span></span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="width:110px;flex:none;font:400 11.5px/1 var(--ui)">jungle <span style="color:var(--txt3);font-family:var(--mono);font-size:10px">à explorer</span></span><span style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:14%;height:100%;background:var(--g40)"></span></span></div>
+</div>
+</div>
+<div style="display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:11px;font:400 11.5px/1.5 var(--mono);color:var(--txt3)">
+<span>BPM 78–96</span><span>tonalités mineures</span><span>voix rare, traitée</span><span>durées 2:40 médiane</span>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2);letter-spacing:.06em">DÉCLARÉ</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Vie hors création</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">chine de vinyles</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">cuisine</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">vélo de nuit</span>
+<span style="font:400 11.5px/1 var(--ui);padding:6px 9px;border-radius:8px;background:var(--bg2)">marchés aux puces</span>
+</div>
+<span style="font:400 10.5px/1.5 var(--mono);color:var(--txt3)">source des angles hors-musique</span>
+</div>
+
+<div style="border:1px dashed var(--line2);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;grid-column:span 3">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">MOTIFS UNIVERSELS · APPLICABLES À TOUTE DISCIPLINE</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<span style="font:500 12px/1 var(--ui);padding:8px 11px;border-radius:999px;background:var(--accS);color:var(--accT)">transformation d'un objet banal</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 11px;border-radius:999px;background:var(--accS);color:var(--accT)">maîtrise visible</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 11px;border-radius:999px;background:var(--accS);color:var(--accT)">avant / après</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 11px;border-radius:999px;background:var(--bg2);color:var(--txt2)">secret révélé</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 11px;border-radius:999px;background:var(--bg2);color:var(--txt2)">rituel répété</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 11px;border-radius:999px;background:var(--bg2);color:var(--txt2)">contrainte auto-imposée</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 11px;border-radius:999px;border:1px dashed var(--line2);color:var(--txt3)">confrontation · écarté</span>
+</div>
+<span style="font:400 11px/1.5 var(--mono);color:var(--txt3)">Ces motifs traversent les niches — c'est par eux que passent les opportunités cross-sector.</span>
+</div>
+
+</div>
+</div>
+
+<div style="width:320px;flex:none;border-left:1px solid var(--line);background:var(--surf2);padding:22px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:11px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">MÉMOIRE PROPOSÉE</span><span style="margin-left:auto;font:400 10.5px/1 var(--mono);color:var(--txt3)">2</span></div>
+<div style="border:1px solid var(--line);background:var(--surf);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px">
+<p style="margin:0;font:400 13px/1.5 var(--ui)">"Ne jamais proposer d'insert face caméra."</p>
+<div style="font:400 10.5px/1.5 var(--mono);color:var(--txt3)">portée : prochaines créations · depuis le chat</div>
+<div style="display:flex;gap:6px"><button type="button" style="flex:1;min-height:36px;border:none;border-radius:10px;background:var(--btn);color:var(--btnT);font:500 12px/1 var(--ui);cursor:pointer">Accepter</button><button type="button" style="min-height:36px;padding:0 11px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--txt2);font:500 12px/1 var(--ui);cursor:pointer">Refuser</button></div>
+</div>
+<div style="border:1px solid var(--line);background:var(--surf);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px">
+<p style="margin:0;font:400 13px/1.5 var(--ui)">"Préfère les CTA implicites."</p>
+<div style="font:400 10.5px/1.5 var(--mono);color:var(--txt3)">portée : ce projet · depuis 5 modifications</div>
+<div style="display:flex;gap:6px"><button type="button" style="flex:1;min-height:36px;border:none;border-radius:10px;background:var(--btn);color:var(--btnT);font:500 12px/1 var(--ui);cursor:pointer">Accepter</button><button type="button" style="min-height:36px;padding:0 11px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--txt2);font:500 12px/1 var(--ui);cursor:pointer">Refuser</button></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:11px;border-top:1px solid var(--line);padding-top:18px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">HISTORIQUE DES CHANGEMENTS</span>
+<div style="display:flex;flex-direction:column;gap:0">
+<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)"><span style="width:6px;height:6px;border-radius:50%;background:var(--neg);flex:none;margin-top:5px"></span><div style="flex:1;font:400 12px/1.5 var(--ui);color:var(--txt2)">Limite ajoutée · pas de face-cam<br><span style="font:400 10px/1.4 var(--mono);color:var(--txt3)">1 août · par vous · annulable</span></div></div>
+<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)"><span style="width:6px;height:6px;border-radius:50%;background:var(--acc);flex:none;margin-top:5px"></span><div style="flex:1;font:400 12px/1.5 var(--ui);color:var(--txt2)">Émotions recalibrées · tension ↓<br><span style="font:400 10px/1.4 var(--mono);color:var(--txt3)">28 juil · appris, 4 confirmations</span></div></div>
+<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)"><span style="width:6px;height:6px;border-radius:50%;background:var(--acc);flex:none;margin-top:5px"></span><div style="flex:1;font:400 12px/1.5 var(--ui);color:var(--txt2)">Objectifs créatifs précisés<br><span style="font:400 10px/1.4 var(--mono);color:var(--txt3)">24 juil · appris</span></div></div>
+<div style="display:flex;gap:11px;padding:10px 0"><span style="width:6px;height:6px;border-radius:50%;background:var(--g40);flex:none;margin-top:5px"></span><div style="flex:1;font:400 12px/1.5 var(--ui);color:var(--txt2)">Profil confirmé à l'onboarding<br><span style="font:400 10px/1.4 var(--mono);color:var(--txt3)">11 juil · par vous</span></div></div>
+</div>
+<button type="button" style="min-height:38px;border:1px solid var(--line2);border-radius:11px;background:var(--surf);color:var(--txt);font:500 12px/1 var(--ui);cursor:pointer">Tout l'historique</button>
+</div>
+<p style="margin:auto 0 0;font:400 11px/1.6 var(--mono);color:var(--txt3);border-top:1px solid var(--line);padding-top:16px">Chaque changement est réversible individuellement. Pas de numéros de version : on annule un changement, pas un état.</p>
+</div>
+</div>
+</div>
+
+<sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}">
+<div style="width:250px;flex:none;display:flex;flex-direction:column;gap:14px;padding-top:6px">
+<div style="font:500 10.5px/1 var(--mono);color:var(--txt3);letter-spacing:.08em">NOTES</div>
+<div style="display:flex;gap:9px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc);flex:none">01</span><p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Versions are gone. The rail is a reversible change log — "undo this change", never "roll back to v3".</p></div>
+<div style="display:flex;gap:9px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc);flex:none">02</span><p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Art direction and editorial guidance are now separate dimensions: Direction artistique holds palettes, matières and lumières; Narration, Thèmes, Valeurs and Objectifs hold the editorial line.</p></div>
+<div style="display:flex;gap:9px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc);flex:none">03</span><p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Confidence is a word (élevée / moyenne / faible), not a decimal. Only intensities that are genuinely comparative get a bar.</p></div>
+<div style="display:flex;gap:9px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc);flex:none">04</span><p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Discipline-specific detail (genres, BPM, tonalités) sits in its own wide card, so the same layout serves an illustrator or a filmmaker.</p></div>
+<div style="display:flex;gap:9px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc);flex:none">05</span><p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Universal patterns are the bridge to cross-sector opportunities, with rejected ones kept visible and dashed.</p></div>
+</div>
+</sc-if>
+</div>
+</div>
+
+<div id="1k-viz" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+<a href="#1k-viz" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">1k · viz</a>
+<span style="font:600 15px/1.3 var(--ui)">Two views, both shipped</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">ID cards by default, tree as the second tab — spider web and nodes dropped</span>
+</div>
+<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
+
+<div style="width:400px;flex:none;background:var(--surf);border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh);padding:20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:500 10px/1 var(--mono);padding:4px 7px;border-radius:5px;background:var(--btn);color:var(--btnT)">Tab 2</span><span style="font:600 14.5px/1 var(--ui)">Tree · from identity to detail</span></div>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Hierarchy first: identity, then the two branches that actually drive generation. Scales to any discipline.</p>
+<div style="display:flex;flex-direction:column;gap:0;font:400 12.5px/1.4 var(--ui)">
+<div style="display:flex;align-items:center;gap:9px;padding:9px 0"><span style="width:9px;height:9px;border-radius:3px;background:var(--txt);flex:none"></span><span style="font:600 13px/1 var(--ui)">Nova Sainte</span><span style="font:400 10px/1 var(--mono);color:var(--txt3)">artiste musicale</span></div>
+<div style="padding-left:14px;border-left:1px solid var(--line2);display:flex;flex-direction:column;gap:0">
+<div style="display:flex;align-items:center;gap:9px;padding:8px 0"><span style="width:7px;height:7px;border-radius:2px;background:var(--acc);flex:none"></span><span style="font:500 12.5px/1 var(--ui)">Direction artistique</span></div>
+<div style="padding-left:16px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:5px;padding-bottom:8px">
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Palettes — gris froids, néon rare</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Matières — béton, vinyle, cassette</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Lumières — rasante, une source</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Époque — grain 70s samplé</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt3)">Typographies — minimale, bas de casse</span>
+</div>
+<div style="display:flex;align-items:center;gap:9px;padding:8px 0"><span style="width:7px;height:7px;border-radius:2px;background:var(--acc);flex:none"></span><span style="font:500 12.5px/1 var(--ui)">Ligne éditoriale</span></div>
+<div style="padding-left:16px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:5px;padding-bottom:8px">
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Thèmes — mémoire, nuit, artisanat</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Narration — intime, documentaire</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Émotions — nostalgie, apaisement</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Objectifs — faire ressentir, transmettre</span>
+</div>
+<div style="display:flex;align-items:center;gap:9px;padding:8px 0"><span style="width:7px;height:7px;border-radius:2px;background:var(--g40);flex:none"></span><span style="font:500 12.5px/1 var(--ui)">Métier</span></div>
+<div style="padding-left:16px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:5px;padding-bottom:8px">
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Genres — downtempo, dub techno…</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Outils — MPC, Ableton, 4-pistes</span>
+<span style="font:400 12px/1.4 var(--ui);color:var(--txt2)">Formats — shorts d'atelier, clips</span>
+</div>
+<div style="display:flex;align-items:center;gap:9px;padding:8px 0"><span style="width:7px;height:7px;border-radius:2px;background:var(--neg);flex:none"></span><span style="font:500 12.5px/1 var(--ui);color:var(--neg)">Limites</span><span style="font:400 10px/1 var(--mono);color:var(--txt3)">4 règles dures</span></div>
+</div>
+</div>
+</div>
+
+<div style="width:400px;flex:none;background:var(--surf);border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh);padding:20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:500 10px/1 var(--mono);padding:4px 7px;border-radius:5px;background:var(--acc);color:#fff">Tab 1 · default</span><span style="font:600 14.5px/1 var(--ui)">ID cards</span></div>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">La vue par défaut de <a href="#1k">1k</a>. Every dimension is editable in place, carries its source and confidence, and holds long text without compromise.</p>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--bg2);color:var(--txt2)">OBSERVÉ</span><span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--txt3)">confiance élevée</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Signature créative</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Boucles tape jamais quantisées, plans fixes serrés sur les mains, silence avant le drop.</p>
+<div style="display:flex;gap:6px"><button type="button" style="min-height:34px;padding:0 11px;border:1px solid var(--line2);border-radius:9px;background:transparent;color:var(--txt);font:500 11.5px/1 var(--ui);cursor:pointer">Corriger</button><button type="button" style="min-height:34px;padding:0 11px;border:1px solid var(--line2);border-radius:9px;background:transparent;color:var(--txt2);font:500 11.5px/1 var(--ui);cursor:pointer">Oublier</button></div>
+</div>
+<div style="border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:9px;opacity:.6">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:500 9.5px/1 var(--mono);padding:4px 6px;border-radius:5px;background:var(--accS);color:var(--accT)">APPRIS</span><span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--txt3)">confiance moyenne</span></div>
+<span style="font:600 14.5px/1.25 var(--ui)">Émotions</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Nostalgie dominante, apaisement, fascination. Tension en recul.</p>
+</div>
+</div>
+<div style="font:400 10.5px/1.5 var(--mono);color:var(--txt3);border-top:1px solid var(--line);padding-top:11px">Les deux vues partagent la même donnée : éditer ici met à jour l'arbre.</div>
+</div>
+
+</div>
+</div>
+
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startInDark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#6d94ab&quot;,&quot;options&quot;:[&quot;#6d94ab&quot;,&quot;#7a8fb5&quot;,&quot;#5f9c98&quot;,&quot;#8b8ba8&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;signal&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#c9db63&quot;,&quot;options&quot;:[&quot;#c9db63&quot;,&quot;#d9d15f&quot;,&quot;#a8cf7a&quot;,&quot;#e0b45c&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;showAnnotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Catalog&quot;}}">
+class Component extends DCLogic {
+  state = { dark: false };
+  componentDidMount() {
+    const stored = localStorage.getItem('creonome-theme');
+    const dark = stored ? stored === 'dark' : !!this.props.startInDark;
+    this.apply(dark);
+    this.setState({ dark });
+    this.paint();
+  }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const r = document.documentElement;
+    if (this.props.accent) r.style.setProperty('--acc', this.props.accent);
+    if (this.props.signal) r.style.setProperty('--sig', this.props.signal);
+  }
+  apply(dark) { document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light'); }
+  renderVals() {
+    return {
+      notes: this.props.showAnnotations ?? true,
+      themeLabel: this.state.dark ? 'Dark' : 'Light',
+      toggleTheme: () => {
+        const dark = !this.state.dark;
+        this.apply(dark);
+        try { localStorage.setItem('creonome-theme', dark ? 'dark' : 'light'); } catch (e) {}
+        this.setState({ dark });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

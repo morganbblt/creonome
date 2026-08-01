@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+:root{
+--ui:'Geist',system-ui,-apple-system,sans-serif;
+--mono:'Geist Mono',ui-monospace,Menlo,monospace;
+--g05:#f6f7f9;--g10:#eceef1;--g20:#dfe3e8;--g30:#cbd1d9;--g40:#aab3be;--g50:#8a94a1;--g60:#68727f;--g70:#4b545f;--g80:#2f363f;--g90:#1a1f26;--g95:#0f1318;
+--bg:#f2f4f6;--bg2:#e8ebef;--surf:#ffffff;--surf2:#f8f9fb;
+--txt:#12161c;--txt2:#5b6470;--txt3:#8a939f;
+--line:#e3e7eb;--line2:#d2d8df;
+--acc:#6d94ab;--accS:#e7eff4;--accT:#2b4757;
+--sig:#c9db63;--sigS:#f2f6dd;--sigT:#3e4a12;
+--neg:#bd4239;--negS:#fbecea;--negT:#7d251e;
+--btn:#12161c;--btnT:#ffffff;
+--sh:0 1px 2px rgba(16,20,28,.04),0 10px 28px -14px rgba(16,20,28,.12);
+--shL:0 1px 2px rgba(16,20,28,.05),0 24px 60px -24px rgba(16,20,28,.22);
+--glass:rgba(255,255,255,.72);
+}
+[data-theme=dark]{
+--bg:#0d0f12;--bg2:#15181c;--surf:#171a1f;--surf2:#1c2026;
+--txt:#f1f3f5;--txt2:#a3acb6;--txt3:#6e7883;
+--line:#272c33;--line2:#343a42;
+--acc:#5e8ca6;--accS:#1a262e;--accT:#cde0ea;
+--sig:#a9bc4f;--sigS:#232910;--sigT:#dfeaa9;
+--neg:#d05b51;--negS:#2a1614;--negT:#f0bdb7;
+--btn:#f1f3f5;--btnT:#12161c;
+--sh:0 1px 2px rgba(0,0,0,.5),0 12px 30px -16px rgba(0,0,0,.7);
+--shL:0 1px 2px rgba(0,0,0,.5),0 28px 70px -28px rgba(0,0,0,.85);
+--glass:rgba(28,32,38,.72);
+}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--ui);-webkit-font-smoothing:antialiased}
+a{color:var(--acc)}a:hover{color:var(--txt)}
+image-slot{--is-bg:var(--bg2)}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:.9}}
+[data-reveal]{opacity:0;max-height:0;overflow:hidden;transition:opacity .18s ease,max-height .26s ease}
+[data-card]:hover [data-reveal]{opacity:1;max-height:760px}
+[data-reveal=open]{opacity:1;max-height:760px}
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;gap:0;padding:0 0 80px">
+
+<div style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 44px;background:var(--glass);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)">
+<div style="display:flex;align-items:baseline;gap:12px">
+<span style="font:600 14px/1 var(--ui);letter-spacing:-.01em">Creonome</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Screen catalog · v2 · MVP scope</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px">
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">{{ themeLabel }} mode</span>
+<button type="button" onClick="{{ toggleTheme }}" style="font:500 12px/1 var(--ui);padding:9px 14px;border-radius:999px;border:1px solid var(--line2);background:var(--surf);color:var(--txt);cursor:pointer;min-height:36px" style-hover="background:var(--bg2);border-color:var(--txt3)">Switch theme</button>
+</div>
+<div style="display:flex;align-items:center;gap:6px;padding:4px;border-radius:999px;background:var(--bg2);margin-left:20px"><a href="Creonome%20Catalog%20-%201%20Core%20loop.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">1 · Core loop</a><a href="Creonome%20Catalog%20-%202%20Profile%20-%20DNA.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">2 · Profile & DNA</a><a href="Creonome%20Catalog%20-%203%20Ops-%20mobile%20-%20states.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--acc);color:#fff">3 · Ops, mobile & states</a><a href="Creonome%20Catalog%20-%204%20Management%20screens.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">4 · Management</a></div>
+</div>
+
+<section style="padding:36px 44px 0;display:flex;flex-direction:column;gap:56px">
+<div id="1l" style="display:flex;flex-direction:column;gap:12px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+<a href="#1l" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">1l</a>
+<span style="font:600 15px/1.3 var(--ui)">Credits · ledger · plan</span>
+</div>
+<div style="display:flex;gap:24px;align-items:flex-start">
+<div data-screen-label="Credits" style="width:1000px;flex:none;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="padding:26px 28px;display:flex;gap:26px;border-bottom:1px solid var(--line);align-items:flex-start">
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">BALANCE</span>
+<div style="display:flex;align-items:flex-end;gap:9px"><span style="font:500 46px/1 var(--mono);letter-spacing:-.03em;font-variant-numeric:tabular-nums">14</span><span style="font:400 13px/1 var(--ui);color:var(--txt3);padding-bottom:6px">credits</span></div>
+<span style="font:400 11px/1.5 var(--mono);color:var(--txt3)">4 held on a running job · resets 1 Sep</span>
+</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;padding-left:26px;border-left:1px solid var(--line)">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">WHAT 14 BUYS</span>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<span style="font:400 12px/1 var(--ui);padding:9px 12px;border-radius:11px;background:var(--bg2)">7 scripts</span>
+<span style="font:400 12px/1 var(--ui);padding:9px 12px;border-radius:11px;background:var(--bg2)">2 storyboards</span>
+<span style="font:400 12px/1 var(--ui);padding:9px 12px;border-radius:11px;background:var(--bg2)">4 new batches</span>
+<span style="font:400 12px/1 var(--ui);padding:9px 12px;border-radius:11px;border:1px dashed var(--line2);color:var(--txt3)">1 full video · needs 17</span>
+</div>
+<span style="font:400 11px/1.5 var(--mono);color:var(--txt3)">Changes made in the chat never cost credits.</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:7px;flex:none">
+<button type="button" style="min-height:44px;padding:0 18px;border:none;border-radius:13px;background:var(--btn);color:var(--btnT);font:500 13px/1 var(--ui);cursor:pointer">Buy credits</button>
+<button type="button" style="min-height:40px;padding:0 18px;border:1px solid var(--line2);border-radius:13px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Change plan</button>
+<span style="font:400 10.5px/1.4 var(--mono);color:var(--txt3);text-align:center">Studio · 60 cr / mo</span>
+</div>
+</div>
+<div style="padding:22px 28px 28px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">LEDGER</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">immutable · every movement receipted</span><button type="button" style="margin-left:auto;min-height:34px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--txt2);font:500 11.5px/1 var(--ui);cursor:pointer">Export CSV</button></div>
+<div style="display:flex;flex-direction:column;font:400 12.5px/1 var(--mono)">
+<div style="display:grid;grid-template-columns:96px 1fr 130px 92px 64px;gap:12px;padding:9px 0;border-bottom:1px solid var(--line2);font-size:10px;color:var(--txt3);letter-spacing:.06em"><span>DATE</span><span>REASON</span><span>TYPE</span><span>JOB</span><span style="text-align:right">AMOUNT</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr 130px 92px 64px;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);color:var(--txt2);align-items:center"><span>1 Aug 14:02</span><span style="font-family:var(--ui);font-size:13px;color:var(--txt)">Storyboard · Warehouse tape loop</span><span>reservation</span><span>job_789</span><span style="text-align:right;font-variant-numeric:tabular-nums">−4</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr 130px 92px 64px;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);color:var(--txt2);align-items:center"><span>1 Aug 12:40</span><span style="font-family:var(--ui);font-size:13px;color:var(--txt)">Script · Flip the crate find</span><span>commit</span><span>job_781</span><span style="text-align:right;font-variant-numeric:tabular-nums">−2</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr 130px 92px 64px;gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);align-items:center;background:var(--sigS);border-radius:8px"><span style="color:var(--sigT)">1 Aug 11:58</span><span style="font-family:var(--ui);font-size:13px;color:var(--sigT)">Music bed failed · provider quota</span><span style="color:var(--sigT)">refund</span><span style="color:var(--sigT)">job_776</span><span style="text-align:right;color:var(--sigT);font-variant-numeric:tabular-nums">+2</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr 130px 92px 64px;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);color:var(--txt2);align-items:center"><span>1 Aug 09:15</span><span style="font-family:var(--ui);font-size:13px;color:var(--txt)">New batch of 3 opportunities</span><span>commit</span><span>job_770</span><span style="text-align:right;font-variant-numeric:tabular-nums">−3</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr 130px 92px 64px;gap:12px;padding:11px 0;color:var(--txt2);align-items:center"><span>1 Aug 00:00</span><span style="font-family:var(--ui);font-size:13px;color:var(--txt)">Monthly grant · Studio</span><span>grant</span><span>—</span><span style="text-align:right;font-variant-numeric:tabular-nums">+60</span></div>
+</div>
+</div>
+</div>
+<sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}">
+<div style="width:250px;flex:none;display:flex;flex-direction:column;gap:14px;padding-top:6px">
+<div style="font:500 10.5px/1 var(--mono);color:var(--txt3);letter-spacing:.08em">NOTES</div>
+<div style="display:flex;gap:9px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc);flex:none">01</span><p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">"What 14 buys" turns an abstract number into decisions; the unaffordable option stays visible, dashed, with its price.</p></div>
+<div style="display:flex;gap:9px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc);flex:none">02</span><p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">The ledger reads as a ledger: mono, tabular figures, immutable rows. A refund is the one lime row.</p></div>
+</div>
+</sc-if>
+</div>
+</div>
+
+<div id="1m" style="display:flex;flex-direction:column;gap:12px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+<a href="#1m" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">1m</a>
+<span style="font:600 15px/1.3 var(--ui)">Mobile · the core loop</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">390 × 844 · tap to disclose instead of hover</span>
+</div>
+<div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap">
+
+<div data-screen-label="Mobile Today" style="width:390px;height:844px;flex:none;background:var(--surf);border:1px solid var(--line2);border-radius:44px;box-shadow:var(--shL);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:52px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 6px;font:500 12.5px/1 var(--ui)"><span>9:41</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt2)">▮▮▮ ⌁</span></div>
+<div style="padding:8px 18px 12px;display:flex;align-items:center;gap:10px;flex:none">
+<span style="width:26px;height:26px;border-radius:8px;background:var(--btn);flex:none"></span>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 14px/1 var(--ui)">Today</span><span style="font:400 10px/1 var(--mono);color:var(--txt3)">1 of 3 · batch 07</span></div>
+<span style="margin-left:auto;font:500 11.5px/1 var(--mono);padding:8px 10px;border-radius:999px;background:var(--bg2);font-variant-numeric:tabular-nums">14 cr</span>
+<span style="width:28px;height:28px;border-radius:50%;background:var(--g30);flex:none"></span>
+</div>
+<div style="flex:1;min-height:0;padding:0 18px;overflow:hidden;display:flex;gap:12px">
+<div style="width:322px;flex:none;border:1px solid var(--line);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:13px;background:var(--surf)">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="display:flex;align-items:center;gap:6px;font:500 11px/1 var(--ui);padding:6px 9px 6px 7px;border-radius:999px;background:var(--sigS);color:var(--sigT)"><span style="width:6px;height:6px;border-radius:50%;background:var(--sig)"></span>Natural fit</span>
+<span style="margin-left:auto;font:400 10px/1 var(--mono);color:var(--txt3)">0:35</span>
+</div>
+<div style="position:relative;height:168px;border-radius:14px;background:var(--bg2);overflow:hidden;display:flex;align-items:center;justify-content:center">
+<div style="position:absolute;left:50%;top:14px;width:76px;height:122px;border-radius:9px;background:var(--surf);border:1px solid var(--line2);transform:translateX(-50%) translateX(-40px) rotate(-7deg)"></div>
+<image-slot id="c2-m-media" style="width:88px;height:138px;position:relative;z-index:2" radius="11" placeholder="9:16"></image-slot>
+</div>
+<h3 style="margin:0;font:600 19px/1.25 var(--ui);letter-spacing:-.015em">Flip the crate find in one take</h3>
+<p style="margin:0;font:400 13.5px/1.5 var(--ui);color:var(--txt2)">One unbroken shot: needle drop, chop, stack, drop. No commentary.</p>
+<button type="button" style="align-self:flex-start;min-height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--txt);font:500 12px/1 var(--ui);cursor:pointer">Show hook, score &amp; why ▾</button>
+<div style="margin-top:auto;font:400 10.5px/1.5 var(--mono);color:var(--txt3)">tap to expand in place · nothing else on the card</div>
+</div>
+<div style="width:46px;flex:none;border:1px solid var(--line);border-radius:24px;background:var(--surf2)"></div>
+</div>
+<div style="flex:none;padding:12px 18px;display:flex;gap:8px;align-items:center">
+<span style="display:flex;gap:5px;flex:none"><span style="width:18px;height:5px;border-radius:3px;background:var(--txt)"></span><span style="width:5px;height:5px;border-radius:3px;background:var(--line2)"></span><span style="width:5px;height:5px;border-radius:3px;background:var(--line2)"></span></span>
+<div style="flex:1;display:flex;min-width:0">
+<button type="button" style="flex:1;min-width:0;min-height:50px;border:none;border-radius:15px 3px 3px 15px;background:var(--btn);color:var(--btnT);font:500 13.5px/1 var(--ui);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap">Move to script <span style="font:400 11px/1 var(--mono);opacity:.65">2 cr</span></button>
+<button type="button" style="width:38px;min-height:50px;border:none;border-left:1px solid rgba(255,255,255,.22);border-radius:3px 15px 15px 3px;background:var(--btn);color:var(--btnT);font:400 10px/1 var(--ui);cursor:pointer;flex:none">▾</button>
+</div>
+<button type="button" style="width:50px;min-height:50px;border:1px solid var(--line2);border-radius:15px;background:transparent;color:var(--txt);font:400 15px/1 var(--ui);cursor:pointer;flex:none">✎</button>
+</div>
+<div style="flex:none;height:78px;border-top:1px solid var(--line);display:flex;align-items:flex-start;padding:10px 8px 0;background:var(--surf2)">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:44px"><span style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--txt)"></span><span style="font:500 10px/1 var(--ui)">Today</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:44px;color:var(--txt3)"><span style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--txt3)"></span><span style="font:400 10px/1 var(--ui)">Projects</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:44px;color:var(--txt3)"><span style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--txt3)"></span><span style="font:400 10px/1 var(--ui)">Library</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:44px;color:var(--txt3)"><span style="width:19px;height:19px;border-radius:50%;border:1.5px solid var(--txt3)"></span><span style="font:400 10px/1 var(--ui)">DNA</span></div>
+</div>
+</div>
+
+<div data-screen-label="Mobile card expanded" style="width:390px;height:844px;flex:none;background:var(--surf);border:1px solid var(--line2);border-radius:44px;box-shadow:var(--shL);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:52px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 6px;font:500 12.5px/1 var(--ui)"><span>9:42</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt2)">▮▮▮ ⌁</span></div>
+<div style="padding:8px 18px 12px;display:flex;align-items:center;gap:10px;flex:none">
+<button type="button" style="width:34px;height:34px;border:1px solid var(--line2);border-radius:11px;background:transparent;color:var(--txt);font:400 13px/1 var(--ui);cursor:pointer;flex:none">←</button>
+<span style="font:600 14px/1 var(--ui)">Opportunity</span>
+<span style="margin-left:auto;font:500 11.5px/1 var(--mono);padding:8px 10px;border-radius:999px;background:var(--bg2)">14 cr</span>
+</div>
+<div style="flex:1;min-height:0;padding:0 18px;overflow:hidden;display:flex;flex-direction:column;gap:14px">
+<div style="border:1px solid var(--line);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:13px">
+<h3 style="margin:0;font:600 19px/1.25 var(--ui);letter-spacing:-.015em">Flip the crate find in one take</h3>
+<div style="border-left:2px solid var(--acc);padding:1px 0 1px 10px"><div style="font:400 9.5px/1 var(--mono);color:var(--txt3);letter-spacing:.09em;margin-bottom:4px">HOOK</div><div style="font:450 13.5px/1.4 var(--ui)">"€2 record. One take. No talking."</div></div>
+<div style="display:flex;align-items:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:12px">
+<span style="font:500 26px/1 var(--mono);font-variant-numeric:tabular-nums">86</span><span style="font:400 11px/1 var(--mono);color:var(--txt3);padding-bottom:2px">/100</span>
+<span style="font:500 11.5px/1 var(--ui);padding:5px 8px;border-radius:6px;background:var(--bg2)">Strong</span>
+<span style="margin-left:auto;font:400 10.5px/1 var(--mono);color:var(--txt3)">high confidence</span>
+</div>
+<div style="font:400 9.5px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">WHY</div>
+<p style="margin:0;font:400 13px/1.55 var(--ui);color:var(--txt2)">Six of your eight best videos open on a gesture before second three, and you already shoot single-take studio content. Growing eleven days, no saturation signal.</p>
+<p style="margin:0;font:400 13px/1.55 var(--ui);color:var(--txt2)"><span style="color:var(--txt);font-weight:500">Reserve —</span> clear the sample before the storyboard step.</p>
+</div>
+<div style="border:1px solid var(--line);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:9px">
+<span style="font:400 9.5px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">THE SHAPE</span>
+<div style="display:flex;gap:10px;font:400 12.5px/1.5 var(--ui);color:var(--txt2)"><span style="font-family:var(--mono);font-size:10.5px;color:var(--txt3);width:30px;flex:none">0:00</span>Hands on the record, sticker visible</div>
+<div style="display:flex;gap:10px;font:400 12.5px/1.5 var(--ui);color:var(--txt2)"><span style="font-family:var(--mono);font-size:10.5px;color:var(--txt3);width:30px;flex:none">0:09</span>Pad work, nothing quantised</div>
+<div style="display:flex;gap:10px;font:400 12.5px/1.5 var(--ui);color:var(--txt2)"><span style="font-family:var(--mono);font-size:10.5px;color:var(--txt3);width:30px;flex:none">0:24</span>Full loop, hands off the desk</div>
+</div>
+</div>
+<div style="flex:none;padding:12px 18px 20px;display:flex;gap:8px">
+<div style="flex:1;display:flex;min-width:0">
+<button type="button" style="flex:1;min-width:0;min-height:50px;border:none;border-radius:15px 3px 3px 15px;background:var(--btn);color:var(--btnT);font:500 13.5px/1 var(--ui);cursor:pointer;white-space:nowrap">Move to script · 2 cr</button>
+<button type="button" style="width:38px;min-height:50px;border:none;border-left:1px solid rgba(255,255,255,.22);border-radius:3px 15px 15px 3px;background:var(--btn);color:var(--btnT);font:400 10px/1 var(--ui);cursor:pointer;flex:none">▾</button>
+</div>
+<button type="button" style="width:50px;min-height:50px;border:1px solid var(--line2);border-radius:15px;background:transparent;color:var(--txt);font:400 15px/1 var(--ui);cursor:pointer;flex:none">✎</button>
+</div>
+</div>
+
+<div data-screen-label="Mobile modify" style="width:390px;height:844px;flex:none;background:var(--bg2);border:1px solid var(--line2);border-radius:44px;box-shadow:var(--shL);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:52px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 6px;font:500 12.5px/1 var(--ui)"><span>9:44</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt2)">▮▮▮ ⌁</span></div>
+<div style="padding:10px 18px 14px;flex:none;display:flex;align-items:center;gap:10px;background:var(--glass);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)">
+<button type="button" style="width:34px;height:34px;border:1px solid var(--line2);border-radius:11px;background:var(--surf);color:var(--txt);font:400 13px/1 var(--ui);cursor:pointer;flex:none">←</button>
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 13.5px/1 var(--ui)">Modify · crate find</span><span style="font:400 10px/1 var(--mono);color:var(--txt3)">context loaded · draft</span></div>
+<span style="margin-left:auto;font:500 10.5px/1 var(--ui);padding:6px 9px;border-radius:999px;background:var(--accS);color:var(--accT);flex:none">2 pending</span>
+</div>
+<div style="flex:1;min-height:0;padding:16px 18px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+<div style="align-self:flex-end;max-width:84%;background:var(--btn);color:var(--btnT);padding:11px 14px;border-radius:16px 16px 4px 16px;font:400 13.5px/1.5 var(--ui)">Shorter, and no face camera. Ever.</div>
+<div style="max-width:90%;background:var(--surf);border:1px solid var(--line);padding:12px 14px;border-radius:16px 16px 16px 4px;font:400 13.5px/1.55 var(--ui)">Cut to 0:28 and removed the insert.</div>
+<div style="background:var(--surf);border:1px solid var(--line2);border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:9px">
+<span style="font:400 9.5px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">PENDING CHANGES · 2</span>
+<div style="display:flex;gap:9px"><span style="width:4px;border-radius:2px;background:var(--acc);flex:none"></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font:500 12px/1.3 var(--ui)">Hook rewritten · 0:00</span><span style="font:400 11.5px/1.4 var(--ui);color:var(--txt2)">"€2 record. One take. No talking."</span></div></div>
+<div style="display:flex;gap:9px"><span style="width:4px;border-radius:2px;background:var(--acc);flex:none"></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font:500 12px/1.3 var(--ui)">Insert removed · 0:09</span><span style="font:400 11.5px/1.4 var(--ui);color:var(--txt2)">runtime 0:31 → 0:28</span></div></div>
+<div style="display:flex;gap:6px"><button type="button" style="flex:1;min-height:44px;border:none;border-radius:12px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Apply both</button><button type="button" style="min-height:44px;padding:0 13px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt2);font:500 12.5px/1 var(--ui);cursor:pointer">Discard</button></div>
+</div>
+</div>
+<div style="flex:none;background:var(--surf);border-top:1px solid var(--line);border-radius:28px 28px 0 0;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px -20px rgba(16,20,28,.3)">
+<span style="width:36px;height:4px;border-radius:2px;background:var(--line2);align-self:center"></span>
+<span style="font:600 14px/1.3 var(--ui)">Remember "no face camera"?</span>
+<div style="display:flex;flex-direction:column;gap:7px">
+<div style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line2);border-radius:13px;min-height:48px"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line2);flex:none"></span><span style="font:400 13.5px/1.3 var(--ui)">This idea only</span></div>
+<div style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line2);border-radius:13px;min-height:48px"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line2);flex:none"></span><span style="font:400 13.5px/1.3 var(--ui)">This project</span></div>
+<div style="display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--acc);background:var(--accS);border-radius:13px;min-height:48px"><span style="width:16px;height:16px;border-radius:50%;border:5px solid var(--acc);background:var(--surf);flex:none"></span><span style="font:500 13.5px/1.3 var(--ui);color:var(--accT)">All my next creations</span></div>
+</div>
+<div style="display:flex;gap:8px"><button type="button" style="flex:1;min-height:48px;border:none;border-radius:14px;background:var(--btn);color:var(--btnT);font:500 13.5px/1 var(--ui);cursor:pointer">Remember</button><button type="button" style="min-height:48px;padding:0 16px;border:1px solid var(--line2);border-radius:14px;background:transparent;color:var(--txt2);font:500 13px/1 var(--ui);cursor:pointer">Not now</button></div>
+</div>
+</div>
+
+<div data-screen-label="Mobile export" style="width:390px;height:844px;flex:none;background:#0e1013;border:1px solid var(--line2);border-radius:44px;box-shadow:var(--shL);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:52px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 6px;font:500 12.5px/1 var(--ui);color:#f1f3f5"><span>10:02</span><span style="font:400 10.5px/1 var(--mono);color:#a3acb6">▮▮▮ ⌁</span></div>
+<div style="flex:1;min-height:0;position:relative;display:flex;flex-direction:column">
+<div style="position:absolute;inset:0"><image-slot id="c2-m-final" shape="rect" placeholder="9:16 render"></image-slot></div>
+<div style="position:relative;z-index:2;padding:12px 18px;display:flex;align-items:center;gap:10px;pointer-events:none">
+<span style="font:500 12px/1 var(--ui);color:#f1f3f5;padding:7px 10px;border-radius:999px;background:rgba(14,16,19,.6);backdrop-filter:blur(10px)">Ready · 0:28</span>
+<span style="margin-left:auto;font:400 10.5px/1 var(--mono);color:#f1f3f5;padding:7px 10px;border-radius:999px;background:rgba(14,16,19,.6);backdrop-filter:blur(10px)">1080×1920 · 41 MB</span>
+</div>
+<div style="margin-top:auto;position:relative;z-index:2;padding:0 18px 16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:flex-start;gap:9px;padding:12px;border-radius:14px;background:rgba(208,91,81,.16);border:1px solid #d05b51;backdrop-filter:blur(12px)">
+<span style="width:6px;height:6px;border-radius:50%;background:#d05b51;flex:none;margin-top:6px"></span>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:500 12.5px/1.3 var(--ui);color:#f0bdb7">Sample clearance unknown</span><span style="font:400 11px/1.45 var(--ui);color:#f0bdb7">Audible from 0:03. Confirm before publishing.</span></div>
+</div>
+<div style="display:flex;gap:8px">
+<button type="button" style="flex:1;min-height:50px;border:none;border-radius:15px;background:#f1f3f5;color:#12161c;font:500 13.5px/1 var(--ui);cursor:pointer">Download 2 files</button>
+<button type="button" style="min-height:50px;padding:0 15px;border:1px solid rgba(241,243,245,.3);border-radius:15px;background:rgba(14,16,19,.5);color:#f1f3f5;font:500 13px/1 var(--ui);cursor:pointer;backdrop-filter:blur(10px)">✎</button>
+</div>
+<span style="font:400 10.5px/1.4 var(--mono);color:#a3acb6;text-align:center">MP4 + .srt · safe zones respected</span>
+</div>
+</div>
+</div>
+
+</div>
+<sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;gap:22px;flex-wrap:wrap;max-width:1280px;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">
+<p style="margin:0;flex:1 1 230px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc)">01 </span>Hover has no mobile equivalent, so disclosure becomes an explicit "Show hook, score &amp; why" control, then a full detail view.</p>
+<p style="margin:0;flex:1 1 230px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc)">02 </span>The split button survives at 50 px tall: primary, caret, and the pen as a separate 50 px target.</p>
+<p style="margin:0;flex:1 1 230px"><span style="font:400 10.5px/1.5 var(--mono);color:var(--acc)">03 </span>Pending changes appear inside the conversation, above the memory sheet, exactly as on desktop.</p>
+</div>
+</sc-if>
+</div>
+
+<div id="1n" style="display:flex;flex-direction:column;gap:12px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+<a href="#1n" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">1n</a>
+<span style="font:600 15px/1.3 var(--ui)">Real-world states</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">nine ways the product is honest instead of broken</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px;max-width:1280px">
+
+<div style="border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--surf);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">INSUFFICIENT CREDITS</span>
+<p style="margin:0;font:500 14.5px/1.4 var(--ui)">You have 3. This costs 17.</p>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Nothing is lost — the storyboard stays saved. Choose a cheaper step or top up.</p>
+<div style="display:flex;flex-direction:column;gap:6px">
+<button type="button" style="min-height:42px;border:none;border-radius:12px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Buy 20 credits</button>
+<button type="button" style="min-height:42px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Export the storyboard instead · free</button>
+</div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--surf);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">OAUTH EXPIRED</span>
+<p style="margin:0;font:500 14.5px/1.4 var(--ui);display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:var(--neg)"></span>TikTok disconnected</p>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Your token lapsed 3 days ago. Everything already learned is intact; we simply stopped seeing new posts.</p>
+<div style="display:flex;gap:6px"><button type="button" style="flex:1;min-height:42px;border:none;border-radius:12px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Reconnect</button><button type="button" style="min-height:42px;padding:0 12px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt2);font:500 12.5px/1 var(--ui);cursor:pointer">Upload instead</button></div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--surf);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">PARTIAL ANALYSIS</span>
+<p style="margin:0;font:500 14.5px/1.4 var(--ui)">3 of 5 files analysed</p>
+<div style="display:flex;flex-direction:column;gap:5px;font:400 11.5px/1.5 var(--mono);color:var(--txt2)"><span>✓ warehouse_01 · reel_tape · voicenote</span><span style="color:var(--neg)">✕ liveset_2019.avi — unsupported</span><span style="color:var(--neg)">✕ stems.zip — archives not read</span></div>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Your profile is built on what worked. Visual dimensions are marked lower confidence until the gaps are filled.</p>
+<button type="button" style="min-height:42px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Continue with 3</button>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--surf);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">LOW CONFIDENCE</span>
+<div style="display:flex;align-items:flex-end;gap:8px"><span style="font:500 28px/1 var(--mono);font-variant-numeric:tabular-nums">61</span><span style="font:400 11px/1 var(--mono);color:var(--txt3);padding-bottom:3px">/100</span><span style="margin-left:auto;font:500 11.5px/1 var(--ui);padding:5px 9px;border-radius:6px;border:1px solid var(--line2);color:var(--txt2)">Thin evidence</span></div>
+<div style="font:400 11px/1.5 var(--mono);color:var(--txt3)">low confidence · one platform</div>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">We are showing this because the angle is unusual, not because we are sure. Read the reserve before spending anything on it.</p>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--surf);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">TREND COOLED</span>
+<p style="margin:0;font:500 14.5px/1.4 var(--ui);color:var(--txt2);text-decoration:line-through;text-decoration-color:var(--line2)">Silent studio · momentum fading</p>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Saved 9 days ago; the pattern has since saturated. The idea still works, the timing argument does not.</p>
+<div style="display:flex;gap:6px"><button type="button" style="flex:1;min-height:42px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Re-angle it · 1 cr</button><button type="button" style="min-height:42px;padding:0 12px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt2);font:500 12.5px/1 var(--ui);cursor:pointer">Archive</button></div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--surf);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">GENERATION FAILED · REFUNDED</span>
+<p style="margin:0;font:500 14.5px/1.4 var(--ui)">The provider ran out of quota</p>
+<div style="display:flex;flex-direction:column;gap:5px;font:400 11.5px/1.5 var(--mono);padding:11px;background:var(--sigS);border-radius:11px;color:var(--sigT)"><span>4 credits released · balance restored to 14</span><span>receipt cl_0991 · no double charge on retry</span></div>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Our failure, not your problem. Your locked lines and edits were kept.</p>
+<button type="button" style="min-height:42px;border:none;border-radius:12px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Try again · free</button>
+</div>
+
+<div style="border:1px solid var(--neg);border-radius:20px;padding:18px;background:var(--negS);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--negT);letter-spacing:.09em">RIGHTS BLOCKED</span>
+<p style="margin:0;font:500 14.5px/1.4 var(--ui);color:var(--negT)">Export held: unlicensed track detected</p>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--negT)">The reference song at 0:12 is commercially released. Replace it, generate a bed, or confirm you hold the licence.</p>
+<div style="display:flex;flex-direction:column;gap:6px"><button type="button" style="min-height:42px;border:none;border-radius:12px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Generate a bed · 2 cr</button><button type="button" style="min-height:42px;border:1px solid var(--neg);border-radius:12px;background:transparent;color:var(--negT);font:500 12.5px/1 var(--ui);cursor:pointer">I hold the licence</button></div>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--surf);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">EMPTY · FIRST RUN</span>
+<div style="display:flex;gap:8px;padding:6px 0"><span style="width:44px;height:66px;border-radius:8px;border:1px dashed var(--line2)"></span><span style="width:44px;height:66px;border-radius:8px;border:1px dashed var(--line2)"></span><span style="width:44px;height:66px;border-radius:8px;border:1px dashed var(--line2)"></span></div>
+<p style="margin:0;font:500 14.5px/1.4 var(--ui)">No opportunities yet</p>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Your profile is confirmed. The first batch of three is included — about a minute.</p>
+<button type="button" style="min-height:42px;border:none;border-radius:12px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Generate my first three · included</button>
+</div>
+
+<div style="border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--surf);display:flex;flex-direction:column;gap:11px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">OFFLINE</span>
+<p style="margin:0;font:500 14.5px/1.4 var(--ui);display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:var(--g40)"></span>No connection</p>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--txt2)">Cards you already opened stay readable. Requests you type queue locally and send when you are back.</p>
+<div style="font:400 11px/1.5 var(--mono);color:var(--txt3);padding:11px;background:var(--surf2);border-radius:11px">2 requests queued · nothing generated offline · no credits at risk</div>
+</div>
+
+</div>
+</div>
+
+</section>
+</div>
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startInDark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#6d94ab&quot;,&quot;options&quot;:[&quot;#6d94ab&quot;,&quot;#7a8fb5&quot;,&quot;#5f9c98&quot;,&quot;#8b8ba8&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;signal&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#c9db63&quot;,&quot;options&quot;:[&quot;#c9db63&quot;,&quot;#d9d15f&quot;,&quot;#a8cf7a&quot;,&quot;#e0b45c&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;showAnnotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Catalog&quot;}}">
+class Component extends DCLogic {
+  state = { dark: false };
+  componentDidMount() {
+    const stored = localStorage.getItem('creonome-theme');
+    const dark = stored ? stored === 'dark' : !!this.props.startInDark;
+    this.apply(dark);
+    this.setState({ dark });
+    this.paint();
+  }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const r = document.documentElement;
+    if (this.props.accent) r.style.setProperty('--acc', this.props.accent);
+    if (this.props.signal) r.style.setProperty('--sig', this.props.signal);
+  }
+  apply(dark) { document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light'); }
+  renderVals() {
+    return {
+      notes: this.props.showAnnotations ?? true,
+      themeLabel: this.state.dark ? 'Dark' : 'Light',
+      toggleTheme: () => {
+        const dark = !this.state.dark;
+        this.apply(dark);
+        try { localStorage.setItem('creonome-theme', dark ? 'dark' : 'light'); } catch (e) {}
+        this.setState({ dark });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

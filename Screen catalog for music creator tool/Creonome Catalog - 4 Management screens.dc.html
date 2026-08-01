@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+:root{
+--ui:'Geist',system-ui,-apple-system,sans-serif;
+--mono:'Geist Mono',ui-monospace,Menlo,monospace;
+--g05:#f6f7f9;--g10:#eceef1;--g20:#dfe3e8;--g30:#cbd1d9;--g40:#aab3be;--g50:#8a94a1;--g60:#68727f;--g70:#4b545f;--g80:#2f363f;--g90:#1a1f26;--g95:#0f1318;
+--bg:#f2f4f6;--bg2:#e8ebef;--surf:#ffffff;--surf2:#f8f9fb;
+--txt:#12161c;--txt2:#5b6470;--txt3:#8a939f;
+--line:#e3e7eb;--line2:#d2d8df;
+--acc:#6d94ab;--accS:#e7eff4;--accT:#2b4757;
+--sig:#c9db63;--sigS:#f2f6dd;--sigT:#3e4a12;
+--neg:#bd4239;--negS:#fbecea;--negT:#7d251e;
+--btn:#12161c;--btnT:#ffffff;
+--sh:0 1px 2px rgba(16,20,28,.04),0 10px 28px -14px rgba(16,20,28,.12);
+--shL:0 1px 2px rgba(16,20,28,.05),0 24px 60px -24px rgba(16,20,28,.22);
+--glass:rgba(255,255,255,.72);
+}
+[data-theme=dark]{
+--bg:#0d0f12;--bg2:#15181c;--surf:#171a1f;--surf2:#1c2026;
+--txt:#f1f3f5;--txt2:#a3acb6;--txt3:#6e7883;
+--line:#272c33;--line2:#343a42;
+--acc:#5e8ca6;--accS:#1a262e;--accT:#cde0ea;
+--sig:#a9bc4f;--sigS:#232910;--sigT:#dfeaa9;
+--neg:#d05b51;--negS:#2a1614;--negT:#f0bdb7;
+--btn:#f1f3f5;--btnT:#12161c;
+--sh:0 1px 2px rgba(0,0,0,.5),0 12px 30px -16px rgba(0,0,0,.7);
+--shL:0 1px 2px rgba(0,0,0,.5),0 28px 70px -28px rgba(0,0,0,.85);
+--glass:rgba(28,32,38,.72);
+}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--ui);-webkit-font-smoothing:antialiased}
+a{color:var(--acc)}a:hover{color:var(--txt)}
+image-slot{--is-bg:var(--bg2)}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:.9}}
+[data-reveal]{opacity:0;max-height:0;overflow:hidden;transition:opacity .18s ease,max-height .26s ease}
+[data-card]:hover [data-reveal]{opacity:1;max-height:760px}
+[data-reveal=open]{opacity:1;max-height:760px}
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;gap:0;padding:0 0 80px">
+
+<div style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 44px;background:var(--glass);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)">
+<div style="display:flex;align-items:baseline;gap:12px">
+<span style="font:600 14px/1 var(--ui);letter-spacing:-.01em">Creonome</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Screen catalog · v2 · MVP scope</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px">
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3)">{{ themeLabel }} mode</span>
+<button type="button" onClick="{{ toggleTheme }}" style="font:500 12px/1 var(--ui);padding:9px 14px;border-radius:999px;border:1px solid var(--line2);background:var(--surf);color:var(--txt);cursor:pointer;min-height:36px" style-hover="background:var(--bg2);border-color:var(--txt3)">Switch theme</button>
+</div>
+<div style="display:flex;align-items:center;gap:6px;padding:4px;border-radius:999px;background:var(--bg2);margin-left:20px"><a href="Creonome%20Catalog%20-%201%20Core%20loop.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">1 · Core loop</a><a href="Creonome%20Catalog%20-%202%20Profile%20-%20DNA.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">2 · Profile & DNA</a><a href="Creonome%20Catalog%20-%203%20Ops-%20mobile%20-%20states.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--surf);color:var(--txt2)">3 · Ops, mobile & states</a><a href="Creonome%20Catalog%20-%204%20Management%20screens.dc.html" style="font:500 12px/1 var(--ui);padding:9px 12px;border-radius:999px;text-decoration:none;background:var(--acc);color:#fff">4 · Management</a></div>
+</div>
+
+<section style="padding:36px 44px 0;display:flex;flex-direction:column;gap:56px">
+<div style="max-width:900px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:baseline;gap:10px">
+<span style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--acc);color:#fff">TURN 2</span>
+<span style="font:400 11.5px/1 var(--mono);color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">The management screens</span>
+</div>
+<h2 style="margin:0;font:600 30px/1.15 var(--ui);letter-spacing:-.025em">Everything around the loop.</h2>
+<p style="margin:0;font:400 15px/1.6 var(--ui);color:var(--txt2);max-width:700px">Auth and invite, the prefilled profile form, batch configuration, Projects and Library, integrations, plan and invoices, privacy, and the tablet breakpoint. Same tokens, same nav, no new patterns.</p>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start">
+
+<div id="2a" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2a" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2a</a><span style="font:600 14.5px/1.3 var(--ui)">Auth + workspace invite</span></div>
+<div data-screen-label="Auth" style="width:860px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden;display:flex">
+<div style="flex:1;min-width:0;padding:44px 44px 46px;display:flex;flex-direction:column;gap:22px">
+<span style="width:28px;height:28px;border-radius:9px;background:var(--btn)"></span>
+<div style="display:flex;flex-direction:column;gap:8px">
+<h3 style="margin:0;font:600 27px/1.15 var(--ui);letter-spacing:-.025em">Sign in to Creonome</h3>
+<p style="margin:0;font:400 14px/1.6 var(--ui);color:var(--txt2)">No password. We email a link that expires in ten minutes.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;max-width:340px">
+<div style="display:flex;align-items:center;padding:0 14px;border:1px solid var(--line2);border-radius:13px;min-height:48px;font:400 14px/1 var(--ui);color:var(--txt3)">nova@sainte.fm</div>
+<button type="button" style="min-height:48px;border:none;border-radius:13px;background:var(--btn);color:var(--btnT);font:500 13.5px/1 var(--ui);cursor:pointer">Email me a link</button>
+<div style="display:flex;align-items:center;gap:10px;padding:4px 0"><span style="flex:1;height:1px;background:var(--line)"></span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">OR</span><span style="flex:1;height:1px;background:var(--line)"></span></div>
+<button type="button" style="min-height:48px;border:1px solid var(--line2);border-radius:13px;background:transparent;color:var(--txt);font:500 13px/1 var(--ui);cursor:pointer">Continue with Google</button>
+<button type="button" style="min-height:48px;border:1px solid var(--line2);border-radius:13px;background:transparent;color:var(--txt);font:500 13px/1 var(--ui);cursor:pointer">Continue with Apple</button>
+</div>
+<p style="margin:auto 0 0;font:400 11px/1.6 var(--mono);color:var(--txt3);max-width:340px">By continuing you accept the terms. We never post on your behalf.</p>
+</div>
+<div style="width:340px;flex:none;border-left:1px solid var(--line);background:var(--surf2);padding:36px 28px;display:flex;flex-direction:column;gap:16px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">YOU WERE INVITED</span>
+<div style="display:flex;align-items:center;gap:11px"><span style="width:38px;height:38px;border-radius:11px;background:var(--g30);flex:none"></span><div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 14px/1 var(--ui)">Studio Marée Basse</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">4 members · 2 artists</span></div></div>
+<p style="margin:0;font:400 13px/1.55 var(--ui);color:var(--txt2)">Camille invited you as an <strong style="font-weight:500;color:var(--txt)">Artist</strong>: your own DNA and projects, shared credits, no billing access.</p>
+<div style="display:flex;flex-direction:column;gap:7px;font:400 11.5px/1.6 var(--mono);color:var(--txt3);padding:13px;background:var(--surf);border:1px solid var(--line);border-radius:13px">
+<span>Owner — billing, members, deletion</span>
+<span>Manager — all projects, no billing</span>
+<span style="color:var(--txt)">Artist — own DNA and projects</span>
+<span>Viewer — read and comment</span>
+</div>
+<button type="button" style="min-height:44px;border:none;border-radius:13px;background:var(--btn);color:var(--btnT);font:500 13px/1 var(--ui);cursor:pointer">Accept invitation</button>
+<button type="button" style="min-height:40px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt2);font:500 12.5px/1 var(--ui);cursor:pointer">Start my own workspace instead</button>
+</div>
+</div>
+</div>
+
+<div id="2b" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2b" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2b</a><span style="font:600 14.5px/1.3 var(--ui)">Prefilled profile form</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">onboarding step 4 · everything editable</span></div>
+<div data-screen-label="Profile form" style="width:860px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="height:58px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 22px">
+<span style="width:22px;height:22px;border-radius:7px;background:var(--btn);flex:none"></span><span style="font:600 13.5px/1 var(--ui)">Votre profil créatif</span>
+<div style="margin-left:auto;display:flex;align-items:center;gap:12px;min-width:280px"><div style="flex:1;height:6px;border-radius:3px;background:var(--bg2);overflow:hidden"><div style="width:67%;height:100%;background:var(--acc);border-radius:3px"></div></div><span style="font:500 11px/1 var(--mono);color:var(--txt2);font-variant-numeric:tabular-nums">67% · step 4 of 6</span></div>
+</div>
+<div style="padding:26px 30px 30px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--acc);background:var(--accS);border-radius:14px">
+<span style="width:7px;height:7px;border-radius:50%;background:var(--acc);flex:none;margin-top:6px"></span>
+<p style="margin:0;font:400 13px/1.55 var(--ui);color:var(--accT)">Prefilled from your four files. Every field is a draft — correct anything, and what you change is marked <em>déclaré</em> instead of <em>observé</em>.</p>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div style="display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">DISCIPLINES ET MÉDIUMS <span style="color:var(--acc)">· observé</span></span><div style="display:flex;flex-wrap:wrap;gap:5px;padding:10px;border:1px solid var(--line2);border-radius:12px;min-height:48px"><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--bg2);display:flex;gap:6px">production musicale <span style="color:var(--txt3)">×</span></span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--bg2);display:flex;gap:6px">sampling <span style="color:var(--txt3)">×</span></span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--bg2);display:flex;gap:6px">vidéo DIY <span style="color:var(--txt3)">×</span></span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;border:1px dashed var(--line2);color:var(--txt3)">+ ajouter</span></div></div>
+<div style="display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">GENRES MUSICAUX <span style="color:var(--acc)">· observé</span></span><div style="display:flex;flex-wrap:wrap;gap:5px;padding:10px;border:1px solid var(--line2);border-radius:12px;min-height:48px"><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--bg2);display:flex;gap:6px">downtempo <span style="color:var(--txt3)">×</span></span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--bg2);display:flex;gap:6px">dub techno <span style="color:var(--txt3)">×</span></span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--bg2);display:flex;gap:6px">lo-fi house <span style="color:var(--txt3)">×</span></span></div></div>
+<div style="display:flex;flex-direction:column;gap:7px;grid-column:span 2"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">SIGNATURE CRÉATIVE <span style="color:var(--acc)">· observé</span></span><div style="padding:12px 14px;border:1px solid var(--line2);border-radius:12px;font:400 13.5px/1.55 var(--ui)">Boucles tape jamais quantisées, plans fixes serrés sur les mains, silence avant le drop, gestes visibles plutôt que paroles.</div></div>
+<div style="display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">THÈMES <span style="color:var(--txt3)">· à confirmer</span></span><div style="display:flex;flex-wrap:wrap;gap:5px;padding:10px;border:1px solid var(--line2);border-radius:12px;min-height:48px"><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--bg2)">mémoire</span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--bg2)">nuit urbaine</span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;border:1px dashed var(--line2);color:var(--txt3)">+ ajouter</span></div></div>
+<div style="display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">PUBLIC RECHERCHÉ</span><div style="padding:12px 14px;border:1px solid var(--line2);border-radius:12px;font:400 13.5px/1.4 var(--ui);min-height:48px;display:flex;align-items:center">Diggers et producteurs débutants · FR / EN</div></div>
+<div style="display:flex;flex-direction:column;gap:7px;grid-column:span 2"><span style="font:400 10px/1 var(--mono);color:var(--neg);letter-spacing:.09em">LIMITES ET CONTRE-RÉFÉRENCES · règles dures</span><div style="display:flex;flex-wrap:wrap;gap:5px;padding:10px;border:1px solid var(--neg);border-radius:12px;background:var(--negS);min-height:48px"><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--surf);color:var(--negT);display:flex;gap:6px">pas de danse <span>×</span></span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--surf);color:var(--negT);display:flex;gap:6px">pas de clone vocal <span>×</span></span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;background:var(--surf);color:var(--negT);display:flex;gap:6px">pas de face-cam <span>×</span></span><span style="font:400 11.5px/1 var(--ui);padding:7px 9px;border-radius:8px;border:1px dashed var(--neg);color:var(--negT)">+ ajouter</span></div></div>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding-top:4px;border-top:1px solid var(--line)">
+<span style="font:400 11.5px/1.5 var(--mono);color:var(--txt3);flex:1">10 dimensions restantes — vous pourrez les compléter plus tard depuis Creator DNA.</span>
+<button type="button" style="min-height:44px;padding:0 14px;border:1px solid var(--line2);border-radius:13px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Plus tard</button>
+<button type="button" style="min-height:44px;padding:0 20px;border:none;border-radius:13px;background:var(--btn);color:var(--btnT);font:500 13px/1 var(--ui);cursor:pointer">Confirmer le profil</button>
+</div>
+</div>
+</div>
+</div>
+
+<div id="2c" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2c" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2c</a><span style="font:600 14.5px/1.3 var(--ui)">Batch configuration</span></div>
+<div data-screen-label="Batch config" style="width:520px;background:var(--surf);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shL);padding:24px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">NEW BATCH</span>
+<h3 style="margin:0;font:600 21px/1.25 var(--ui);letter-spacing:-.02em">Three new opportunities</h3>
+<p style="margin:0;font:400 13.5px/1.55 var(--ui);color:var(--txt2)">Defaults come from your DNA. Change anything here and it applies to this batch only.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">PROJECT</span><div style="padding:12px 14px;border:1px solid var(--line2);border-radius:12px;font:400 13.5px/1 var(--ui);min-height:46px;display:flex;align-items:center">Warehouse Tapes <span style="margin-left:auto;color:var(--txt3)">▾</span></div></div>
+<div style="display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">MIX OF STRATEGIES</span><div style="display:flex;gap:6px"><span style="flex:1;text-align:center;font:500 12px/1 var(--ui);padding:11px 8px;border-radius:11px;background:var(--btn);color:var(--btnT)">Balanced</span><span style="flex:1;text-align:center;font:500 12px/1 var(--ui);padding:11px 8px;border-radius:11px;border:1px solid var(--line2);color:var(--txt2)">Safe</span><span style="flex:1;text-align:center;font:500 12px/1 var(--ui);padding:11px 8px;border-radius:11px;border:1px solid var(--line2);color:var(--txt2)">Bold</span></div><span style="font:400 10.5px/1.4 var(--mono);color:var(--txt3)">1 natural fit · 1 emerging · 1 cross-sector</span></div>
+<div style="display:flex;gap:12px">
+<div style="flex:1;display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">PLATFORMS</span><div style="padding:12px 14px;border:1px solid var(--line2);border-radius:12px;font:400 13px/1 var(--ui);min-height:46px;display:flex;align-items:center">TikTok + Reels</div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">WINDOW</span><div style="padding:12px 14px;border:1px solid var(--line2);border-radius:12px;font:400 13px/1 var(--ui);min-height:46px;display:flex;align-items:center">last 14 days</div></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:7px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.09em">EFFORT CEILING</span><div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:6px;border-radius:3px;background:var(--bg2);position:relative"><div style="width:58%;height:100%;background:var(--acc);border-radius:3px"></div><span style="position:absolute;left:58%;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:var(--surf);border:2px solid var(--acc)"></span></div><span style="font:400 12px/1 var(--mono);color:var(--txt2);white-space:nowrap">half a day</span></div></div>
+<div style="display:flex;align-items:flex-start;gap:11px;padding:12px 14px;border:1px solid var(--line);border-radius:12px"><span style="width:34px;height:20px;border-radius:999px;background:var(--acc);flex:none;position:relative;margin-top:1px"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--surf)"></span></span><div style="display:flex;flex-direction:column;gap:3px"><span style="font:500 12.5px/1.3 var(--ui)">Avoid angles I used in the last 30 days</span><span style="font:400 11px/1.4 var(--mono);color:var(--txt3)">2 recent angles will be excluded</span></div></div>
+</div>
+<div style="display:flex;gap:8px;border-top:1px solid var(--line);padding-top:16px">
+<button type="button" style="flex:1;min-height:46px;border:none;border-radius:14px;background:var(--btn);color:var(--btnT);font:500 13.5px/1 var(--ui);cursor:pointer">Generate · 3 credits</button>
+<button type="button" style="min-height:46px;padding:0 16px;border:1px solid var(--line2);border-radius:14px;background:transparent;color:var(--txt2);font:500 13px/1 var(--ui);cursor:pointer">Cancel</button>
+</div>
+</div>
+</div>
+
+<div id="2d" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2d" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2d</a><span style="font:600 14.5px/1.3 var(--ui)">Projects</span></div>
+<div data-screen-label="Projects" style="width:1000px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 22px">
+<span style="width:24px;height:24px;border-radius:8px;background:var(--btn);flex:none"></span>
+<div style="display:flex;align-items:center;gap:6px;padding:4px;border-radius:999px;background:var(--bg2)">
+<span style="font:500 12.5px/1 var(--ui);padding:9px 13px;border-radius:999px;background:var(--surf);color:var(--txt2)">Today</span>
+<span style="font:500 12.5px/1 var(--ui);padding:9px 13px;border-radius:999px;background:var(--acc);color:#fff">Projects</span>
+<span style="font:500 12.5px/1 var(--ui);padding:9px 13px;border-radius:999px;background:var(--surf);color:var(--txt2)">Library</span>
+<span style="font:500 12.5px/1 var(--ui);padding:9px 13px;border-radius:999px;background:var(--surf);color:var(--txt2)">Creator DNA</span>
+</div>
+<div style="margin-left:auto;display:flex;gap:8px"><span style="font:500 12px/1 var(--mono);padding:9px 12px;border-radius:999px;background:var(--bg2)">14 cr</span><span style="width:32px;height:32px;border-radius:50%;background:var(--g30)"></span></div>
+</div>
+<div style="padding:20px 22px 26px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;background:var(--btn);color:var(--btnT)">All 12</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Idea 5</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Script 4</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Storyboard 2</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Ready 1</span>
+<span style="margin-left:auto;font:400 11.5px/1 var(--mono);color:var(--txt3)">grouped by project · newest first</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:16px" style-hover="border-color:var(--txt3);background:var(--surf2)">
+<image-slot id="c2-pr1" style="width:44px;height:62px;flex:none" radius="8" placeholder=""></image-slot>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font:500 13.5px/1.3 var(--ui)">Flip the crate find in one take</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">Warehouse Tapes · edited 40 min ago</span></div>
+<span style="font:500 11.5px/1 var(--ui);padding:7px 10px;border-radius:999px;background:var(--bg2)">Ready</span>
+<span style="font:500 12px/1 var(--mono);color:var(--txt2);width:34px;text-align:right;font-variant-numeric:tabular-nums">86</span>
+<button type="button" style="min-height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--txt);font:500 12px/1 var(--ui);cursor:pointer">Open</button>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:16px">
+<image-slot id="c2-pr2" style="width:44px;height:62px;flex:none" radius="8" placeholder=""></image-slot>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font:500 13.5px/1.3 var(--ui)">Silent studio: a beat with zero voice</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">Warehouse Tapes · 2 pending changes</span></div>
+<span style="font:500 11.5px/1 var(--ui);padding:7px 10px;border-radius:999px;background:var(--accS);color:var(--accT)">Script</span>
+<span style="font:500 12px/1 var(--mono);color:var(--txt2);width:34px;text-align:right;font-variant-numeric:tabular-nums">81</span>
+<button type="button" style="min-height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--txt);font:500 12px/1 var(--ui);cursor:pointer">Open</button>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:16px;opacity:.65">
+<span style="width:44px;height:62px;border-radius:8px;background:var(--bg2);flex:none"></span>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font:500 13.5px/1.3 var(--ui);text-decoration:line-through;text-decoration-color:var(--line2)">Silent studio · saved 9 days ago</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">momentum cooled · re-angle or archive</span></div>
+<span style="font:500 11.5px/1 var(--ui);padding:7px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--txt3)">Idea</span>
+<button type="button" style="min-height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--txt2);font:500 12px/1 var(--ui);cursor:pointer">Archive</button>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:16px">
+<image-slot id="c2-pr3" style="width:44px;height:62px;flex:none" radius="8" placeholder=""></image-slot>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font:500 13.5px/1.3 var(--ui)">Track recipe: four ingredients</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">Unsorted · saved 1 Aug</span></div>
+<span style="font:500 11.5px/1 var(--ui);padding:7px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Idea</span>
+<span style="font:500 12px/1 var(--mono);color:var(--txt2);width:34px;text-align:right;font-variant-numeric:tabular-nums">74</span>
+<button type="button" style="min-height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--txt);font:500 12px/1 var(--ui);cursor:pointer">Open</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="2e" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2e" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2e</a><span style="font:600 14.5px/1.3 var(--ui)">Library</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">rushes, stems, exports · one grid</span></div>
+<div data-screen-label="Library" style="width:1000px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="padding:20px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<span style="font:600 15px/1 var(--ui);margin-right:6px">Library</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;background:var(--btn);color:var(--btnT)">All 38</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Rushes 21</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Stems 9</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Exports 5</span>
+<span style="font:500 12px/1 var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--txt2)">Docs 3</span>
+<div style="margin-left:auto;display:flex;gap:8px"><span style="font:400 11.5px/1 var(--mono);color:var(--txt3);align-self:center">4.2 GB of 20 GB</span><button type="button" style="min-height:38px;padding:0 13px;border:none;border-radius:12px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Upload</button></div>
+</div>
+<div style="padding:20px 22px 26px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px">
+<div style="min-width:0;display:flex;flex-direction:column;gap:6px"><image-slot id="c2-lib1" style="width:100%;height:184px" radius="12" placeholder=""></image-slot><span style="font:400 10.5px/1.4 var(--mono);color:var(--txt3)">warehouse_01.mov<br>0:41 · rush</span></div>
+<div style="min-width:0;display:flex;flex-direction:column;gap:6px"><image-slot id="c2-lib2" style="width:100%;height:184px" radius="12" placeholder=""></image-slot><span style="font:400 10.5px/1.4 var(--mono);color:var(--txt3)">desk_topdown.mov<br>1:12 · rush</span></div>
+<div style="min-width:0;display:flex;flex-direction:column;gap:6px"><image-slot id="c2-lib3" style="width:100%;height:184px" radius="12" placeholder=""></image-slot><span style="font:400 10.5px/1.4 var(--mono);color:var(--txt3)">needle_macro.mov<br>0:22 · rush</span></div>
+<div style="min-width:0;display:flex;flex-direction:column;gap:6px"><div style="height:184px;border-radius:12px;background:var(--bg2);display:flex;align-items:flex-end;padding:12px;box-sizing:border-box"><div style="display:flex;align-items:flex-end;gap:2px;height:60px;width:100%"><span style="flex:1;height:30%;background:var(--g40);border-radius:1px"></span><span style="flex:1;height:70%;background:var(--g40);border-radius:1px"></span><span style="flex:1;height:45%;background:var(--g40);border-radius:1px"></span><span style="flex:1;height:90%;background:var(--g40);border-radius:1px"></span><span style="flex:1;height:55%;background:var(--g40);border-radius:1px"></span><span style="flex:1;height:35%;background:var(--g40);border-radius:1px"></span><span style="flex:1;height:75%;background:var(--g40);border-radius:1px"></span><span style="flex:1;height:40%;background:var(--g40);border-radius:1px"></span></div></div><span style="font:400 10.5px/1.4 var(--mono);color:var(--txt3)">tape_loop_A.wav<br>0:32 · stem</span></div>
+<div style="min-width:0;display:flex;flex-direction:column;gap:6px"><div style="height:184px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font:400 10px/1 var(--mono);color:var(--txt3)">MP4 · EXPORT</div><span style="font:400 10.5px/1.4 var(--mono);color:var(--txt3)">crate_find_v3.mp4<br>0:28 · 41 MB</span></div>
+<div style="min-width:0;display:flex;flex-direction:column;gap:6px"><div style="height:184px;border-radius:12px;border:1px dashed var(--line2);display:flex;align-items:center;justify-content:center;font:400 11px/1 var(--mono);color:var(--txt3)">drop here</div><span style="font:400 10.5px/1.4 var(--mono);color:var(--txt3)">mp4 mov wav pdf</span></div>
+</div>
+</div>
+</div>
+
+<div id="2f" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2f" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2f</a><span style="font:600 14.5px/1.3 var(--ui)">Integrations detail</span></div>
+<div data-screen-label="Integrations" style="width:640px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="padding:22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px"><span style="font:600 15px/1 var(--ui)">Integrations</span></div>
+<div style="padding:20px 22px 26px;display:flex;flex-direction:column;gap:12px">
+<div style="border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:11px">
+<span style="width:34px;height:34px;border-radius:10px;background:var(--bg2);flex:none"></span>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 14px/1 var(--ui)">TikTok</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">@novasainte · connected 11 Jul</span></div>
+<span style="margin-left:auto;display:flex;align-items:center;gap:6px;font:500 11.5px/1 var(--ui);padding:7px 10px;border-radius:999px;background:var(--sigS);color:var(--sigT)"><span style="width:6px;height:6px;border-radius:50%;background:var(--sig)"></span>Active</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;font:400 11.5px/1.6 var(--mono);color:var(--txt2);padding:12px;background:var(--surf2);border-radius:12px">
+<span>reads: profile, your video list, your metrics</span>
+<span>never: comments, DMs, other creators' media</span>
+<span>last sync 2 h ago · token valid 47 days</span>
+</div>
+<div style="display:flex;gap:6px"><button type="button" style="min-height:38px;padding:0 12px;border:1px solid var(--line2);border-radius:11px;background:transparent;color:var(--txt);font:500 12px/1 var(--ui);cursor:pointer">Sync now</button><button type="button" style="min-height:38px;padding:0 12px;border:1px solid var(--line2);border-radius:11px;background:transparent;color:var(--txt2);font:500 12px/1 var(--ui);cursor:pointer">Permissions</button><button type="button" style="margin-left:auto;min-height:38px;padding:0 12px;border:1px solid var(--neg);border-radius:11px;background:transparent;color:var(--negT);font:500 12px/1 var(--ui);cursor:pointer">Disconnect</button></div>
+</div>
+<div style="border:1px solid var(--neg);background:var(--negS);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:11px">
+<div style="display:flex;align-items:center;gap:11px">
+<span style="width:34px;height:34px;border-radius:10px;background:var(--surf);flex:none"></span>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 14px/1 var(--ui);color:var(--negT)">Instagram</span><span style="font:400 10.5px/1 var(--mono);color:var(--negT)">token expired 3 days ago</span></div>
+<span style="margin-left:auto;font:500 11.5px/1 var(--ui);padding:7px 10px;border-radius:999px;background:var(--surf);color:var(--negT)">Action needed</span>
+</div>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--negT)">Everything already learned is intact. We simply stopped seeing new Reels.</p>
+<div style="display:flex;gap:6px"><button type="button" style="min-height:38px;padding:0 14px;border:none;border-radius:11px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Reconnect</button><button type="button" style="min-height:38px;padding:0 12px;border:1px solid var(--neg);border-radius:11px;background:transparent;color:var(--negT);font:500 12px/1 var(--ui);cursor:pointer">Remove</button></div>
+</div>
+<div style="border:1px dashed var(--line2);border-radius:18px;padding:16px;display:flex;align-items:center;gap:11px">
+<span style="width:34px;height:34px;border-radius:10px;border:1px solid var(--line2);flex:none"></span>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 14px/1 var(--ui);color:var(--txt2)">Cloud storage</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3)">import rushes from Drive or Dropbox</span></div>
+<button type="button" style="margin-left:auto;min-height:38px;padding:0 14px;border:1px solid var(--line2);border-radius:11px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Connect</button>
+</div>
+</div>
+</div>
+</div>
+
+<div id="2g" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2g" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2g</a><span style="font:600 14.5px/1.3 var(--ui)">Plan &amp; invoices</span></div>
+<div data-screen-label="Plan" style="width:640px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="padding:22px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;gap:12px">
+<div style="flex:1;border:1.5px solid var(--txt);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font:600 14px/1 var(--ui)">Studio</span><span style="margin-left:auto;font:500 10px/1 var(--mono);padding:4px 7px;border-radius:5px;background:var(--btn);color:var(--btnT)">CURRENT</span></div>
+<div style="display:flex;align-items:baseline;gap:5px"><span style="font:500 26px/1 var(--mono);letter-spacing:-.02em">29 €</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">/ month</span></div>
+<div style="font:400 11.5px/1.6 var(--mono);color:var(--txt2)">60 credits / month<br>20 GB library<br>2 members</div>
+<button type="button" style="margin-top:auto;min-height:40px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt2);font:500 12.5px/1 var(--ui);cursor:pointer">Cancel plan</button>
+</div>
+<div style="flex:1;border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="font:600 14px/1 var(--ui)">Label</span>
+<div style="display:flex;align-items:baseline;gap:5px"><span style="font:500 26px/1 var(--mono);letter-spacing:-.02em">89 €</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">/ month</span></div>
+<div style="font:400 11.5px/1.6 var(--mono);color:var(--txt2)">220 credits / month<br>100 GB library<br>6 members · roles</div>
+<button type="button" style="margin-top:auto;min-height:40px;border:none;border-radius:12px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer">Upgrade</button>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:16px">
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">INVOICES</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">VAT invoices, downloadable</span><button type="button" style="margin-left:auto;min-height:32px;padding:0 11px;border:1px solid var(--line2);border-radius:9px;background:transparent;color:var(--txt2);font:500 11.5px/1 var(--ui);cursor:pointer">Billing details</button></div>
+<div style="display:flex;flex-direction:column;font:400 12px/1 var(--mono)">
+<div style="display:grid;grid-template-columns:110px 1fr 80px 80px;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--txt2);align-items:center"><span>1 Aug 2026</span><span style="font-family:var(--ui);font-size:12.5px;color:var(--txt)">Studio · monthly</span><span style="text-align:right">29,00 €</span><span style="text-align:right;color:var(--acc)">PDF</span></div>
+<div style="display:grid;grid-template-columns:110px 1fr 80px 80px;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--txt2);align-items:center"><span>18 Jul 2026</span><span style="font-family:var(--ui);font-size:12.5px;color:var(--txt)">Credit pack · 20</span><span style="text-align:right">12,00 €</span><span style="text-align:right;color:var(--acc)">PDF</span></div>
+<div style="display:grid;grid-template-columns:110px 1fr 80px 80px;gap:10px;padding:9px 0;color:var(--txt2);align-items:center"><span>1 Jul 2026</span><span style="font-family:var(--ui);font-size:12.5px;color:var(--txt)">Studio · monthly</span><span style="text-align:right">29,00 €</span><span style="text-align:right;color:var(--acc)">PDF</span></div>
+</div>
+<div style="display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--line);border-radius:13px"><span style="width:34px;height:22px;border-radius:5px;background:var(--bg2);flex:none"></span><span style="font:400 12.5px/1 var(--ui)">Visa •••• 4417</span><span style="margin-left:auto;font:400 11px/1 var(--mono);color:var(--txt3)">exp 09/28</span><button type="button" style="min-height:34px;padding:0 11px;border:1px solid var(--line2);border-radius:9px;background:transparent;color:var(--txt);font:500 11.5px/1 var(--ui);cursor:pointer">Change</button></div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="2h" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2h" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2h</a><span style="font:600 14.5px/1.3 var(--ui)">Privacy · export · deletion</span></div>
+<div data-screen-label="Privacy" style="width:640px;background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden">
+<div style="padding:22px;display:flex;flex-direction:column;gap:14px">
+<span style="font:600 15px/1 var(--ui)">Your data</span>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:flex-start;gap:11px;padding:14px;border:1px solid var(--line);border-radius:14px">
+<span style="width:34px;height:20px;border-radius:999px;background:var(--line2);flex:none;position:relative;margin-top:1px"><span style="position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--surf)"></span></span>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:500 13px/1.3 var(--ui)">Help improve the models</span><span style="font:400 11.5px/1.5 var(--ui);color:var(--txt2)">Off. Your media and your DNA are never used to train anything.</span></div>
+</div>
+<div style="display:flex;align-items:flex-start;gap:11px;padding:14px;border:1px solid var(--line);border-radius:14px">
+<span style="width:34px;height:20px;border-radius:999px;background:var(--acc);flex:none;position:relative;margin-top:1px"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--surf)"></span></span>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:500 13px/1.3 var(--ui)">Keep rushes after export</span><span style="font:400 11.5px/1.5 var(--ui);color:var(--txt2)">Off deletes source files 30 days after a finished export.</span></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:16px">
+<span style="font:400 10px/1 var(--mono);color:var(--txt3);letter-spacing:.1em">EXPORT</span>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button type="button" style="min-height:42px;padding:0 14px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Creator DNA · JSON</button>
+<button type="button" style="min-height:42px;padding:0 14px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Projects &amp; scripts · ZIP</button>
+<button type="button" style="min-height:42px;padding:0 14px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--txt);font:500 12.5px/1 var(--ui);cursor:pointer">Everything · 4.2 GB</button>
+</div>
+<span style="font:400 11px/1.5 var(--mono);color:var(--txt3)">Full exports are emailed as a link within an hour.</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:11px;border:1px solid var(--neg);background:var(--negS);border-radius:16px;padding:16px">
+<span style="font:500 13.5px/1.3 var(--ui);color:var(--negT)">Delete a source, or everything</span>
+<p style="margin:0;font:400 12.5px/1.55 var(--ui);color:var(--negT)">Deleting a source removes every trait derived from it, and says which ones will go before you confirm. Deleting the account removes media within 24 h and backups within 30 days.</p>
+<div style="display:flex;gap:6px"><button type="button" style="min-height:40px;padding:0 13px;border:1px solid var(--neg);border-radius:11px;background:transparent;color:var(--negT);font:500 12.5px/1 var(--ui);cursor:pointer">Delete a source</button><button type="button" style="min-height:40px;padding:0 13px;border:1px solid var(--neg);border-radius:11px;background:var(--neg);color:#fff;font:500 12.5px/1 var(--ui);cursor:pointer">Delete my account</button></div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="2i" style="display:flex;flex-direction:column;gap:10px;scroll-margin-top:80px">
+<div style="display:flex;align-items:baseline;gap:9px"><a href="#2i" style="font:500 10.5px/1 var(--mono);padding:4px 8px;border-radius:5px;background:var(--bg2);color:var(--txt);text-decoration:none">2i</a><span style="font:600 14.5px/1.3 var(--ui)">Tablet breakpoint · 834</span><span style="font:400 11px/1 var(--mono);color:var(--txt3)">two cards visible, labels drop, sheet becomes an overlay</span></div>
+<div data-screen-label="Tablet Today" style="width:834px;height:640px;background:var(--surf);border:1px solid var(--line2);border-radius:26px;box-shadow:var(--shL);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:60px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 18px">
+<span style="width:24px;height:24px;border-radius:8px;background:var(--btn);flex:none"></span>
+<div style="display:flex;align-items:center;gap:5px;padding:4px;border-radius:999px;background:var(--bg2)">
+<span style="display:flex;align-items:center;gap:6px;font:500 12.5px/1 var(--ui);padding:9px 12px;border-radius:999px;background:var(--acc);color:#fff">Today</span>
+<span style="width:36px;height:34px;border-radius:999px;background:var(--surf);display:flex;align-items:center;justify-content:center;color:var(--txt3);font:400 12px/1 var(--ui)">▤</span>
+<span style="width:36px;height:34px;border-radius:999px;background:var(--surf);display:flex;align-items:center;justify-content:center;color:var(--txt3);font:400 12px/1 var(--ui)">▣</span>
+<span style="width:36px;height:34px;border-radius:999px;background:var(--surf);display:flex;align-items:center;justify-content:center;color:var(--txt3);font:400 12px/1 var(--ui)">◍</span>
+</div>
+<div style="margin-left:auto;display:flex;align-items:center;gap:7px"><span style="font:500 12px/1 var(--mono);padding:9px 11px;border-radius:999px;background:var(--bg2)">14 cr</span><span style="width:30px;height:30px;border-radius:50%;background:var(--g30)"></span></div>
+</div>
+<div style="flex:1;min-height:0;padding:18px;display:flex;gap:14px;overflow:hidden">
+<div style="width:340px;flex:none;border:1px solid var(--txt3);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--sh)">
+<span style="display:flex;align-items:center;gap:6px;font:500 11px/1 var(--ui);padding:6px 9px 6px 7px;border-radius:999px;background:var(--sigS);color:var(--sigT);align-self:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:var(--sig)"></span>Natural fit</span>
+<image-slot id="c2-tab1" style="width:100%;height:150px" radius="14" placeholder="9:16 still"></image-slot>
+<h3 style="margin:0;font:600 18px/1.25 var(--ui);letter-spacing:-.015em">Flip the crate find in one take</h3>
+<p style="margin:0;font:400 13px/1.5 var(--ui);color:var(--txt2)">One unbroken shot: needle drop, chop, stack, drop.</p>
+<div style="display:flex;align-items:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:11px"><span style="font:500 24px/1 var(--mono);font-variant-numeric:tabular-nums">86</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3);padding-bottom:2px">/100</span><span style="margin-left:auto;font:400 10.5px/1 var(--mono);color:var(--txt3)">high confidence</span></div>
+<div style="display:flex;gap:7px;margin-top:auto">
+<div style="flex:1;display:flex;min-width:0"><button type="button" style="flex:1;min-height:44px;border:none;border-radius:13px 2px 2px 13px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer;white-space:nowrap">Move to script · 2 cr</button><button type="button" style="width:32px;min-height:44px;border:none;border-left:1px solid rgba(255,255,255,.22);border-radius:2px 13px 13px 2px;background:var(--btn);color:var(--btnT);font:400 9px/1 var(--ui);cursor:pointer;flex:none">▾</button></div>
+<button type="button" style="width:44px;min-height:44px;border:1px solid var(--line2);border-radius:13px;background:transparent;color:var(--txt);font:400 13px/1 var(--ui);cursor:pointer;flex:none">✎</button>
+</div>
+</div>
+<div style="width:340px;flex:none;border:1px solid var(--line);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<span style="display:flex;align-items:center;gap:6px;font:500 11px/1 var(--ui);padding:6px 9px 6px 7px;border-radius:999px;background:var(--accS);color:var(--accT);align-self:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:var(--acc)"></span>Emerging</span>
+<image-slot id="c2-tab2" style="width:100%;height:150px" radius="14" placeholder="9:16 still"></image-slot>
+<h3 style="margin:0;font:600 18px/1.25 var(--ui);letter-spacing:-.015em">Silent studio: a beat with zero voice</h3>
+<p style="margin:0;font:400 13px/1.5 var(--ui);color:var(--txt2)">Captions carry the narration while the room stays quiet.</p>
+<div style="display:flex;align-items:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:11px"><span style="font:500 24px/1 var(--mono);font-variant-numeric:tabular-nums">81</span><span style="font:400 10.5px/1 var(--mono);color:var(--txt3);padding-bottom:2px">/100</span><span style="margin-left:auto;font:400 10.5px/1 var(--mono);color:var(--txt3)">medium confidence</span></div>
+<div style="display:flex;gap:7px;margin-top:auto">
+<div style="flex:1;display:flex;min-width:0"><button type="button" style="flex:1;min-height:44px;border:none;border-radius:13px 2px 2px 13px;background:var(--btn);color:var(--btnT);font:500 12.5px/1 var(--ui);cursor:pointer;white-space:nowrap">Move to script · 2 cr</button><button type="button" style="width:32px;min-height:44px;border:none;border-left:1px solid rgba(255,255,255,.22);border-radius:2px 13px 13px 2px;background:var(--btn);color:var(--btnT);font:400 9px/1 var(--ui);cursor:pointer;flex:none">▾</button></div>
+<button type="button" style="width:44px;min-height:44px;border:1px solid var(--line2);border-radius:13px;background:transparent;color:var(--txt);font:400 13px/1 var(--ui);cursor:pointer;flex:none">✎</button>
+</div>
+</div>
+<div style="width:80px;flex:none;border:1px solid var(--line);border-radius:22px;background:var(--surf2)"></div>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startInDark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#6d94ab&quot;,&quot;options&quot;:[&quot;#6d94ab&quot;,&quot;#7a8fb5&quot;,&quot;#5f9c98&quot;,&quot;#8b8ba8&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;signal&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#c9db63&quot;,&quot;options&quot;:[&quot;#c9db63&quot;,&quot;#d9d15f&quot;,&quot;#a8cf7a&quot;,&quot;#e0b45c&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;showAnnotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Catalog&quot;}}">
+class Component extends DCLogic {
+  state = { dark: false };
+  componentDidMount() {
+    const stored = localStorage.getItem('creonome-theme');
+    const dark = stored ? stored === 'dark' : !!this.props.startInDark;
+    this.apply(dark);
+    this.setState({ dark });
+    this.paint();
+  }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const r = document.documentElement;
+    if (this.props.accent) r.style.setProperty('--acc', this.props.accent);
+    if (this.props.signal) r.style.setProperty('--sig', this.props.signal);
+  }
+  apply(dark) { document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light'); }
+  renderVals() {
+    return {
+      notes: this.props.showAnnotations ?? true,
+      themeLabel: this.state.dark ? 'Dark' : 'Light',
+      toggleTheme: () => {
+        const dark = !this.state.dark;
+        this.apply(dark);
+        try { localStorage.setItem('creonome-theme', dark ? 'dark' : 'light'); } catch (e) {}
+        this.setState({ dark });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
