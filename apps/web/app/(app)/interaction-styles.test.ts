@@ -15,16 +15,18 @@ const opportunityStyles = readFileSync(
 );
 
 describe("requested interaction styles", () => {
-  it("reveals Today details after a deliberate 1.5 second hover delay", () => {
-    expect(todayStyles).toMatch(/\.details[\s\S]*transition-delay:\s*1\.5s/);
+  it("reveals Today details after a deliberate 0.75 second hover delay", () => {
+    expect(todayStyles).toMatch(/\.details[\s\S]*transition-delay:\s*0\.75s/);
   });
 
-  it("keeps the side sheet opaque while softening the page behind it", () => {
-    const overlay = opportunityStyles.match(/\.overlay\s*\{([^}]+)\}/)?.[1];
+  it("keeps the page sharp behind a lightly translucent glass side sheet", () => {
+    const overlay = opportunityStyles.match(
+      /\.modifyOverlay\s*\{([^}]+)\}/,
+    )?.[1];
     const sheet = opportunityStyles.match(/\.sheet\s*\{([^}]+)\}/)?.[1];
 
-    expect(overlay).toMatch(/backdrop-filter:\s*blur\(8px\)/);
-    expect(sheet).toMatch(/background:\s*var\(--surface\)/);
-    expect(sheet).not.toMatch(/color-mix/);
+    expect(overlay).toMatch(/backdrop-filter:\s*none/);
+    expect(sheet).toMatch(/background:\s*color-mix/);
+    expect(sheet).toMatch(/backdrop-filter:\s*blur\(18px\)/);
   });
 });

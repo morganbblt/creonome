@@ -578,6 +578,11 @@
   backdrop-filter: blur(8px);
 }
 
+.modifyOverlay {
+  background: transparent;
+  backdrop-filter: none;
+}
+
 .sheet {
   position: absolute;
   top: 0;
@@ -588,8 +593,10 @@
   flex-direction: column;
   overflow-y: auto;
   padding: 28px;
-  background: var(--surface);
+  border-left: 1px solid color-mix(in srgb, var(--line-2) 72%, transparent);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
   box-shadow: -24px 0 70px rgb(16 20 28 / 18%);
+  backdrop-filter: blur(18px) saturate(120%);
 }
 
 .sheet header {

@@ -10,6 +10,7 @@
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   box-shadow: var(--shadow-large);
   backdrop-filter: blur(20px) saturate(125%);
+  pointer-events: none;
   animation: toast-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -69,6 +70,7 @@
 .heading button {
   width: 32px;
   min-height: 32px;
+  pointer-events: auto;
   border: 0;
   border-radius: 50%;
   background: var(--bg-2);

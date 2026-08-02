@@ -525,7 +525,7 @@ export function OpportunityWorkspace({
       ) : null}
 
       {panel === "modify" ? (
-        <div className={styles.overlay}>
+        <div className={`${styles.overlay} ${styles.modifyOverlay}`}>
           <aside
             className={styles.sheet}
             role="dialog"

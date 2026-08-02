@@ -1,8 +1,23 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GenerationToast } from "./generation-toast";
 
 describe("GenerationToast", () => {
+  it("lets pointer input pass through the toast surface except for dismiss", () => {
+    const styles = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/generation/generation-toast.module.css",
+      ),
+      "utf8",
+    );
+
+    expect(styles).toMatch(/\.toast\s*\{[^}]*pointer-events:\s*none/s);
+    expect(styles).toMatch(/\.heading button\s*\{[^}]*pointer-events:\s*auto/s);
+  });
+
   it("shows non-blocking progress and its reserved credit amount", () => {
     render(
       <GenerationToast
