@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createServerApiClient } from "../../../src/lib/api/server-client";
 import { loadTodayOpportunities } from "../../../src/features/opportunities/today-data";
 import { TodayBatchGenerator } from "./today-batch-generator";
+import { TodayOpportunityCard } from "./today-opportunity-card";
 import styles from "./today.module.css";
 
 export const metadata: Metadata = { title: "Today" };
@@ -47,76 +48,10 @@ export default async function TodayPage() {
           aria-label="This week’s creative opportunities"
         >
           {opportunities.map((opportunity) => (
-            <article className={styles.card} key={opportunity.id} tabIndex={0}>
-              <div className={styles.cardMeta}>
-                <span
-                  className={`${styles.badge} ${styles[opportunity.strategy]}`}
-                >
-                  <span aria-hidden="true" />
-                  {opportunity.badge}
-                </span>
-                <span>{opportunity.duration}</span>
-              </div>
-
-              <div
-                className={styles.media}
-                role="img"
-                aria-label={`Synthetic portrait frame for ${opportunity.title}`}
-              >
-                <span className={styles.frameLeft} />
-                <span className={styles.frameRight} />
-                <span className={styles.frameFront}>9:16</span>
-              </div>
-
-              <div className={styles.summary}>
-                <h2>{opportunity.title}</h2>
-                <p>{opportunity.pitch}</p>
-              </div>
-
-              <div className={styles.details}>
-                <div className={styles.hook}>
-                  <span>HOOK</span>
-                  <p>{opportunity.hook}</p>
-                </div>
-                <div className={styles.score}>
-                  <div>
-                    <strong>{opportunity.score}</strong>
-                    <span>/100</span>
-                    <em>{opportunity.verdict}</em>
-                  </div>
-                  <p>
-                    {opportunity.confidence} confidence · {opportunity.effort} ·{" "}
-                    {opportunity.channel}
-                  </p>
-                  <span>WHY</span>
-                  <p>{opportunity.why}</p>
-                  <p>
-                    <strong>Reserve —</strong> {opportunity.reserve}
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.actions}>
-                <div className={styles.splitButton}>
-                  <Link href={`/opportunities/${opportunity.id}`}>
-                    Move to script <span>{opportunity.creditCost} cr</span>
-                  </Link>
-                  <button
-                    type="button"
-                    aria-label={`More actions for ${opportunity.title}`}
-                  >
-                    ⌄
-                  </button>
-                </div>
-                <Link
-                  href={`/opportunities/${opportunity.id}?panel=modify`}
-                  className={styles.modify}
-                  aria-label={`Modify ${opportunity.title}`}
-                >
-                  ✎
-                </Link>
-              </div>
-            </article>
+            <TodayOpportunityCard
+              key={opportunity.id}
+              opportunity={opportunity}
+            />
           ))}
         </section>
       )}

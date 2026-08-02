@@ -11,8 +11,9 @@ apps/web/app/api/auth/[...path]/route.ts          Neon Auth handler
 apps/web/src/features/auth/                       Creonome auth shell + Google sign-in
 apps/web/app/(onboarding)/onboarding/             private multimodal Creator DNA setup
 apps/web/src/features/onboarding/                 upload queue, evidence review and editable profile
-apps/web/app/(app)/today/                         authenticated daily opportunities
+apps/web/app/(app)/today/                         authenticated cards, action menu and Projects handoff
 apps/web/app/api/creonome/opportunities/batches/  idempotent Vertex opportunity generation proxy
+apps/web/app/api/creonome/opportunities/[id]/save/ authenticated idempotent project-save proxy
 apps/web/app/api/creonome/opportunities/[id]/feedback/ authenticated explicit-feedback proxy
 apps/web/src/features/opportunities/              six-signal feedback UI + memory review handoff
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
