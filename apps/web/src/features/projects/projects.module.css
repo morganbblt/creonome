@@ -97,8 +97,8 @@
   justify-content: space-between;
   padding: 8px;
   border-radius: 9px;
-  background: #e4e7ea;
-  color: #525960;
+  background: var(--surface-2);
+  color: var(--text-2);
   font: 500 8px/1 var(--mono);
 }
 
@@ -112,16 +112,16 @@
 }
 
 .cover[data-level="script"] {
-  background: #dce4df;
-  color: #40574b;
+  background: color-mix(in srgb, var(--accent) 25%, var(--surface-2));
+  color: var(--accent-text);
 }
 .cover[data-level="storyboard"] {
-  background: #dedee8;
-  color: #4d4d66;
+  background: color-mix(in srgb, var(--accent) 45%, var(--surface-2));
+  color: var(--accent-text);
 }
 .cover[data-level="video"] {
-  background: #d8d8d8;
-  color: #222;
+  background: color-mix(in srgb, var(--accent) 65%, var(--surface-2));
+  color: var(--accent-text);
 }
 
 .cover strong {
@@ -780,7 +780,7 @@
   line-height: 1.5;
 }
 .upgradeError {
-  color: #8c3f39;
+  color: var(--danger-text);
 }
 
 .storyboard {
@@ -871,8 +871,8 @@
   justify-content: space-between;
   padding: 10px;
   border-radius: 9px;
-  background: #dfe2e4;
-  color: #555d63;
+  background: var(--surface-2);
+  color: var(--text-2);
   font: 500 9px/1 var(--mono);
 }
 .sceneFrame em {
@@ -1045,7 +1045,7 @@
   background: var(--line-2);
 }
 .job > div > span[data-status="succeeded"] {
-  background: #68a47a;
+  background: var(--success);
 }
 .job strong {
   font-size: 11px;

@@ -332,10 +332,10 @@
 .memoryError {
   margin-top: 14px !important;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, #c9463d 30%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--line));
   border-radius: 9px;
-  background: color-mix(in srgb, #c9463d 7%, var(--surface));
-  color: #98382f !important;
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+  color: var(--danger-text) !important;
 }
 @media (max-width: 860px) {
   .grid {
