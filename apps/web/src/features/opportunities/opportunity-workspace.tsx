@@ -260,7 +260,14 @@ export function OpportunityWorkspace({
                 Move to script <span>{opportunity.creditCost} cr</span>
               </button>
             ) : (
-              <Link href="/projects" className={styles.continueProject}>
+              <Link
+                href={
+                  opportunity.projectId
+                    ? `/projects/${opportunity.projectId}`
+                    : "/projects"
+                }
+                className={styles.continueProject}
+              >
                 Continue in Projects
               </Link>
             )}
@@ -320,7 +327,15 @@ export function OpportunityWorkspace({
           ) : null}
           <footer>
             <span>{remainingCredits} credits remaining</span>
-            <Link href="/projects">View project →</Link>
+            <Link
+              href={
+                opportunity.projectId
+                  ? `/projects/${opportunity.projectId}`
+                  : "/projects"
+              }
+            >
+              View project →
+            </Link>
           </footer>
         </section>
       ) : null}

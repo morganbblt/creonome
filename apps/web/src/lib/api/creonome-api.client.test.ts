@@ -2,10 +2,69 @@ import { describe, expect, it, vi } from "vitest";
 import { CreonomeApiClient } from "./creonome-api.client";
 
 describe("CreonomeApiClient", () => {
-  it("forwards the Neon access token and validates API responses", async () => {
-    const request = vi.fn<typeof fetch>().mockResolvedValue(
-      Response.json({ balance: 60, reserved: 2, available: 58 }),
+  it("loads the project index and a workspace-scoped project detail", async () => {
+    const project = {
+      id: "0198f3a2-82dd-7000-8000-000000000020",
+      opportunityId: "7af6fdcc-8881-48c2-ae5d-3f45df1bd0a2",
+      title: "Warehouse tape loop",
+      status: "active",
+      currentLevel: "script",
+      currentVersion: 2,
+      updatedAt: "2026-08-02T12:03:00.000Z",
+      platform: "tiktok",
+      score: 91,
+      hasScript: true,
+      hasStoryboard: false,
+      hasVideo: false,
+    } as const;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ projects: [project] }))
+      .mockResolvedValueOnce(
+        Response.json({
+          ...project,
+          script: {
+            id: "0198f3a2-82dd-7000-8000-000000000022",
+            projectId: project.id,
+            title: project.title,
+            hook: "Let the room breathe. Then drop the needle.",
+            body: "Hold for two seconds, lower the needle, then reveal the kick.",
+            callToAction: "What comes after your silence?",
+            caption: "The room is part of the arrangement.",
+            platforms: ["tiktok"],
+            durationSeconds: 35,
+          },
+          storyboard: null,
+          versions: [],
+          latestJob: null,
+        }),
+      );
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
     );
+
+    await expect(client.getProjects()).resolves.toEqual({
+      projects: [project],
+    });
+    await expect(client.getProject(project.id)).resolves.toMatchObject({
+      id: project.id,
+      script: { durationSeconds: 35 },
+    });
+    expect(request).toHaveBeenNthCalledWith(
+      2,
+      `https://api.creonome.app/api/v1/projects/${project.id}`,
+      expect.any(Object),
+    );
+  });
+
+  it("forwards the Neon access token and validates API responses", async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        Response.json({ balance: 60, reserved: 2, available: 58 }),
+      );
     const client = new CreonomeApiClient(
       "https://api.creonome.app/api/v1",
       async () => "neon-jwt",

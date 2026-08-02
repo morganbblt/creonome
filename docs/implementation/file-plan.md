@@ -10,7 +10,7 @@ apps/web/app/(auth)/                              Neon Auth pages
 apps/web/app/api/auth/[...path]/route.ts          Neon Auth handler
 apps/web/src/features/auth/                       Creonome auth shell + Google sign-in
 apps/web/app/(app)/today/                         authenticated daily opportunities
-apps/web/app/(app)/projects/                      projects handoff screen
+apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
 apps/web/app/(app)/library/                       media library handoff screen
 apps/web/app/(app)/creator-dna/                   14-dimension creator profile
 apps/web/app/(app)/settings/billing/              mock billing page
@@ -24,6 +24,7 @@ apps/api/src/health/                              liveness and readiness
 apps/api/src/modules/auth/                        Neon JWT verification
 apps/api/src/modules/workspaces/                  tenant resolution and demo claim
 apps/api/src/modules/opportunities/               daily cards, generation, save to project
+apps/api/src/modules/projects/                    project list, script, storyboard, versions and jobs
 apps/api/src/modules/creator-dna/                 creator profile read model
 apps/api/src/modules/credits/                     reserve/commit/release ledger
 apps/api/src/modules/jobs/                        asynchronous job state

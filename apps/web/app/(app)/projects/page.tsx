@@ -1,33 +1,50 @@
 import type { Metadata } from "next";
-import { demoProjects } from "../../../src/features/management/demo-management";
+import Link from "next/link";
+import { ProjectIndex } from "../../../src/features/projects/project-index";
+import { loadProjects } from "../../../src/features/projects/projects-data";
+import { createServerApiClient } from "../../../src/lib/api/server-client";
 import styles from "../management.module.css";
 
 export const metadata: Metadata = { title: "Projects" };
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const { projects, source } = await loadProjects(createServerApiClient());
+  const activeCount = projects.filter(
+    (project) => project.status === "active",
+  ).length;
+
   return (
     <main className={styles.page}>
       <header className={styles.titleRow}>
-        <div><p className={styles.eyebrow}>CREATIVE PIPELINE</p><h1>Projects</h1><p>Saved opportunities, scripts and exports — grouped by project.</p></div>
-        <span className={styles.meta}>newest first · 12 active</span>
+        <div>
+          <p className={styles.eyebrow}>CREATIVE PIPELINE</p>
+          <h1>Projects</h1>
+          <p>Saved ideas and their latest creative deliverables.</p>
+        </div>
+        <span className={styles.meta}>newest first · {activeCount} active</span>
       </header>
-      <section className={styles.panel}>
-        <div className={styles.toolbar}>
-          <div className={styles.filters} aria-label="Project levels">
-            <span className={styles.filterActive}>All 12</span><span className={styles.filter}>Idea 5</span><span className={styles.filter}>Script 4</span><span className={styles.filter}>Storyboard 2</span><span className={styles.filter}>Ready 1</span>
+
+      {source === "unavailable" ? (
+        <section className={styles.unavailableState} role="status">
+          <span aria-hidden="true">↻</span>
+          <div>
+            <h2>Projects could not be loaded.</h2>
+            <p>Your workspace data is intact. Reconnect and try again.</p>
           </div>
-        </div>
-        <div className={styles.projectList}>
-          {demoProjects.map((project, index) => (
-            <article className={styles.projectRow} key={project.title}>
-              <span className={styles.thumbnail}>{String(index + 1).padStart(2, "0")}</span>
-              <div className={styles.projectCopy}><strong>{project.title}</strong><span className={styles.meta}>{project.detail}</span></div>
-              <span className={styles.level}>{project.level}</span><span className={styles.score}>{project.score ?? "—"}</span>
-              <button className={styles.button} type="button">{project.tone === "cooled" ? "Archive" : "Open"}</button>
-            </article>
-          ))}
-        </div>
-      </section>
+          <Link href="/projects">Try again</Link>
+        </section>
+      ) : projects.length ? (
+        <ProjectIndex projects={projects} />
+      ) : (
+        <section className={styles.unavailableState}>
+          <span aria-hidden="true">01</span>
+          <div>
+            <h2>Your first project starts with an opportunity.</h2>
+            <p>Save an idea or generate its script to build this workspace.</p>
+          </div>
+          <Link href="/today">Explore Today</Link>
+        </section>
+      )}
     </main>
   );
 }

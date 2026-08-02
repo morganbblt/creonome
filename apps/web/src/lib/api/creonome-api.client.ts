@@ -6,6 +6,8 @@ import {
   OpportunityBatchSchema,
   OpportunityDetailSchema,
   OpportunityRevisionSchema,
+  ProjectDetailSchema,
+  ProjectListSchema,
   UpgradeOpportunityInputSchema,
   UpgradeOpportunityResultSchema,
   type CreatorDna,
@@ -15,6 +17,8 @@ import {
   type OpportunityBatch,
   type OpportunityDetail,
   type OpportunityRevision,
+  type ProjectDetail,
+  type ProjectList,
   type UpgradeOpportunityInput,
   type UpgradeOpportunityResult,
 } from "@creonome/contracts";
@@ -80,6 +84,17 @@ export class CreonomeApiClient {
     return this.get("/integrations", IntegrationsResponseSchema);
   }
 
+  getProjects(): Promise<ProjectList> {
+    return this.get("/projects", ProjectListSchema);
+  }
+
+  getProject(projectId: string): Promise<ProjectDetail> {
+    return this.get(
+      `/projects/${encodeURIComponent(projectId)}`,
+      ProjectDetailSchema,
+    );
+  }
+
   private async get<Output>(
     path: string,
     schema: z.ZodType<Output>,
@@ -92,7 +107,9 @@ export class CreonomeApiClient {
       },
     });
     if (!response.ok) {
-      throw new Error(`Creonome API request failed with status ${response.status}`);
+      throw new Error(
+        `Creonome API request failed with status ${response.status}`,
+      );
     }
     return schema.parse(await response.json());
   }

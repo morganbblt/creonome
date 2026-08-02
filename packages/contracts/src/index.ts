@@ -54,12 +54,22 @@ export {
 export {
   ProjectLevelSchema,
   ProjectListSchema,
+  ProjectDetailSchema,
+  ProjectPlatformSchema,
   ProjectSchema,
+  ProjectStoryboardSchema,
+  ProjectSummarySchema,
+  ProjectVersionSchema,
+  StoryboardSceneSchema,
   type Project,
+  type ProjectDetail,
   type ProjectLevel,
   type ProjectList,
+  type ProjectPlatform,
+  type ProjectStoryboard,
+  type ProjectSummary,
+  type ProjectVersion,
+  type StoryboardScene,
 } from "./project.js";
-export {
-  UploadSignResponseSchema,
-  type UploadSignResponse,
-} from "./upload.js";
+export { ScriptPlatformSchema, type ScriptPlatform } from "./script.js";
+export { UploadSignResponseSchema, type UploadSignResponse } from "./upload.js";

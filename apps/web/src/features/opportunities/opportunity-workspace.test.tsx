@@ -180,7 +180,7 @@ describe("OpportunityWorkspace", () => {
     expect(screen.getByText(/58 credits remaining/i)).toBeTruthy();
     expect(
       screen.getByRole("link", { name: /view project/i }).getAttribute("href"),
-    ).toBe("/projects");
+    ).toBe("/projects/0198f3a2-82dd-7000-8000-000000000020");
   });
 
   it("explains a stale opportunity without claiming credits were reserved", async () => {

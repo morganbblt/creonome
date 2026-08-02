@@ -9,10 +9,12 @@ import {
   OpportunityBatchSchema,
   OpportunityDetailSchema,
   OpportunityRevisionSchema,
+  ProjectListSchema,
   ProjectSchema,
   UpgradeOpportunityInputSchema,
   UpgradeOpportunityResultSchema,
 } from "./index.js";
+import * as contracts from "./index.js";
 
 const opportunity = {
   id: "7af6fdcc-8881-48c2-ae5d-3f45df1bd0a2",
@@ -39,6 +41,112 @@ describe("shared API contracts", () => {
         updatedAt: "2026-08-02T10:00:00.000Z",
       }),
     ).toMatchObject({ currentLevel: "idea", currentVersion: 1 });
+  });
+
+  it("requires the maturity and discovery metadata used by the project index", () => {
+    const project = {
+      id: "0198f3a2-82dd-7000-8000-000000000001",
+      opportunityId: "0198f3a2-82dd-7000-8000-000000000002",
+      title: "Warehouse tape loop",
+      status: "active",
+      currentLevel: "storyboard",
+      currentVersion: 3,
+      updatedAt: "2026-08-02T10:00:00.000Z",
+    };
+
+    expect(ProjectListSchema.safeParse({ projects: [project] }).success).toBe(
+      false,
+    );
+    expect(
+      ProjectListSchema.safeParse({
+        projects: [
+          {
+            ...project,
+            platform: "tiktok",
+            score: 91,
+            hasScript: true,
+            hasStoryboard: true,
+            hasVideo: false,
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("validates a complete project workspace with its latest deliverables", () => {
+    const projectDetailSchema = (contracts as Record<string, unknown>)
+      .ProjectDetailSchema as
+      { safeParse: (value: unknown) => { success: boolean } } | undefined;
+
+    expect(projectDetailSchema).toBeDefined();
+    if (!projectDetailSchema) return;
+
+    expect(
+      projectDetailSchema.safeParse({
+        id: "0198f3a2-82dd-7000-8000-000000000001",
+        opportunityId: "0198f3a2-82dd-7000-8000-000000000002",
+        title: "Warehouse tape loop",
+        status: "active",
+        currentLevel: "storyboard",
+        currentVersion: 3,
+        updatedAt: "2026-08-02T10:00:00.000Z",
+        platform: "tiktok",
+        score: 91,
+        hasScript: true,
+        hasStoryboard: true,
+        hasVideo: false,
+        script: {
+          id: "0198f3a2-82dd-7000-8000-000000000010",
+          projectId: "0198f3a2-82dd-7000-8000-000000000001",
+          title: "Warehouse tape loop",
+          hook: "Let the room breathe. Then drop the needle.",
+          body: "A restrained performance that opens into the full track.",
+          callToAction: "What would you sample?",
+          caption: "One room. One take.",
+          platforms: ["tiktok", "instagram"],
+          durationSeconds: 35,
+        },
+        storyboard: {
+          id: "0198f3a2-82dd-7000-8000-000000000020",
+          title: "Warehouse tape loop",
+          aspectRatio: "9:16",
+          durationSeconds: 35,
+          scenes: [
+            {
+              id: "0198f3a2-82dd-7000-8000-000000000021",
+              position: 1,
+              heading: "Silence",
+              description: "A hand lowers the needle in one locked shot.",
+              shotType: "close-up",
+              voiceover: null,
+              onScreenText: "Wait for it.",
+              durationSeconds: 7,
+            },
+          ],
+        },
+        versions: [
+          {
+            version: 3,
+            level: "storyboard",
+            changeSource: "ai",
+            changeSummary: "Built the first visual sequence.",
+            lockedFields: ["duration"],
+            createdAt: "2026-08-02T10:00:00.000Z",
+          },
+        ],
+        latestJob: {
+          id: "0198f3a2-82dd-7000-8000-000000000030",
+          kind: "storyboard",
+          provider: "gemini",
+          model: "gemini-3.6-flash",
+          status: "succeeded",
+          progress: 100,
+          createdAt: "2026-08-02T09:59:00.000Z",
+          updatedAt: "2026-08-02T10:00:00.000Z",
+          completedAt: "2026-08-02T10:00:00.000Z",
+        },
+      }).success,
+    ).toBe(true);
   });
   it("accepts the public health response", () => {
     const result = HealthResponseSchema.parse({
@@ -118,7 +226,8 @@ describe("shared API contracts", () => {
       title: opportunity.title,
       pitch: opportunity.pitch,
       hook: "Let the room breathe. Then drop the needle.",
-      changeSummary: "Quietened the opening while preserving the one-take rule.",
+      changeSummary:
+        "Quietened the opening while preserving the one-take rule.",
       memoryCandidate: {
         id: "0198f3a2-82dd-7000-8000-000000000021",
         status: "pending",

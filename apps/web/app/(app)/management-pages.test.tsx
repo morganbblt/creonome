@@ -2,18 +2,10 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import CreatorDnaPage from "./creator-dna/page";
 import LibraryPage from "./library/page";
-import ProjectsPage from "./projects/page";
 import IntegrationsPage from "./settings/integrations/page";
 import PrivacyPage from "./settings/privacy/page";
 
 describe("management pages", () => {
-  it("renders project levels and the current creative work", () => {
-    render(<ProjectsPage />);
-    expect(screen.getByRole("heading", { name: "Projects" })).toBeTruthy();
-    expect(screen.getByText("Flip the crate find in one take")).toBeTruthy();
-    expect(screen.getByText("Storyboard 2")).toBeTruthy();
-  });
-
   it("renders the mixed media library", () => {
     render(<LibraryPage />);
     expect(screen.getByRole("heading", { name: "Library" })).toBeTruthy();

@@ -2,6 +2,10 @@ import { z } from "zod";
 import { CreditsResponseSchema } from "./credits.js";
 import { GenerationJobSchema } from "./generation-job.js";
 import { ProjectLevelSchema, ProjectSchema } from "./project.js";
+import { ScriptDraftSchema } from "./script.js";
+
+export { ScriptDraftSchema } from "./script.js";
+export type { ScriptDraft } from "./script.js";
 
 export const OpportunityStrategySchema = z.enum([
   "signature",
@@ -75,18 +79,6 @@ export const UpgradeOpportunityInputSchema = z.object({
   confirmedCreditCost: z.literal(true),
 });
 
-export const ScriptDraftSchema = z.object({
-  id: z.uuid(),
-  projectId: z.uuid(),
-  title: z.string().trim().min(3).max(160),
-  hook: z.string().trim().min(3).max(220),
-  body: z.string().trim().min(12).max(4_000),
-  callToAction: z.string().trim().min(3).max(220).nullable(),
-  caption: z.string().trim().min(3).max(2_200).nullable(),
-  platforms: z.array(z.enum(["tiktok", "instagram", "youtube"])).min(1),
-  durationSeconds: z.number().int().positive().max(600).nullable(),
-});
-
 export const UpgradeOpportunityResultSchema = z.object({
   project: ProjectSchema,
   script: ScriptDraftSchema,
@@ -108,7 +100,6 @@ export type OpportunityRevision = z.infer<typeof OpportunityRevisionSchema>;
 export type UpgradeOpportunityInput = z.infer<
   typeof UpgradeOpportunityInputSchema
 >;
-export type ScriptDraft = z.infer<typeof ScriptDraftSchema>;
 export type UpgradeOpportunityResult = z.infer<
   typeof UpgradeOpportunityResultSchema
 >;

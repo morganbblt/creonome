@@ -10,6 +10,7 @@ import { JobsModule } from "./modules/jobs/jobs.module.js";
 import { MemoryModule } from "./modules/memory/memory.module.js";
 import { IntegrationsModule } from "./modules/integrations/integrations.module.js";
 import { OpportunitiesModule } from "./modules/opportunities/opportunities.module.js";
+import { ProjectsModule } from "./modules/projects/projects.module.js";
 import { WorkspacesModule } from "./modules/workspaces/workspaces.module.js";
 import { UploadsModule } from "./modules/uploads/uploads.module.js";
 
@@ -29,6 +30,7 @@ import { UploadsModule } from "./modules/uploads/uploads.module.js";
     IntegrationsModule,
     WorkspacesModule,
     OpportunitiesModule,
+    ProjectsModule,
     UploadsModule,
     HealthModule,
   ],
