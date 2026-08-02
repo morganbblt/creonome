@@ -41,13 +41,26 @@ describe("WorkspaceContextService", () => {
     expect(repo.createPersonalWorkspace).not.toHaveBeenCalled();
   });
 
-  it("atomically claims the seeded demo on the first hackathon login", async () => {
+  it("creates a personal workspace for a new account even when demo mode is enabled", async () => {
     const repo = repository({
       claimDemoWorkspace: vi.fn().mockResolvedValue(context),
     });
     const service = new WorkspaceContextService(repo, true, 60);
 
     await expect(service.resolve(principal)).resolves.toEqual(context);
+    expect(repo.claimDemoWorkspace).not.toHaveBeenCalled();
+    expect(repo.createPersonalWorkspace).toHaveBeenCalledWith(principal, 60);
+  });
+
+  it("atomically claims the seeded demo only when explicitly requested", async () => {
+    const repo = repository({
+      claimDemoWorkspace: vi.fn().mockResolvedValue(context),
+    });
+    const service = new WorkspaceContextService(repo, true, 60);
+
+    await expect(
+      service.resolve(principal, { allowDemoWorkspace: true }),
+    ).resolves.toEqual(context);
     expect(repo.claimDemoWorkspace).toHaveBeenCalledWith(principal);
     expect(repo.createPersonalWorkspace).not.toHaveBeenCalled();
   });

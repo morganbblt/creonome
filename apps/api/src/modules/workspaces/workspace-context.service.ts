@@ -15,13 +15,16 @@ export class WorkspaceContextService {
     private readonly initialCreditBalance: number,
   ) {}
 
-  async resolve(principal: AuthPrincipal): Promise<WorkspaceContext> {
+  async resolve(
+    principal: AuthPrincipal,
+    options: { allowDemoWorkspace?: boolean } = {},
+  ): Promise<WorkspaceContext> {
     const existing = await this.repository.findForAuthUser(principal.subject);
     if (existing) {
       return existing;
     }
 
-    if (this.demoMode) {
+    if (this.demoMode && options.allowDemoWorkspace) {
       const demo = await this.repository.claimDemoWorkspace(principal);
       if (demo) {
         return demo;
