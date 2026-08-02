@@ -4,15 +4,16 @@ Creonome uses one committed template, [`.env.example`](../../.env.example), and 
 
 ## MVP credential ownership
 
-| Credential                                  | Owner                     | Per user?      | Production store/status                                                 |
-| ------------------------------------------- | ------------------------- | -------------- | ----------------------------------------------------------------------- |
-| `GEMINI_API_KEY`                            | Creonome/GCP              | No             | Secret Manager; validate model access and quota before each deployment   |
-| `MEM0_API_KEY`                              | Creonome                  | No             | Secret Manager; live read smoke test passed                             |
-| `RESEND_API_KEY`                            | Creonome                  | No             | Secret Manager; verified sender/domain still required                   |
-| `DATABASE_URL`                              | Neon                      | No             | Secret Manager, pooled endpoint                                         |
-| `NEON_AUTH_BASE_URL` / `NEON_AUTH_JWKS_URL` | Neon branch               | No             | Vercel/Cloud Run and Secret Manager                                     |
-| `NEON_AUTH_COOKIE_SECRET`                   | Creonome                  | No             | Vercel and Secret Manager                                               |
-| Google sign-in                              | Neon Auth shared provider | OAuth per user | Enabled; no Creonome Google client secret required for the MVP          |
+| Credential                                  | Owner                     | Per user?      | Production store/status                                                  |
+| ------------------------------------------- | ------------------------- | -------------- | ------------------------------------------------------------------------ |
+| `GOOGLE_CLOUD_PROJECT` / `VERTEX_AI_MODEL`  | Creonome/GCP              | No             | Cloud Run identity; primary structured and multimodal generation         |
+| `GEMINI_API_KEY`                            | Creonome/GCP              | No             | Secret Manager; optional Google AI Studio fallback for local development |
+| `MEM0_API_KEY`                              | Creonome                  | No             | Secret Manager; live read smoke test passed                              |
+| `RESEND_API_KEY`                            | Creonome                  | No             | Secret Manager; verified sender/domain still required                    |
+| `DATABASE_URL`                              | Neon                      | No             | Secret Manager, pooled endpoint                                          |
+| `NEON_AUTH_BASE_URL` / `NEON_AUTH_JWKS_URL` | Neon branch               | No             | Vercel/Cloud Run and Secret Manager                                      |
+| `NEON_AUTH_COOKIE_SECRET`                   | Creonome                  | No             | Vercel and Secret Manager                                                |
+| Google sign-in                              | Neon Auth shared provider | OAuth per user | Enabled; no Creonome Google client secret required for the MVP           |
 
 TikTok and Meta environment names remain in `.env.example` only as post-MVP placeholders. Those future client credentials will belong to the Creonome developer applications, while access/refresh tokens will be issued per consenting creator and stored encrypted. `FEATURE_SOCIAL_CONNECTIONS=false` is the production MVP setting.
 
@@ -24,6 +25,7 @@ TikTok and Meta environment names remain in `.env.example` only as post-MVP plac
 - Private bucket `gs://creonome-909754432431-media` with uniform access and public-access prevention.
 - Cloud Tasks queue `creonome-generation` in `europe-west1` because Paris is unavailable.
 - Runtime service accounts `creonome-api`, `creonome-worker`, and `creonome-gemini`.
+- Vertex AI enabled; `creonome-api` has only `roles/aiplatform.user` plus private media object access.
 - Secret Manager entries for Gemini, Mem0, Resend, Neon database/auth, reserved social credentials and social-token encryption.
 
 For local Google client libraries, use Application Default Credentials instead of a downloaded service-account key:

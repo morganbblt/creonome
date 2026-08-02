@@ -1,4 +1,5 @@
 const protectedRoutePrefixes = [
+  "/onboarding",
   "/today",
   "/projects",
   "/opportunities",

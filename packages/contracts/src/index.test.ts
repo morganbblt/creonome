@@ -9,6 +9,9 @@ import {
   OpportunityBatchSchema,
   OpportunityDetailSchema,
   OpportunityRevisionSchema,
+  OnboardingStateSchema,
+  UpdateOnboardingAssetInputSchema,
+  UpdateOnboardingProfileInputSchema,
   ProjectListSchema,
   ProjectSchema,
   UpgradeOpportunityInputSchema,
@@ -186,6 +189,77 @@ describe("shared API contracts", () => {
         mimeType: "video/quicktime",
         byteSize: 12_500_000,
         gcsUri: "gs://creonome-media/workspaces/workspace-1/sources/asset.mov",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("validates an evidence-backed onboarding workspace", () => {
+    const state = OnboardingStateSchema.parse({
+      status: "in_progress",
+      step: "profile",
+      readyCount: 3,
+      recommendedAssetCount: 3,
+      assets: [
+        {
+          id: "0198f3a2-82dd-7000-8000-000000000060",
+          fileName: "warehouse-take.mov",
+          mimeType: "video/quicktime",
+          byteSize: 12_500_000,
+          status: "ready",
+          representativeness: "representative",
+          analysis: {
+            summary: "A restrained live take built around tactile close-ups.",
+            disciplines: ["music performance", "video"],
+            genres: ["electronic", "ambient"],
+            creativeSignature:
+              "Nocturnal, tactile and deliberately understated.",
+            themes: ["process", "anticipation"],
+            targetAudience:
+              "Listeners drawn to intimate electronic performance.",
+            boundaries: ["No fake urgency"],
+            evidence: ["Long pause before the first beat", "Macro needle shot"],
+          },
+          errorMessage: null,
+          createdAt: "2026-08-02T10:00:00.000Z",
+        },
+      ],
+      profile: {
+        stageName: "Nova Sainte",
+        disciplines: ["music producer", "performer"],
+        genres: ["electronic", "ambient"],
+        creativeSignature:
+          "Nocturnal electronic stories grounded in tactile details.",
+        themes: ["ritual", "process", "transformation"],
+        targetAudience:
+          "Curious electronic listeners and independent creators.",
+        boundaries: ["No fake urgency", "No trend imitation"],
+      },
+    });
+
+    expect(state.readyCount).toBe(3);
+    expect(state.assets[0]?.analysis?.evidence).toHaveLength(2);
+  });
+
+  it("constrains onboarding edits to supported profile and evidence labels", () => {
+    expect(
+      UpdateOnboardingAssetInputSchema.safeParse({
+        representativeness: "reference_only",
+      }).success,
+    ).toBe(true);
+    expect(
+      UpdateOnboardingAssetInputSchema.safeParse({
+        representativeness: "viral",
+      }).success,
+    ).toBe(false);
+    expect(
+      UpdateOnboardingProfileInputSchema.safeParse({
+        stageName: "Nova Sainte",
+        disciplines: ["music producer"],
+        genres: ["electronic"],
+        creativeSignature: "Tactile, restrained electronic storytelling.",
+        themes: ["process"],
+        targetAudience: "Independent electronic listeners.",
+        boundaries: [],
       }).success,
     ).toBe(true);
   });

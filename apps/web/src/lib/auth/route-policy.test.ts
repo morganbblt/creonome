@@ -4,6 +4,7 @@ import { isProtectedPath } from "./route-policy";
 describe("application route policy", () => {
   it("protects creator workspace routes", () => {
     expect(isProtectedPath("/today")).toBe(true);
+    expect(isProtectedPath("/onboarding")).toBe(true);
     expect(isProtectedPath("/projects/warehouse-tapes")).toBe(true);
     expect(isProtectedPath("/opportunities/warehouse-tapes")).toBe(true);
     expect(isProtectedPath("/settings/billing")).toBe(true);

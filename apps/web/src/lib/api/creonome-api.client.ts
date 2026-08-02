@@ -3,6 +3,7 @@ import {
   CreditsResponseSchema,
   IntegrationsResponseSchema,
   LibrarySchema,
+  OnboardingStateSchema,
   ModifyOpportunityInputSchema,
   OpportunityBatchSchema,
   OpportunityDetailSchema,
@@ -15,6 +16,7 @@ import {
   type CreditsResponse,
   type IntegrationsResponse,
   type Library,
+  type OnboardingState,
   type ModifyOpportunityInput,
   type OpportunityBatch,
   type OpportunityDetail,
@@ -41,6 +43,10 @@ export class CreonomeApiClient {
 
   getCurrentOpportunities(): Promise<OpportunityBatch> {
     return this.get("/opportunities", OpportunityBatchSchema);
+  }
+
+  getOnboarding(): Promise<OnboardingState> {
+    return this.get("/onboarding", OnboardingStateSchema);
   }
 
   getOpportunity(opportunityId: string): Promise<OpportunityDetail> {

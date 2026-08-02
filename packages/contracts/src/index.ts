@@ -62,6 +62,26 @@ export {
   type UpgradeOpportunityResult,
 } from "./opportunity.js";
 export {
+  OnboardingAssetInsightSchema,
+  OnboardingAssetSchema,
+  OnboardingProfileSchema,
+  OnboardingRepresentativenessSchema,
+  OnboardingStateSchema,
+  OnboardingStatusSchema,
+  OnboardingStepSchema,
+  UpdateOnboardingAssetInputSchema,
+  UpdateOnboardingProfileInputSchema,
+  type OnboardingAsset,
+  type OnboardingAssetInsight,
+  type OnboardingProfile,
+  type OnboardingRepresentativeness,
+  type OnboardingState,
+  type OnboardingStatus,
+  type OnboardingStep,
+  type UpdateOnboardingAssetInput,
+  type UpdateOnboardingProfileInput,
+} from "./onboarding.js";
+export {
   ProjectLevelSchema,
   ProjectListSchema,
   ProjectDetailSchema,

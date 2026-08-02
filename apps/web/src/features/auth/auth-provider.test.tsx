@@ -17,11 +17,18 @@ vi.mock("@neondatabase/auth-ui", () => ({
   NeonAuthUIProvider: ({
     children,
     social,
+    redirectTo,
   }: {
     children: ReactNode;
     social?: { providers?: string[] };
+    redirectTo?: string;
   }) => (
-    <div data-social-providers={social?.providers?.join(",")}>{children}</div>
+    <div
+      data-social-providers={social?.providers?.join(",")}
+      data-redirect-to={redirectTo}
+    >
+      {children}
+    </div>
   ),
 }));
 
@@ -38,5 +45,10 @@ describe("AuthProvider", () => {
         .getByText("Authentication")
         .parentElement?.getAttribute("data-social-providers"),
     ).toBe("google");
+    expect(
+      screen
+        .getByText("Authentication")
+        .parentElement?.getAttribute("data-redirect-to"),
+    ).toBe("/onboarding");
   });
 });

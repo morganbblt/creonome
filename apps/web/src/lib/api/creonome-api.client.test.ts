@@ -2,6 +2,31 @@ import { describe, expect, it, vi } from "vitest";
 import { CreonomeApiClient } from "./creonome-api.client";
 
 describe("CreonomeApiClient", () => {
+  it("loads the persisted onboarding workspace", async () => {
+    const onboarding = {
+      status: "pending",
+      step: "source",
+      readyCount: 0,
+      recommendedAssetCount: 3,
+      assets: [],
+      profile: null,
+    } as const;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json(onboarding));
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await expect(client.getOnboarding()).resolves.toEqual(onboarding);
+    expect(request).toHaveBeenCalledWith(
+      "https://api.creonome.app/api/v1/onboarding",
+      expect.any(Object),
+    );
+  });
+
   it("loads the mixed workspace library", async () => {
     const library = {
       totalByteSize: 8_400_000,

@@ -1,6 +1,6 @@
 # Creonome
 
-Creonome turns creator signals, memory and instinct into production-ready vertical video concepts. The hackathon MVP is a pnpm/Turborepo monorepo with a Next.js App Router frontend, NestJS/Fastify API, Neon Postgres/Auth, Mem0 memory and Gemini structured generation.
+Creonome turns creator signals, memory and instinct into production-ready vertical video concepts. The hackathon MVP is a pnpm/Turborepo monorepo with a Next.js App Router frontend, NestJS/Fastify API, Neon Postgres/Auth, Mem0 memory and Vertex AI structured generation. Its multimodal onboarding analyzes private creator files before producing an editable, evidence-backed Creator DNA.
 
 ## Local development
 

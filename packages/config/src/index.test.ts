@@ -31,7 +31,9 @@ describe("API environment", () => {
     });
 
     expect(env.DATABASE_URL).toContain("postgresql://");
-    expect(env.GEMINI_MODEL).toBe("gemini-3.6-flash");
+    expect(env.GEMINI_MODEL).toBe("gemini-3.5-flash");
+    expect(env.GOOGLE_CLOUD_LOCATION).toBe("global");
+    expect(env.VERTEX_AI_MODEL).toBe("gemini-3.5-flash");
     expect(env.MEM0_BASE_URL).toBe("https://api.mem0.ai");
     expect(env.TIKTOK_CLIENT_KEY).toBeUndefined();
   });

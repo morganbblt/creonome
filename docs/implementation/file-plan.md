@@ -9,7 +9,10 @@ This is the hackathon file map. TikTok and Instagram connections are explicitly 
 apps/web/app/(auth)/                              Neon Auth pages
 apps/web/app/api/auth/[...path]/route.ts          Neon Auth handler
 apps/web/src/features/auth/                       Creonome auth shell + Google sign-in
+apps/web/app/(onboarding)/onboarding/             private multimodal Creator DNA setup
+apps/web/src/features/onboarding/                 upload queue, evidence review and editable profile
 apps/web/app/(app)/today/                         authenticated daily opportunities
+apps/web/app/api/creonome/opportunities/batches/  idempotent Vertex opportunity generation proxy
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
 apps/web/app/api/creonome/projects/[id]/upgrade/  authenticated storyboard generation proxy
 apps/web/app/(app)/library/                       live private media/script/export library
@@ -24,6 +27,7 @@ apps/api/src/bootstrap/                           Fastify, CORS, versioning, Ope
 apps/api/src/health/                              liveness and readiness
 apps/api/src/modules/auth/                        Neon JWT verification
 apps/api/src/modules/workspaces/                  tenant resolution and demo claim
+apps/api/src/modules/onboarding/                  private GCS analysis + editable DNA persistence
 apps/api/src/modules/opportunities/               daily cards, generation, save to project
 apps/api/src/modules/projects/                    project read model + credited script→storyboard workflow
 apps/api/src/modules/assets/                      private asset registry and mixed library read model
@@ -31,7 +35,7 @@ apps/api/src/modules/creator-dna/                 creator profile read model
 apps/api/src/modules/credits/                     reserve/commit/release ledger
 apps/api/src/modules/jobs/                        asynchronous job state
 apps/api/src/modules/memory/                      Mem0 adapter and candidate validation
-apps/api/src/modules/ai/                          Gemini structured generation
+apps/api/src/modules/ai/                          Vertex AI structured generation + local fallback
 apps/api/src/modules/uploads/                     private GCS signed uploads
 apps/api/src/modules/integrations/                disabled post-MVP social adapters
 
@@ -61,7 +65,7 @@ docs/setup/environment.md                         credentials and provider statu
 
 ## Manual inputs still required
 
-- Add Gemini API prepaid credits in Google AI Studio; the current key is valid but its prepaid balance is depleted.
+- Add Google AI Studio prepaid credits only if the optional API-key fallback should be used outside Vertex AI.
 - Verify a Resend sending domain and choose the production `RESEND_FROM_EMAIL`.
 - Authorize the Vercel GitHub App for `morganbblt/creonome` if automatic Git deployments are wanted. Manual production deployment already works.
 - Choose a branded API domain only if the current Cloud Run URL should be replaced.

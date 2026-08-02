@@ -7,6 +7,7 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/onboarding/:path*",
     "/today/:path*",
     "/projects/:path*",
     "/opportunities/:path*",

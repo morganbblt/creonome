@@ -15,7 +15,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       navigate={router.push}
       replace={router.replace}
       onSessionChange={() => router.refresh()}
-      redirectTo="/today"
+      redirectTo="/onboarding"
       basePath="/auth"
       defaultTheme="light"
       credentials={{ forgotPassword: true }}

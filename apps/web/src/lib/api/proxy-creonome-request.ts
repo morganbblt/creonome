@@ -25,8 +25,12 @@ export async function proxyCreonomeRequest(
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${data.token}`,
-        "Content-Type":
-          request.headers.get("content-type") ?? "application/json",
+        ...(body
+          ? {
+              "Content-Type":
+                request.headers.get("content-type") ?? "application/json",
+            }
+          : {}),
         ...(request.headers.get("idempotency-key")
           ? { "Idempotency-Key": request.headers.get("idempotency-key")! }
           : {}),
