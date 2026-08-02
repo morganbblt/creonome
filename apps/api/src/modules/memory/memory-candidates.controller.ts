@@ -1,4 +1,11 @@
-import { Controller, Inject, Param, ParseUUIDPipe, Post } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
@@ -12,6 +19,14 @@ export class MemoryCandidatesController {
     @Inject(MemoryCandidatesService)
     private readonly candidates: MemoryCandidatesService,
   ) {}
+
+  @Get()
+  @ApiOperation({
+    summary: "List pending memory candidates and review history",
+  })
+  list(@CurrentUser() principal: AuthPrincipal) {
+    return this.candidates.list(principal);
+  }
 
   @Post(":id/approve")
   @ApiOperation({ summary: "Approve a memory candidate and send it to Mem0" })

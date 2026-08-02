@@ -7,8 +7,23 @@ export type MemoryCandidateRecord = {
 };
 
 export type MemoryReviewStatus = "approved" | "rejected";
+export type MemoryCandidateStatus = "pending" | MemoryReviewStatus;
+
+export type MemoryCandidateListRecord = MemoryCandidateRecord & {
+  provider: string;
+  evidence: Record<string, unknown>;
+  status: MemoryCandidateStatus;
+  reviewedAt: Date | null;
+  createdAt: Date;
+};
+
+export type MemoryReviewedRecord = { reviewedAt: Date };
 
 export interface MemoryCandidateRepository {
+  list(
+    workspaceId: string,
+    creatorProfileId: string,
+  ): Promise<MemoryCandidateListRecord[]>;
   findPending(
     candidateId: string,
     workspaceId: string,
@@ -18,7 +33,7 @@ export interface MemoryCandidateRepository {
     workspaceId: string,
     reviewedByUserId: string,
     status: MemoryReviewStatus,
-  ): Promise<boolean>;
+  ): Promise<MemoryReviewedRecord | null>;
 }
 
 export const MEMORY_CANDIDATE_REPOSITORY = Symbol(

@@ -177,21 +177,26 @@
   font: 450 8.5px/1.4 var(--mono);
 }
 .memory {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
   margin-top: 16px;
   padding: 20px;
-  border: 1px dashed var(--line-2);
+  border: 1px solid var(--line);
   border-radius: 17px;
+  background: var(--surface-2);
 }
 .memory span {
   display: block;
 }
+.memoryHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line-2);
+}
 .memory h2 {
   margin: 0 0 6px;
-  font-size: 14px;
+  font-size: 17px;
 }
 .memory p {
   margin: 0;
@@ -199,13 +204,138 @@
   font-size: 11.5px;
   line-height: 1.5;
 }
-.memory > strong {
+.memoryHeader > strong {
   flex: none;
   padding: 8px 10px;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-text);
   font-size: 9.5px;
+}
+.memoryColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  gap: 18px;
+  padding-top: 18px;
+}
+.memoryColumns h3 {
+  margin: 0 0 11px;
+  color: var(--text-3);
+  font: 550 9px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.memoryQueue,
+.memoryHistory {
+  min-width: 0;
+}
+.memoryHistory {
+  padding-left: 18px;
+  border-left: 1px solid var(--line-2);
+}
+.memoryCard {
+  padding: 15px;
+  border: 1px solid var(--line-2);
+  border-radius: 13px;
+  background: var(--surface);
+}
+.memoryCard + .memoryCard {
+  margin-top: 9px;
+}
+.memoryMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+.memoryMeta span {
+  margin: 0;
+  color: var(--text-3);
+  font: 500 8px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.memoryCard > p {
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 570;
+}
+.memoryActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.memoryActions button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.memoryActions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.accept {
+  background: var(--text-1);
+  color: var(--surface);
+}
+.reject {
+  background: transparent;
+  color: var(--text-2);
+}
+.memoryHistory ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.memoryHistory li {
+  padding: 0 0 12px;
+}
+.memoryHistory li + li {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.memoryHistory li > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+.memoryHistory strong,
+.memoryHistory time {
+  font: 550 8px/1 var(--mono);
+  text-transform: uppercase;
+}
+.memoryHistory strong[data-status="approved"] {
+  color: var(--accent-text);
+}
+.memoryHistory strong[data-status="rejected"],
+.memoryHistory time {
+  color: var(--text-3);
+}
+.memoryHistory li p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.memoryEmpty {
+  padding: 16px;
+  border: 1px dashed var(--line-2);
+  border-radius: 11px;
+  text-align: center;
+}
+.memoryError {
+  margin-top: 14px !important;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #c9463d 30%, var(--line));
+  border-radius: 9px;
+  background: color-mix(in srgb, #c9463d 7%, var(--surface));
+  color: #98382f !important;
 }
 @media (max-width: 860px) {
   .grid {
@@ -246,7 +376,17 @@
     grid-template-columns: 1fr;
   }
   .memory {
-    align-items: flex-start;
+    padding: 16px;
+  }
+  .memoryHeader {
     flex-direction: column;
+  }
+  .memoryColumns {
+    grid-template-columns: 1fr;
+  }
+  .memoryHistory {
+    padding: 18px 0 0;
+    border-top: 1px solid var(--line-2);
+    border-left: 0;
   }
 }

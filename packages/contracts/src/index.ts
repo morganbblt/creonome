@@ -38,6 +38,20 @@ export {
   type SocialProvider,
 } from "./integration.js";
 export {
+  MemoryCandidateScopeSchema,
+  MemoryCandidateStatusSchema,
+  MemoryCandidatesResponseSchema,
+  MemoryReviewResultSchema,
+  PendingMemoryCandidateSchema,
+  ReviewedMemoryCandidateSchema,
+  type MemoryCandidateScope,
+  type MemoryCandidateStatus,
+  type MemoryCandidatesResponse,
+  type MemoryReviewResult,
+  type PendingMemoryCandidate,
+  type ReviewedMemoryCandidate,
+} from "./memory.js";
+export {
   OpportunityBatchSchema,
   OpportunityDetailSchema,
   OpportunityMemoryScopeSchema,

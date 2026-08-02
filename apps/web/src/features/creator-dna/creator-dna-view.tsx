@@ -1,7 +1,12 @@
 "use client";
 
-import type { CreatorDna, CreatorDnaTrait } from "@creonome/contracts";
+import type {
+  CreatorDna,
+  CreatorDnaTrait,
+  MemoryCandidatesResponse,
+} from "@creonome/contracts";
 import styles from "./creator-dna.module.css";
+import { MemoryControl } from "./memory-control";
 
 function categoryLabel(value: string): string {
   return value
@@ -21,7 +26,13 @@ function evidenceLabels(evidence: CreatorDnaTrait["evidence"]): string[] {
     .slice(0, 3);
 }
 
-export function CreatorDnaView({ dna }: { dna: CreatorDna }) {
+export function CreatorDnaView({
+  dna,
+  memories,
+}: {
+  dna: CreatorDna;
+  memories: MemoryCandidatesResponse | null;
+}) {
   function exportJson() {
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(dna, null, 2)], { type: "application/json" }),
@@ -107,17 +118,7 @@ export function CreatorDnaView({ dna }: { dna: CreatorDna }) {
             })}
           </div>
 
-          <aside className={styles.memory}>
-            <div>
-              <span>MEMORY CONTROL</span>
-              <h2>Nothing enters long-term memory without approval.</h2>
-              <p>
-                Preferences inferred from creative edits remain candidates until
-                you explicitly review them.
-              </p>
-            </div>
-            <strong>Mem0 · approval gated</strong>
-          </aside>
+          <MemoryControl initialMemories={memories} />
         </div>
       </section>
     </main>

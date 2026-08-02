@@ -1,14 +1,22 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  MemoryCandidatesResponseSchema,
+  MemoryReviewResultSchema,
+  type MemoryCandidatesResponse,
+  type MemoryReviewResult,
+} from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
   MEMORY_CANDIDATE_REPOSITORY,
   type MemoryCandidateRepository,
 } from "./memory-candidate.repository.js";
-import {
-  MEMORY_PROVIDER,
-  type MemoryProvider,
-} from "./memory-provider.js";
+import { MEMORY_PROVIDER, type MemoryProvider } from "./memory-provider.js";
 
 @Injectable()
 export class MemoryCandidatesService {
@@ -21,7 +29,55 @@ export class MemoryCandidatesService {
     private readonly memory: MemoryProvider,
   ) {}
 
-  async approve(principal: AuthPrincipal, candidateId: string) {
+  async list(principal: AuthPrincipal): Promise<MemoryCandidatesResponse> {
+    const context = await this.workspaces.resolve(principal);
+    const records = await this.repository.list(
+      context.workspaceId,
+      context.creatorProfileId,
+    );
+    const candidates = records.map((record) => {
+      const scope =
+        record.kind === "project" || record.kind === "creator"
+          ? record.kind
+          : null;
+      const projectId =
+        typeof record.evidence.projectId === "string"
+          ? record.evidence.projectId
+          : null;
+      const opportunityId =
+        typeof record.evidence.opportunityId === "string"
+          ? record.evidence.opportunityId
+          : null;
+      return {
+        id: record.id,
+        status: record.status,
+        kind: record.kind,
+        scope,
+        content: record.content,
+        source:
+          typeof record.evidence.source === "string"
+            ? record.evidence.source
+            : record.provider,
+        provider: record.provider,
+        projectId,
+        opportunityId,
+        createdAt: record.createdAt.toISOString(),
+        reviewedAt: record.reviewedAt?.toISOString() ?? null,
+      };
+    });
+
+    return MemoryCandidatesResponseSchema.parse({
+      pendingCount: candidates.filter(({ status }) => status === "pending")
+        .length,
+      pending: candidates.filter(({ status }) => status === "pending"),
+      history: candidates.filter(({ status }) => status !== "pending"),
+    });
+  }
+
+  async approve(
+    principal: AuthPrincipal,
+    candidateId: string,
+  ): Promise<MemoryReviewResult> {
     const context = await this.workspaces.resolve(principal);
     const candidate = await this.repository.findPending(
       candidateId,
@@ -48,15 +104,19 @@ export class MemoryCandidatesService {
       throw new ConflictException("Memory candidate was already reviewed");
     }
 
-    return {
+    return MemoryReviewResultSchema.parse({
       id: candidateId,
-      status: "approved" as const,
+      status: "approved",
       providerStatus: providerResult.status,
       providerEventId: providerResult.eventId,
-    };
+      reviewedAt: reviewed.reviewedAt.toISOString(),
+    });
   }
 
-  async reject(principal: AuthPrincipal, candidateId: string) {
+  async reject(
+    principal: AuthPrincipal,
+    candidateId: string,
+  ): Promise<MemoryReviewResult> {
     const context = await this.workspaces.resolve(principal);
     const candidate = await this.repository.findPending(
       candidateId,
@@ -74,6 +134,12 @@ export class MemoryCandidatesService {
     if (!reviewed) {
       throw new ConflictException("Memory candidate was already reviewed");
     }
-    return { id: candidateId, status: "rejected" as const };
+    return MemoryReviewResultSchema.parse({
+      id: candidateId,
+      status: "rejected",
+      providerStatus: null,
+      providerEventId: null,
+      reviewedAt: reviewed.reviewedAt.toISOString(),
+    });
   }
 }

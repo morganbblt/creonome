@@ -3,6 +3,7 @@ import {
   CreditsResponseSchema,
   IntegrationsResponseSchema,
   LibrarySchema,
+  MemoryCandidatesResponseSchema,
   OnboardingStateSchema,
   ModifyOpportunityInputSchema,
   OpportunityBatchSchema,
@@ -16,6 +17,7 @@ import {
   type CreditsResponse,
   type IntegrationsResponse,
   type Library,
+  type MemoryCandidatesResponse,
   type OnboardingState,
   type ModifyOpportunityInput,
   type OpportunityBatch,
@@ -82,6 +84,10 @@ export class CreonomeApiClient {
 
   getCreatorDna(): Promise<CreatorDna> {
     return this.get("/creator-dna", CreatorDnaSchema);
+  }
+
+  getMemoryCandidates(): Promise<MemoryCandidatesResponse> {
+    return this.get("/memory-candidates", MemoryCandidatesResponseSchema);
   }
 
   getCredits(): Promise<CreditsResponse> {

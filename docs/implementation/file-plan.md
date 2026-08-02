@@ -18,6 +18,8 @@ apps/web/app/api/creonome/projects/[id]/upgrade/  authenticated storyboard gener
 apps/web/app/api/creonome/projects/[id]/exports/  authenticated Markdown export proxy
 apps/web/app/(app)/library/                       live private media/script/export library
 apps/web/app/(app)/creator-dna/                   live evidence-backed creator profile
+apps/web/app/api/creonome/memory-candidates/      authenticated memory review proxies
+apps/web/src/features/creator-dna/memory-control  explicit approval queue + decision history
 apps/web/app/(app)/settings/billing/              mock billing page
 apps/web/app/(app)/settings/integrations/         TikTok/Instagram “Coming soon” states
 apps/web/app/(app)/settings/privacy/              privacy controls
@@ -36,7 +38,7 @@ apps/api/src/modules/assets/                      private asset registry and mix
 apps/api/src/modules/creator-dna/                 creator profile read model
 apps/api/src/modules/credits/                     reserve/commit/release ledger
 apps/api/src/modules/jobs/                        asynchronous job state
-apps/api/src/modules/memory/                      Mem0 adapter and candidate validation
+apps/api/src/modules/memory/                      Mem0 adapter, approval queue and review history
 apps/api/src/modules/ai/                          Vertex AI structured generation + local fallback
 apps/api/src/modules/uploads/                     private GCS signed uploads
 apps/api/src/modules/integrations/                disabled post-MVP social adapters

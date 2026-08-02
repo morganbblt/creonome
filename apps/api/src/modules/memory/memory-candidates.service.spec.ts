@@ -19,6 +19,35 @@ function setup() {
     }),
   } as unknown as WorkspaceContextService;
   const repository: MemoryCandidateRepository = {
+    list: vi.fn().mockResolvedValue([
+      {
+        id: candidateId,
+        workspaceId: "workspace-1",
+        creatorProfileId: "creator-1",
+        provider: "mem0",
+        kind: "creator",
+        content: "Never use fake urgency.",
+        evidence: {
+          source: "opportunity_chat",
+          projectId: "0198f3a2-82dd-7000-8000-000000000020",
+        },
+        status: "pending",
+        reviewedAt: null,
+        createdAt: new Date("2026-08-02T06:00:00.000Z"),
+      },
+      {
+        id: "0198f3a2-82dd-7000-8000-000000000004",
+        workspaceId: "workspace-1",
+        creatorProfileId: "creator-1",
+        provider: "mem0",
+        kind: "project",
+        content: "Use a louder opening.",
+        evidence: { source: "opportunity_chat" },
+        status: "rejected",
+        reviewedAt: new Date("2026-08-01T06:10:00.000Z"),
+        createdAt: new Date("2026-08-01T06:00:00.000Z"),
+      },
+    ]),
     findPending: vi.fn().mockResolvedValue({
       id: candidateId,
       workspaceId: "workspace-1",
@@ -26,7 +55,9 @@ function setup() {
       kind: "creative_boundary",
       content: "Never use fake urgency.",
     }),
-    markReviewed: vi.fn().mockResolvedValue(true),
+    markReviewed: vi.fn().mockResolvedValue({
+      reviewedAt: new Date("2026-08-02T06:10:00.000Z"),
+    }),
   };
   const provider: MemoryProvider = {
     search: vi.fn(),
@@ -44,13 +75,38 @@ function setup() {
 }
 
 describe("MemoryCandidatesService", () => {
+  it("lists workspace candidates as a pending queue and review history", async () => {
+    const { service } = setup();
+
+    await expect(service.list(principal)).resolves.toMatchObject({
+      pendingCount: 1,
+      pending: [
+        {
+          id: candidateId,
+          scope: "creator",
+          source: "opportunity_chat",
+          projectId: "0198f3a2-82dd-7000-8000-000000000020",
+        },
+      ],
+      history: [
+        {
+          status: "rejected",
+          reviewedAt: "2026-08-01T06:10:00.000Z",
+        },
+      ],
+    });
+  });
+
   it("writes to Mem0 only after explicit approval", async () => {
     const { service, repository, provider } = setup();
 
-    await expect(service.approve(principal, candidateId)).resolves.toMatchObject({
+    await expect(
+      service.approve(principal, candidateId),
+    ).resolves.toMatchObject({
       id: candidateId,
       status: "approved",
       providerStatus: "pending",
+      reviewedAt: "2026-08-02T06:10:00.000Z",
     });
     expect(provider.remember).toHaveBeenCalledWith(
       expect.objectContaining({ content: "Never use fake urgency." }),
@@ -66,10 +122,14 @@ describe("MemoryCandidatesService", () => {
   it("rejects locally without sending creative data to Mem0", async () => {
     const { service, provider } = setup();
 
-    await expect(service.reject(principal, candidateId)).resolves.toEqual({
-      id: candidateId,
-      status: "rejected",
-    });
+    await expect(service.reject(principal, candidateId)).resolves.toMatchObject(
+      {
+        id: candidateId,
+        status: "rejected",
+        providerStatus: null,
+        reviewedAt: "2026-08-02T06:10:00.000Z",
+      },
+    );
     expect(provider.remember).not.toHaveBeenCalled();
   });
 });

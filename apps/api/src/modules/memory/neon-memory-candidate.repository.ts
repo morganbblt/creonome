@@ -1,20 +1,55 @@
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
 import { type CreonomeDatabase, memoryCandidates } from "@creonome/db";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import type {
+  MemoryCandidateListRecord,
   MemoryCandidateRecord,
   MemoryCandidateRepository,
+  MemoryReviewedRecord,
   MemoryReviewStatus,
 } from "./memory-candidate.repository.js";
 
-export class NeonMemoryCandidateRepository
-  implements MemoryCandidateRepository
-{
+export class NeonMemoryCandidateRepository implements MemoryCandidateRepository {
   constructor(
     @Inject(CREONOME_DATABASE)
     private readonly database: CreonomeDatabase | undefined,
   ) {}
+
+  async list(
+    workspaceId: string,
+    creatorProfileId: string,
+  ): Promise<MemoryCandidateListRecord[]> {
+    const records = await this.requireDatabase()
+      .select({
+        id: memoryCandidates.id,
+        workspaceId: memoryCandidates.workspaceId,
+        creatorProfileId: memoryCandidates.creatorProfileId,
+        provider: memoryCandidates.provider,
+        kind: memoryCandidates.kind,
+        content: memoryCandidates.content,
+        evidence: memoryCandidates.evidence,
+        status: memoryCandidates.status,
+        reviewedAt: memoryCandidates.reviewedAt,
+        createdAt: memoryCandidates.createdAt,
+      })
+      .from(memoryCandidates)
+      .where(
+        and(
+          eq(memoryCandidates.workspaceId, workspaceId),
+          eq(memoryCandidates.creatorProfileId, creatorProfileId),
+        ),
+      )
+      .orderBy(desc(memoryCandidates.createdAt))
+      .limit(50);
+    return records.flatMap((record) =>
+      record.status === "pending" ||
+      record.status === "approved" ||
+      record.status === "rejected"
+        ? [{ ...record, status: record.status }]
+        : [],
+    );
+  }
 
   async findPending(
     candidateId: string,
@@ -45,10 +80,11 @@ export class NeonMemoryCandidateRepository
     workspaceId: string,
     reviewedByUserId: string,
     status: MemoryReviewStatus,
-  ): Promise<boolean> {
+  ): Promise<MemoryReviewedRecord | null> {
+    const reviewedAt = new Date();
     const reviewed = await this.requireDatabase()
       .update(memoryCandidates)
-      .set({ status, reviewedByUserId, reviewedAt: new Date() })
+      .set({ status, reviewedByUserId, reviewedAt })
       .where(
         and(
           eq(memoryCandidates.id, candidateId),
@@ -56,8 +92,10 @@ export class NeonMemoryCandidateRepository
           eq(memoryCandidates.status, "pending"),
         ),
       )
-      .returning({ id: memoryCandidates.id });
-    return reviewed.length > 0;
+      .returning({ reviewedAt: memoryCandidates.reviewedAt });
+    return reviewed[0]?.reviewedAt
+      ? { reviewedAt: reviewed[0].reviewedAt }
+      : null;
   }
 
   private requireDatabase(): CreonomeDatabase {
