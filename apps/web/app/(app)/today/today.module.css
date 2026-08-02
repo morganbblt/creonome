@@ -142,6 +142,33 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTiming {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.freshness {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: var(--bg-2);
+}
+
+.new {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.fresh {
+  color: var(--signal-text);
+}
+
+.aging {
+  color: var(--text-3);
 }
 
 .badge {

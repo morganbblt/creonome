@@ -1,7 +1,11 @@
 import type { ProjectDetail } from "@creonome/contracts";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ProjectWorkspace } from "./project-workspace";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 
 const project: ProjectDetail = {
   id: "0198f3a2-82dd-7000-8000-000000000020",
@@ -52,6 +56,7 @@ const project: ProjectDetail = {
       },
     ],
   },
+  video: null,
   versions: [
     {
       version: 3,
@@ -87,6 +92,50 @@ describe("ProjectWorkspace", () => {
     expect(screen.getByText("Current level", { exact: false })).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Download Markdown" }),
+    ).toBeTruthy();
+  });
+
+  it("opens a generated MVP video first and keeps storyboard history available", () => {
+    render(
+      <ProjectWorkspace
+        project={{
+          ...project,
+          currentLevel: "video",
+          currentVersion: 4,
+          hasVideo: true,
+          video: {
+            id: "0198f3a2-82dd-7000-8000-000000000050",
+            projectId: project.id,
+            previewUrl: "/demo/creonome-vertical-demo.mp4",
+            mimeType: "video/mp4",
+            durationSeconds: 35,
+            width: 540,
+            height: 960,
+            simulated: true,
+            createdAt: "2026-08-02T12:04:00.000Z",
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("tab", { name: "Video" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(screen.getByLabelText("Generated vertical video")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: /download mvp video/i })
+        .getAttribute("href"),
+    ).toBe("/demo/creonome-vertical-demo.mp4");
+    fireEvent.click(screen.getByRole("tab", { name: "Storyboard" }));
+    expect(screen.getByRole("heading", { name: "01 · Silence" })).toBeTruthy();
+  });
+
+  it("offers the final video level after a storyboard exists", () => {
+    render(<ProjectWorkspace project={project} />);
+
+    expect(
+      screen.getByRole("button", { name: /generate mvp video · 12 cr/i }),
     ).toBeTruthy();
   });
 });

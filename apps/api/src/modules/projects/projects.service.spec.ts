@@ -33,6 +33,10 @@ function createService(detail: Record<string, unknown> | null = null) {
     findExistingStoryboardUpgrade: vi.fn(),
     findStoryboardSource: vi.fn(),
     createStoryboardUpgrade: vi.fn(),
+    findVideoUpgradeByIdempotency: vi.fn(),
+    findExistingVideoUpgrade: vi.fn(),
+    findVideoSource: vi.fn(),
+    createVideoUpgrade: vi.fn(),
   };
 
   return { service: new ProjectsService(workspaces, repository), repository };
@@ -90,6 +94,17 @@ describe("ProjectsService", () => {
           },
         ],
       },
+      video: {
+        id: "0198f3a2-82dd-7000-8000-000000000040",
+        projectId,
+        previewUrl: "/demo/creonome-vertical-demo.mp4",
+        mimeType: "video/mp4",
+        durationSeconds: 35,
+        width: 540,
+        height: 960,
+        simulated: true,
+        createdAt: new Date("2026-08-02T10:00:00.000Z"),
+      },
       versions: [
         {
           version: 3,
@@ -120,6 +135,10 @@ describe("ProjectsService", () => {
       currentLevel: "storyboard",
       script: { durationSeconds: 35 },
       storyboard: { scenes: [{ heading: "Silence" }] },
+      video: {
+        previewUrl: "/demo/creonome-vertical-demo.mp4",
+        simulated: true,
+      },
       versions: [{ createdAt: "2026-08-02T10:00:00.000Z" }],
       latestJob: { status: "succeeded" },
     });

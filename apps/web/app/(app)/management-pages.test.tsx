@@ -1,7 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import IntegrationsPage from "./settings/integrations/page";
+import BillingPage from "./settings/billing/page";
 import PrivacyPage from "./settings/privacy/page";
+
+vi.mock("next/navigation", () => ({
+  notFound: () => {
+    throw new Error("NEXT_NOT_FOUND");
+  },
+}));
 
 const getPrivacy = vi.fn().mockResolvedValue({
   preferences: {
@@ -17,6 +24,10 @@ vi.mock("@/src/lib/api/server-client", () => ({
 }));
 
 describe("management pages", () => {
+  it("keeps the future payment page out of the MVP", () => {
+    expect(() => BillingPage()).toThrow("NEXT_NOT_FOUND");
+  });
+
   it("renders provider states", () => {
     const { unmount } = render(<IntegrationsPage />);
     expect(screen.getByRole("heading", { name: "Integrations" })).toBeTruthy();

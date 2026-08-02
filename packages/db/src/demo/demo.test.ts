@@ -36,11 +36,16 @@ describe("Creonome hackathon dataset", () => {
 
     expect(demo.dnaVersion.version).toBe(1);
     expect(demo.dnaTraits).toHaveLength(6);
-    expect(demo.projectVersion.level).toBe("storyboard");
+    expect(demo.project.currentLevel).toBe("video");
+    expect(demo.projectVersion.level).toBe("video");
     expect(demo.script.hook).toContain("record");
     expect(demo.storyboardScenes).toHaveLength(3);
     expect(demo.generationJob.status).toBe("succeeded");
     expect(demo.generatedAsset.mimeType).toBe("video/mp4");
+    expect(demo.generatedAsset.metadata).toMatchObject({
+      publicUrl: "/demo/creonome-vertical-demo.mp4",
+      simulated: true,
+    });
   });
 
   it("loads the complete labeled sample corpus used by the MVP", () => {

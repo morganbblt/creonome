@@ -48,6 +48,18 @@ export type ProjectStoryboardRecord = {
   scenes: ProjectSceneRecord[];
 };
 
+export type ProjectVideoRecord = {
+  id: string;
+  projectId: string;
+  previewUrl: string;
+  mimeType: string;
+  durationSeconds: number | null;
+  width: number;
+  height: number;
+  simulated: boolean;
+  createdAt: Date;
+};
+
 export type ProjectVersionRecord = {
   version: number;
   level: string;
@@ -74,6 +86,7 @@ export type ProjectJobRecord = {
 export type ProjectDetailRecord = ProjectSummaryRecord & {
   script: ProjectScriptRecord | null;
   storyboard: ProjectStoryboardRecord | null;
+  video: ProjectVideoRecord | null;
   versions: ProjectVersionRecord[];
   latestJob: ProjectJobRecord | null;
 };
@@ -91,6 +104,11 @@ export type WorkflowProjectRecord = {
 export type StoryboardSourceRecord = {
   project: WorkflowProjectRecord;
   script: ProjectScriptRecord;
+};
+
+export type VideoSourceRecord = {
+  project: WorkflowProjectRecord;
+  storyboard: ProjectStoryboardRecord;
 };
 
 export type GeneratedStoryboardScene = Omit<
@@ -122,6 +140,23 @@ export type CreateStoryboardUpgradeInput = {
   generated: GeneratedStoryboard;
 };
 
+export type VideoUpgradeRecord = {
+  project: WorkflowProjectRecord;
+  video: ProjectVideoRecord;
+  job: ProjectJobRecord;
+};
+
+export type CreateVideoUpgradeInput = {
+  workspaceId: string;
+  userId: string;
+  projectId: string;
+  idempotencyKey: string;
+  previewUrl: string;
+  durationSeconds: number;
+  width: number;
+  height: number;
+};
+
 export interface ProjectsRepository {
   list(workspaceId: string): Promise<ProjectSummaryRecord[]>;
   findById(
@@ -143,6 +178,21 @@ export interface ProjectsRepository {
   createStoryboardUpgrade(
     input: CreateStoryboardUpgradeInput,
   ): Promise<StoryboardUpgradeRecord | null>;
+  findVideoUpgradeByIdempotency(
+    workspaceId: string,
+    idempotencyKey: string,
+  ): Promise<VideoUpgradeRecord | null>;
+  findExistingVideoUpgrade(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<VideoUpgradeRecord | null>;
+  findVideoSource(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<VideoSourceRecord | null>;
+  createVideoUpgrade(
+    input: CreateVideoUpgradeInput,
+  ): Promise<VideoUpgradeRecord | null>;
 }
 
 export const PROJECTS_REPOSITORY = Symbol("PROJECTS_REPOSITORY");

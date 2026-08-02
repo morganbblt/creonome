@@ -38,6 +38,7 @@ const project = {
     durationSeconds: 20,
   },
   storyboard: null,
+  video: null,
   versions: [],
   latestJob: null,
 } satisfies ProjectDetail;

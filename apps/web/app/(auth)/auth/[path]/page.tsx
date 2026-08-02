@@ -7,5 +7,5 @@ type AuthPageProps = {
 export default async function AuthPage({ params }: AuthPageProps) {
   const { path } = await params;
 
-  return <AuthView path={path} redirectTo="/today" />;
+  return <AuthView path={path} redirectTo="/onboarding" />;
 }

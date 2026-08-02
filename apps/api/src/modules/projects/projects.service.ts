@@ -52,6 +52,9 @@ export class ProjectsService {
       ...this.toSummary(row),
       script: row.script,
       storyboard: row.storyboard,
+      video: row.video
+        ? { ...row.video, createdAt: row.video.createdAt.toISOString() }
+        : null,
       versions: row.versions.map((version) => ({
         ...version,
         createdAt: version.createdAt.toISOString(),

@@ -355,6 +355,62 @@ describe("shared API contracts", () => {
       }).success,
     ).toBe(true);
   });
+
+  it("contracts a persisted MVP video render as the final project level", () => {
+    const inputSchema = (contracts as Record<string, unknown>)
+      .UpgradeProjectInputSchema as {
+      safeParse: (value: unknown) => { success: boolean };
+    };
+    const resultSchema = (contracts as Record<string, unknown>)
+      .UpgradeVideoResultSchema as
+      { safeParse: (value: unknown) => { success: boolean } } | undefined;
+
+    expect(
+      inputSchema.safeParse({
+        targetLevel: "video",
+        confirmedCreditCost: true,
+      }).success,
+    ).toBe(true);
+    expect(resultSchema).toBeDefined();
+    if (!resultSchema) return;
+
+    expect(
+      resultSchema.safeParse({
+        project: {
+          id: "0198f3a2-82dd-7000-8000-000000000001",
+          opportunityId: "0198f3a2-82dd-7000-8000-000000000002",
+          title: "Warehouse tape loop",
+          status: "active",
+          currentLevel: "video",
+          currentVersion: 4,
+          updatedAt: "2026-08-02T10:00:00.000Z",
+        },
+        video: {
+          id: "0198f3a2-82dd-7000-8000-000000000060",
+          projectId: "0198f3a2-82dd-7000-8000-000000000001",
+          previewUrl: "/demo/creonome-vertical-demo.mp4",
+          mimeType: "video/mp4",
+          durationSeconds: 35,
+          width: 540,
+          height: 960,
+          simulated: true,
+          createdAt: "2026-08-02T10:00:00.000Z",
+        },
+        job: {
+          id: "0198f3a2-82dd-7000-8000-000000000061",
+          kind: "video_render",
+          provider: "creonome",
+          model: "mvp-motion-preview-v1",
+          status: "succeeded",
+          progress: 100,
+          createdAt: "2026-08-02T09:59:00.000Z",
+          updatedAt: "2026-08-02T10:00:00.000Z",
+          completedAt: "2026-08-02T10:00:00.000Z",
+        },
+        credits: { balance: 42, reserved: 0, available: 42 },
+      }).success,
+    ).toBe(true);
+  });
   it("accepts the public health response", () => {
     const result = HealthResponseSchema.parse({
       status: "ok",

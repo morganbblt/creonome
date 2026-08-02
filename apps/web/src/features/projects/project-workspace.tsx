@@ -7,6 +7,7 @@ import styles from "./projects.module.css";
 import { ProjectExportButton } from "./project-export-button";
 import { splitScriptSegments } from "./script-segments";
 import { StoryboardUpgrade } from "./storyboard-upgrade";
+import { VideoUpgrade } from "./video-upgrade";
 
 const maturityLevels = ["idea", "script", "storyboard", "video"] as const;
 
@@ -28,8 +29,8 @@ function formatDate(value: string): string {
 export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
   const currentIndex = maturityLevels.indexOf(project.currentLevel);
   const [activeDeliverable, setActiveDeliverable] = useState<
-    "script" | "storyboard"
-  >(project.storyboard ? "storyboard" : "script");
+    "script" | "storyboard" | "video"
+  >(project.video ? "video" : project.storyboard ? "storyboard" : "script");
 
   return (
     <main className={styles.workspace}>
@@ -90,6 +91,16 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
               role="tablist"
               aria-label="Project deliverables"
             >
+              {project.video ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDeliverable === "video"}
+                  onClick={() => setActiveDeliverable("video")}
+                >
+                  Video
+                </button>
+              ) : null}
               {project.storyboard ? (
                 <button
                   type="button"
@@ -182,6 +193,12 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
             <StoryboardUpgrade projectId={project.id} />
           ) : null}
 
+          {project.storyboard &&
+          !project.video &&
+          project.currentLevel === "storyboard" ? (
+            <VideoUpgrade projectId={project.id} />
+          ) : null}
+
           {project.storyboard && activeDeliverable === "storyboard" ? (
             <section
               className={styles.storyboard}
@@ -259,6 +276,54 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                   </article>
                 ))}
               </div>
+            </section>
+          ) : null}
+
+          {project.video && activeDeliverable === "video" ? (
+            <section
+              className={styles.videoSheet}
+              aria-labelledby="video-title"
+            >
+              <header className={styles.sectionHeader}>
+                <div>
+                  <p>
+                    VIDEO · {project.video.simulated ? "MVP PREVIEW" : "LATEST"}
+                  </p>
+                  <h2 id="video-title">Vertical motion preview</h2>
+                </div>
+                <span>
+                  {project.video.width} × {project.video.height} ·{" "}
+                  {project.video.durationSeconds} sec
+                </span>
+              </header>
+              <div className={styles.videoStage}>
+                <video
+                  controls
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-label="Generated vertical video"
+                >
+                  <source
+                    src={project.video.previewUrl}
+                    type={project.video.mimeType}
+                  />
+                </video>
+              </div>
+              <footer className={styles.videoMeta}>
+                <div>
+                  <strong>9:16 delivery preview</strong>
+                  <span>
+                    {project.video.simulated
+                      ? "MVP simulated render · replaceable by the production video provider"
+                      : "Production render"}
+                  </span>
+                </div>
+                <a href={project.video.previewUrl} download>
+                  Download MVP video
+                </a>
+              </footer>
             </section>
           ) : null}
         </div>

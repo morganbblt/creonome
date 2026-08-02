@@ -7,8 +7,10 @@ import {
 } from "@nestjs/common";
 import {
   UpgradeProjectResultSchema,
+  UpgradeVideoResultSchema,
   type UpgradeProjectInput,
   type UpgradeProjectResult,
+  type UpgradeVideoResult,
 } from "@creonome/contracts";
 import { z } from "zod";
 import {
@@ -24,6 +26,7 @@ import {
   type ProjectsRepository,
   type StoryboardSourceRecord,
   type StoryboardUpgradeRecord,
+  type VideoUpgradeRecord,
 } from "./projects.repository.js";
 
 const GeneratedStoryboardSceneSchema = z.object({
@@ -155,7 +158,7 @@ export class ProjectWorkflowService {
     projectId: string,
     _input: UpgradeProjectInput,
     idempotencyKey: string,
-  ): Promise<UpgradeProjectResult> {
+  ): Promise<UpgradeProjectResult | UpgradeVideoResult> {
     const normalizedKey = idempotencyKey.trim();
     if (normalizedKey.length < 8 || normalizedKey.length > 180) {
       throw new BadRequestException(
@@ -164,6 +167,9 @@ export class ProjectWorkflowService {
     }
 
     const context = await this.workspaces.resolve(principal);
+    if (_input.targetLevel === "video") {
+      return this.upgradeVideo(context, projectId, normalizedKey, principal);
+    }
     const idempotent = await this.repository.findStoryboardUpgradeByIdempotency(
       context.workspaceId,
       normalizedKey,
@@ -241,6 +247,101 @@ export class ProjectWorkflowService {
         }
         throw new ServiceUnavailableException({
           message: "Storyboard generation could not be completed",
+          retryMode: "new_request",
+        });
+      }
+      throw error;
+    }
+  }
+
+  private async upgradeVideo(
+    context: {
+      workspaceId: string;
+      userId: string;
+      creatorProfileId: string;
+    },
+    projectId: string,
+    idempotencyKey: string,
+    principal: AuthPrincipal,
+  ): Promise<UpgradeVideoResult> {
+    const idempotent = await this.repository.findVideoUpgradeByIdempotency(
+      context.workspaceId,
+      idempotencyKey,
+    );
+    if (idempotent) {
+      const credits = await this.credits.commit(
+        context.workspaceId,
+        creditCosts.video,
+        `${idempotencyKey}:commit`,
+        `Committed ${creditCosts.video} credits for MVP video generation`,
+      );
+      return this.toVideoContract(idempotent, credits);
+    }
+
+    const existing = await this.repository.findExistingVideoUpgrade(
+      context.workspaceId,
+      projectId,
+    );
+    if (existing) {
+      return this.toVideoContract(
+        existing,
+        await this.credits.getAccount(principal),
+      );
+    }
+
+    const source = await this.repository.findVideoSource(
+      context.workspaceId,
+      projectId,
+    );
+    if (!source) {
+      throw new NotFoundException("A storyboard-ready project was not found");
+    }
+
+    const cost = creditCosts.video;
+    await this.credits.reserve(
+      context.workspaceId,
+      cost,
+      `${idempotencyKey}:reserve`,
+      `Reserve ${cost} credits for MVP video generation`,
+    );
+
+    let persisted = false;
+    try {
+      const upgrade = await this.repository.createVideoUpgrade({
+        workspaceId: context.workspaceId,
+        userId: context.userId,
+        projectId,
+        idempotencyKey,
+        previewUrl: "/demo/creonome-vertical-demo.mp4",
+        durationSeconds: 8,
+        width: 540,
+        height: 960,
+      });
+      if (!upgrade) {
+        throw new NotFoundException("A storyboard-ready project was not found");
+      }
+      persisted = true;
+      const credits = await this.credits.commit(
+        context.workspaceId,
+        cost,
+        `${idempotencyKey}:commit`,
+        `Committed ${cost} credits for MVP video generation`,
+      );
+      return this.toVideoContract(upgrade, credits);
+    } catch (error) {
+      if (!persisted) {
+        try {
+          await this.credits.release(
+            context.workspaceId,
+            cost,
+            `${idempotencyKey}:release`,
+            `Released ${cost} credits after failed MVP video generation`,
+          );
+        } catch {
+          throw error;
+        }
+        throw new ServiceUnavailableException({
+          message: "MVP video generation could not be completed",
           retryMode: "new_request",
         });
       }
@@ -354,6 +455,30 @@ export class ProjectWorkflowService {
       project: {
         ...upgrade.project,
         updatedAt: upgrade.project.updatedAt.toISOString(),
+      },
+      job: {
+        ...upgrade.job,
+        createdAt: upgrade.job.createdAt.toISOString(),
+        updatedAt: upgrade.job.updatedAt.toISOString(),
+        completedAt: upgrade.job.completedAt?.toISOString() ?? null,
+      },
+      credits,
+    });
+  }
+
+  private toVideoContract(
+    upgrade: VideoUpgradeRecord,
+    credits: { balance: number; reserved: number; available: number },
+  ): UpgradeVideoResult {
+    return UpgradeVideoResultSchema.parse({
+      ...upgrade,
+      project: {
+        ...upgrade.project,
+        updatedAt: upgrade.project.updatedAt.toISOString(),
+      },
+      video: {
+        ...upgrade.video,
+        createdAt: upgrade.video.createdAt.toISOString(),
       },
       job: {
         ...upgrade.job,

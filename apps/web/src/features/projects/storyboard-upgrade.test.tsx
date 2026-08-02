@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe("StoryboardUpgrade", () => {
-  it("shows a receipt before opening the persisted storyboard", async () => {
+  it("refreshes into the persisted storyboard after a success toast", async () => {
     const request = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(upgrade), {
         status: 200,
@@ -107,16 +107,9 @@ describe("StoryboardUpgrade", () => {
       }),
     );
     expect(await screen.findByText("Storyboard ready")).toBeTruthy();
-    expect(screen.getByText("receipt 00000040")).toBeTruthy();
-    expect(screen.getByText("54 credits available")).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Open ledger" }).getAttribute("href"),
-    ).toBe("/credits");
-    expect(refresh).not.toHaveBeenCalled();
-    expect(balanceChanged).toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "Open storyboard" }));
+    expect(screen.getByText(/saved to this project/i)).toBeTruthy();
     expect(refresh).toHaveBeenCalledOnce();
+    expect(balanceChanged).toHaveBeenCalled();
     window.removeEventListener(
       "creonome:credit-balance-changed",
       balanceChanged,
@@ -143,7 +136,7 @@ describe("StoryboardUpgrade", () => {
     expect(await screen.findByText("Building the storyboard")).toBeTruthy();
     expect(screen.getByText("4 credits held")).toBeTruthy();
     expect(screen.getByRole("progressbar")).toBeTruthy();
-    expect(screen.getByText(/you can leave this page/i)).toBeTruthy();
+    expect(screen.getByText(/you can keep working/i)).toBeTruthy();
 
     resolveRequest(Response.json(upgrade));
     expect(await screen.findByText("Storyboard ready")).toBeTruthy();
@@ -176,9 +169,9 @@ describe("StoryboardUpgrade", () => {
       string,
       string
     >;
-    expect(
-      screen.getByRole("button", { name: /confirm and generate/i }),
-    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: /generate storyboard · 4 cr/i }),
+    );
 
     fireEvent.click(
       screen.getByRole("button", { name: /confirm and generate/i }),

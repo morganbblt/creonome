@@ -54,6 +54,7 @@ const project: ProjectDetail = {
       },
     ],
   },
+  video: null,
   versions: [],
   latestJob: null,
 };

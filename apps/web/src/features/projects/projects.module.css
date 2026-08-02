@@ -433,6 +433,7 @@
 
 .scriptSheet,
 .storyboard,
+.videoSheet,
 .ideaState,
 .upgradeCard,
 .projectAside > section {
@@ -784,6 +785,70 @@
 
 .storyboard {
   overflow: hidden;
+}
+
+.videoSheet {
+  overflow: hidden;
+}
+
+.videoStage {
+  display: grid;
+  min-height: 520px;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 30%, #30363d 0, transparent 42%), #090b0d;
+}
+
+.videoStage video {
+  display: block;
+  width: min(100%, 330px);
+  max-height: 70vh;
+  aspect-ratio: 9 / 16;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 18px;
+  background: #000;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 45%);
+  object-fit: cover;
+}
+
+.videoMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.videoMeta strong,
+.videoMeta span {
+  display: block;
+}
+
+.videoMeta strong {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.videoMeta span {
+  color: var(--text-3);
+  font: 450 9px/1.45 var(--mono);
+}
+
+.videoMeta a {
+  display: inline-flex;
+  min-height: 40px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid var(--button);
+  border-radius: 11px;
+  background: var(--button);
+  color: var(--button-text);
+  font: 650 11px/1 var(--sans);
+  text-decoration: none;
 }
 .scenes {
   display: flex;

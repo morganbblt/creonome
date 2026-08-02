@@ -40,6 +40,7 @@ describe("project data", () => {
       ...project,
       script: null,
       storyboard: null,
+      video: null,
       versions: [],
       latestJob: null,
     };

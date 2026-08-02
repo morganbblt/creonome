@@ -12,7 +12,7 @@
   min-height: 68px;
   padding: 0 22px;
   border-bottom: 1px solid var(--line);
-  background: rgb(255 255 255 / 76%);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
   backdrop-filter: blur(18px);
 }
 
@@ -84,8 +84,10 @@
 
 .settings {
   width: 38px;
+  border: 0;
   color: var(--text-2);
   text-decoration: none;
+  cursor: pointer;
 }
 
 .avatar {
@@ -97,6 +99,35 @@
   background: #cbd1d9;
   color: #4b545f;
   font: 600 10px/1 var(--mono);
+}
+
+.routeProgress {
+  position: fixed;
+  z-index: 210;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.routeProgress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: route-progress 900ms ease-in-out infinite;
+}
+
+@keyframes route-progress {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(340%);
+  }
 }
 
 @media (max-width: 760px) {

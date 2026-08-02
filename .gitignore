@@ -155,6 +155,9 @@ output/
 # material. The already-reviewed handoff HTML remains tracked.
 Screen catalog for music creator tool/uploads/
 
+# Local implementation handoff package; the reviewed changes live in app code.
+Design adjustment handoff/
+
 # Generated JavaScript emitted next to TypeScript tool configuration.
 packages/db/drizzle.config.js
 packages/db/drizzle.config.js.map

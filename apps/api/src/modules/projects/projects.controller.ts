@@ -17,6 +17,7 @@ import type {
   ProjectDetail,
   ProjectList,
   UpgradeProjectResult,
+  UpgradeVideoResult,
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
@@ -53,17 +54,17 @@ export class ProjectsController {
 
   @Post(":id/upgrade")
   @ApiOperation({
-    summary: "Confirm credits and upgrade a script to a storyboard",
+    summary: "Confirm credits and upgrade a project deliverable",
   })
   @ApiOkResponse({
-    description: "Persisted storyboard and updated credit balance",
+    description: "Persisted storyboard or MVP video and updated credit balance",
   })
   upgrade(
     @CurrentUser() principal: AuthPrincipal,
     @Param("id") projectId: string,
     @Headers("idempotency-key") idempotencyKey: string,
     @Body() input: UpgradeProjectDto,
-  ): Promise<UpgradeProjectResult> {
+  ): Promise<UpgradeProjectResult | UpgradeVideoResult> {
     return this.workflow.upgrade(
       principal,
       projectId,

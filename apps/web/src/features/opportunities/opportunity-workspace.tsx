@@ -11,6 +11,7 @@ import {
 } from "@creonome/contracts";
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
 import { splitScriptSegments } from "../projects/script-segments";
 import styles from "./opportunity-workspace.module.css";
@@ -113,6 +114,9 @@ export function OpportunityWorkspace({
     "idea",
   );
   const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
+  const [generationState, setGenerationState] = useState<
+    "pending" | "success" | "error" | null
+  >(null);
   const [feedbackPending, setFeedbackPending] =
     useState<OpportunityFeedbackAction | null>(null);
   const [selectedFeedback, setSelectedFeedback] =
@@ -231,6 +235,8 @@ export function OpportunityWorkspace({
   async function generateScript() {
     setPending(true);
     setError(null);
+    setGenerationState("pending");
+    setPanel(null);
     scriptRequestKey.current ??= idempotencyKey(opportunity.id);
     try {
       const response = await fetch(
@@ -259,6 +265,7 @@ export function OpportunityWorkspace({
         } else {
           setError(scriptErrorMessage(response.status));
         }
+        setGenerationState("error");
         return;
       }
       const upgrade = UpgradeOpportunityResultSchema.parse(
@@ -276,12 +283,14 @@ export function OpportunityWorkspace({
       setNotice(
         "Script generated. The idea remains available in version history.",
       );
+      setGenerationState("success");
       scriptRequestKey.current = null;
       setPanel(null);
     } catch {
       setError(
         "The script response could not be verified. Your idea is intact; retry to safely resume the same request.",
       );
+      setGenerationState("error");
     } finally {
       setPending(false);
     }
@@ -411,11 +420,20 @@ export function OpportunityWorkspace({
             </section>
 
             {notice ? <p className={styles.notice}>{notice}</p> : null}
-            {error && !panel ? <p className={styles.error}>{error}</p> : null}
+            {error && !panel && !generationState ? (
+              <p className={styles.error}>{error}</p>
+            ) : null}
 
             <div className={styles.actions}>
               {opportunity.currentLevel === "idea" ? (
-                <button type="button" onClick={() => setPanel("upgrade")}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setGenerationState(null);
+                    setPanel("upgrade");
+                  }}
+                >
                   Move to script <span>{opportunity.creditCost} cr</span>
                 </button>
               ) : (
@@ -629,6 +647,40 @@ export function OpportunityWorkspace({
             </div>
           </section>
         </div>
+      ) : null}
+
+      {generationState ? (
+        <GenerationToast
+          state={generationState}
+          title={
+            generationState === "pending"
+              ? "Building your script"
+              : generationState === "success"
+                ? "Script ready"
+                : "Script not generated"
+          }
+          detail={
+            generationState === "pending"
+              ? "Writing the hook, timeline, caption and call to action."
+              : generationState === "success"
+                ? "The script is saved to this project. Your idea remains in history."
+                : (error ??
+                  "The request stopped safely. No duplicate was created.")
+          }
+          creditLabel={
+            generationState === "pending"
+              ? `${opportunity.creditCost} credits held`
+              : undefined
+          }
+          onDismiss={
+            generationState === "pending"
+              ? undefined
+              : () => {
+                  setGenerationState(null);
+                  setError(null);
+                }
+          }
+        />
       ) : null}
     </main>
   );

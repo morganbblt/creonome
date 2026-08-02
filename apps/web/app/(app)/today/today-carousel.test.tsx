@@ -74,4 +74,11 @@ describe("TodayCarousel", () => {
       screen.getByRole("button", { name: /next opportunities/i }),
     ).toBeTruthy();
   });
+
+  it("makes the freshness of every opportunity readable", () => {
+    render(<TodayCarousel opportunities={demoOpportunities} preview={false} />);
+
+    expect(screen.getAllByText("Fresh this week")).toHaveLength(2);
+    expect(screen.getByText("New signal")).toBeTruthy();
+  });
 });

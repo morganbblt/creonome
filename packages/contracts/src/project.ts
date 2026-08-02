@@ -74,15 +74,28 @@ export const ProjectStoryboardSchema = z.object({
   scenes: z.array(StoryboardSceneSchema),
 });
 
+export const ProjectVideoSchema = z.object({
+  id: z.uuid(),
+  projectId: z.uuid(),
+  previewUrl: z.string().trim().min(1).max(2_000),
+  mimeType: z.string().trim().min(3).max(120),
+  durationSeconds: z.number().int().positive().max(3_600).nullable(),
+  width: z.number().int().positive().max(8_192),
+  height: z.number().int().positive().max(8_192),
+  simulated: z.boolean(),
+  createdAt: z.iso.datetime(),
+});
+
 export const ProjectDetailSchema = ProjectSummarySchema.extend({
   script: ScriptDraftSchema.nullable(),
   storyboard: ProjectStoryboardSchema.nullable(),
+  video: ProjectVideoSchema.nullable().default(null),
   versions: z.array(ProjectVersionSchema),
   latestJob: GenerationJobSchema.nullable(),
 });
 
 export const UpgradeProjectInputSchema = z.object({
-  targetLevel: z.literal("storyboard"),
+  targetLevel: z.enum(["storyboard", "video"]),
   confirmedCreditCost: z.literal(true),
 });
 
@@ -93,14 +106,23 @@ export const UpgradeProjectResultSchema = z.object({
   credits: CreditsResponseSchema,
 });
 
+export const UpgradeVideoResultSchema = z.object({
+  project: ProjectSchema,
+  video: ProjectVideoSchema,
+  job: GenerationJobSchema,
+  credits: CreditsResponseSchema,
+});
+
 export type Project = z.infer<typeof ProjectSchema>;
 export type ProjectDetail = z.infer<typeof ProjectDetailSchema>;
 export type ProjectLevel = z.infer<typeof ProjectLevelSchema>;
 export type ProjectList = z.infer<typeof ProjectListSchema>;
 export type ProjectPlatform = z.infer<typeof ProjectPlatformSchema>;
 export type ProjectStoryboard = z.infer<typeof ProjectStoryboardSchema>;
+export type ProjectVideo = z.infer<typeof ProjectVideoSchema>;
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>;
 export type ProjectVersion = z.infer<typeof ProjectVersionSchema>;
 export type StoryboardScene = z.infer<typeof StoryboardSceneSchema>;
 export type UpgradeProjectInput = z.infer<typeof UpgradeProjectInputSchema>;
 export type UpgradeProjectResult = z.infer<typeof UpgradeProjectResultSchema>;
+export type UpgradeVideoResult = z.infer<typeof UpgradeVideoResultSchema>;

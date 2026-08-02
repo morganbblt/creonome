@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
 import {
   type CreonomeDatabase,
+  generatedAssets,
   generationJobs,
   opportunities,
   projects,
@@ -14,12 +15,16 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import type {
   CreateStoryboardUpgradeInput,
+  CreateVideoUpgradeInput,
   ProjectDetailRecord,
   ProjectJobRecord,
+  ProjectVideoRecord,
   ProjectsRepository,
   ProjectSummaryRecord,
   StoryboardSourceRecord,
   StoryboardUpgradeRecord,
+  VideoSourceRecord,
+  VideoUpgradeRecord,
 } from "./projects.repository.js";
 
 const summarySelection = {
@@ -76,6 +81,26 @@ const jobSelection = {
   completedAt: generationJobs.completedAt,
 };
 
+const videoSelection = {
+  id: generatedAssets.id,
+  projectId: generatedAssets.projectId,
+  previewUri: generatedAssets.gcsUri,
+  mimeType: generatedAssets.mimeType,
+  durationSeconds: generatedAssets.durationSeconds,
+  metadata: generatedAssets.metadata,
+  createdAt: generatedAssets.createdAt,
+};
+
+type VideoSelectionRow = {
+  id: string;
+  projectId: string | null;
+  previewUri: string;
+  mimeType: string;
+  durationSeconds: number | null;
+  metadata: unknown;
+  createdAt: Date;
+};
+
 const workflowProjectSelection = {
   id: projects.id,
   opportunityId: projects.opportunityId,
@@ -108,6 +133,28 @@ const sceneSelection = {
   durationSeconds: storyboardScenes.durationSeconds,
 };
 
+function toVideoRecord(row: VideoSelectionRow): ProjectVideoRecord | null {
+  if (!row.projectId) return null;
+  const metadata =
+    row.metadata && typeof row.metadata === "object"
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    previewUrl:
+      typeof metadata.publicUrl === "string"
+        ? metadata.publicUrl
+        : row.previewUri,
+    mimeType: row.mimeType,
+    durationSeconds: row.durationSeconds,
+    width: typeof metadata.width === "number" ? metadata.width : 540,
+    height: typeof metadata.height === "number" ? metadata.height : 960,
+    simulated: metadata.simulated === true || metadata.fixture === true,
+    createdAt: row.createdAt,
+  };
+}
+
 export class NeonProjectsRepository implements ProjectsRepository {
   constructor(
     @Inject(CREONOME_DATABASE)
@@ -138,36 +185,49 @@ export class NeonProjectsRepository implements ProjectsRepository {
       .limit(1);
     if (!project) return null;
 
-    const [scriptRows, storyboardRows, versions, jobRows] = await Promise.all([
-      database
-        .select(scriptSelection)
-        .from(scripts)
-        .where(eq(scripts.projectId, projectId))
-        .orderBy(desc(scripts.updatedAt))
-        .limit(1),
-      database
-        .select(storyboardSelection)
-        .from(storyboards)
-        .where(eq(storyboards.projectId, projectId))
-        .orderBy(desc(storyboards.updatedAt))
-        .limit(1),
-      database
-        .select(versionSelection)
-        .from(projectVersions)
-        .where(eq(projectVersions.projectId, projectId))
-        .orderBy(desc(projectVersions.version)),
-      database
-        .select(jobSelection)
-        .from(generationJobs)
-        .where(
-          and(
-            eq(generationJobs.workspaceId, workspaceId),
-            eq(generationJobs.projectId, projectId),
-          ),
-        )
-        .orderBy(desc(generationJobs.updatedAt))
-        .limit(1),
-    ]);
+    const [scriptRows, storyboardRows, videoRows, versions, jobRows] =
+      await Promise.all([
+        database
+          .select(scriptSelection)
+          .from(scripts)
+          .where(eq(scripts.projectId, projectId))
+          .orderBy(desc(scripts.updatedAt))
+          .limit(1),
+        database
+          .select(storyboardSelection)
+          .from(storyboards)
+          .where(eq(storyboards.projectId, projectId))
+          .orderBy(desc(storyboards.updatedAt))
+          .limit(1),
+        database
+          .select(videoSelection)
+          .from(generatedAssets)
+          .where(
+            and(
+              eq(generatedAssets.workspaceId, workspaceId),
+              eq(generatedAssets.projectId, projectId),
+              eq(generatedAssets.kind, "video"),
+            ),
+          )
+          .orderBy(desc(generatedAssets.createdAt))
+          .limit(1),
+        database
+          .select(versionSelection)
+          .from(projectVersions)
+          .where(eq(projectVersions.projectId, projectId))
+          .orderBy(desc(projectVersions.version)),
+        database
+          .select(jobSelection)
+          .from(generationJobs)
+          .where(
+            and(
+              eq(generationJobs.workspaceId, workspaceId),
+              eq(generationJobs.projectId, projectId),
+            ),
+          )
+          .orderBy(desc(generationJobs.updatedAt))
+          .limit(1),
+      ]);
 
     const storyboard = storyboardRows[0];
     const sceneRows = storyboard
@@ -188,6 +248,7 @@ export class NeonProjectsRepository implements ProjectsRepository {
       ...project,
       script: scriptRows[0] ?? null,
       storyboard: storyboard ? { ...storyboard, scenes } : null,
+      video: videoRows[0] ? toVideoRecord(videoRows[0]) : null,
       versions,
       latestJob: jobRows[0] ?? null,
     };
@@ -455,6 +516,240 @@ export class NeonProjectsRepository implements ProjectsRepository {
       storyboard: { ...storyboard, scenes },
       job,
     };
+  }
+
+  async findVideoUpgradeByIdempotency(
+    workspaceId: string,
+    idempotencyKey: string,
+  ): Promise<VideoUpgradeRecord | null> {
+    const [job] = await this.requireDatabase()
+      .select(workflowJobSelection)
+      .from(generationJobs)
+      .where(
+        and(
+          eq(generationJobs.workspaceId, workspaceId),
+          eq(generationJobs.idempotencyKey, idempotencyKey),
+          eq(generationJobs.kind, "video_render"),
+          eq(generationJobs.status, "succeeded"),
+        ),
+      )
+      .limit(1);
+    return job?.projectId
+      ? this.loadVideoUpgrade(workspaceId, job.projectId, job)
+      : null;
+  }
+
+  async findExistingVideoUpgrade(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<VideoUpgradeRecord | null> {
+    const database = this.requireDatabase();
+    const [project] = await database
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.workspaceId, workspaceId),
+          eq(projects.id, projectId),
+          eq(projects.currentLevel, "video"),
+        ),
+      )
+      .limit(1);
+    if (!project) return null;
+    const [job] = await database
+      .select(workflowJobSelection)
+      .from(generationJobs)
+      .where(
+        and(
+          eq(generationJobs.workspaceId, workspaceId),
+          eq(generationJobs.projectId, projectId),
+          eq(generationJobs.kind, "video_render"),
+          eq(generationJobs.status, "succeeded"),
+        ),
+      )
+      .orderBy(desc(generationJobs.completedAt))
+      .limit(1);
+    return job ? this.loadVideoUpgrade(workspaceId, projectId, job) : null;
+  }
+
+  async findVideoSource(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<VideoSourceRecord | null> {
+    const database = this.requireDatabase();
+    const [project] = await database
+      .select(workflowProjectSelection)
+      .from(projects)
+      .where(
+        and(eq(projects.workspaceId, workspaceId), eq(projects.id, projectId)),
+      )
+      .limit(1);
+    const [storyboard] = await database
+      .select(storyboardSelection)
+      .from(storyboards)
+      .where(eq(storyboards.projectId, projectId))
+      .orderBy(desc(storyboards.updatedAt))
+      .limit(1);
+    if (!project || !storyboard) return null;
+    const sceneRows = await database
+      .select(sceneSelection)
+      .from(storyboardScenes)
+      .where(eq(storyboardScenes.storyboardId, storyboard.id))
+      .orderBy(asc(storyboardScenes.position));
+    let startSeconds = 0;
+    const scenes = sceneRows.map((scene) => {
+      const result = { ...scene, startSeconds };
+      startSeconds += scene.durationSeconds ?? 0;
+      return result;
+    });
+    return { project, storyboard: { ...storyboard, scenes } };
+  }
+
+  async createVideoUpgrade(
+    input: CreateVideoUpgradeInput,
+  ): Promise<VideoUpgradeRecord | null> {
+    const idempotent = await this.findVideoUpgradeByIdempotency(
+      input.workspaceId,
+      input.idempotencyKey,
+    );
+    if (idempotent) return idempotent;
+    const source = await this.findVideoSource(
+      input.workspaceId,
+      input.projectId,
+    );
+    if (!source) return null;
+
+    const database = this.requireDatabase();
+    const now = new Date();
+    const version = source.project.currentVersion + 1;
+    const projectVersionId = randomUUID();
+    const jobId = randomUUID();
+    const assetId = randomUUID();
+    const video: ProjectVideoRecord = {
+      id: assetId,
+      projectId: input.projectId,
+      previewUrl: input.previewUrl,
+      mimeType: "video/mp4",
+      durationSeconds: input.durationSeconds,
+      width: input.width,
+      height: input.height,
+      simulated: true,
+      createdAt: now,
+    };
+
+    await database.batch([
+      database.insert(projectVersions).values({
+        id: projectVersionId,
+        projectId: input.projectId,
+        version,
+        level: "video",
+        parentVersion: source.project.currentVersion,
+        changeSource: "video_generation",
+        changeSummary: "Generated a simulated vertical-video MVP render",
+        snapshot: {
+          storyboardId: source.storyboard.id,
+          generatedAssetId: assetId,
+        },
+        createdByUserId: input.userId,
+        createdAt: now,
+      }),
+      database.insert(generationJobs).values({
+        id: jobId,
+        workspaceId: input.workspaceId,
+        projectId: input.projectId,
+        requestedByUserId: input.userId,
+        kind: "video_render",
+        provider: "creonome",
+        model: "mvp-motion-preview-v1",
+        status: "succeeded",
+        progress: 100,
+        idempotencyKey: input.idempotencyKey,
+        input: { storyboardId: source.storyboard.id },
+        output: { generatedAssetId: assetId, previewUrl: input.previewUrl },
+        createdAt: now,
+        startedAt: now,
+        completedAt: now,
+        updatedAt: now,
+      }),
+      database.insert(generatedAssets).values({
+        id: assetId,
+        generationJobId: jobId,
+        workspaceId: input.workspaceId,
+        projectId: input.projectId,
+        kind: "video",
+        gcsUri: `mvp://${input.workspaceId}/${input.projectId}/${jobId}.mp4`,
+        mimeType: "video/mp4",
+        durationSeconds: input.durationSeconds,
+        metadata: {
+          publicUrl: input.previewUrl,
+          width: input.width,
+          height: input.height,
+          simulated: true,
+        },
+        createdAt: now,
+      }),
+      database
+        .update(projects)
+        .set({ currentLevel: "video", currentVersion: version, updatedAt: now })
+        .where(
+          and(
+            eq(projects.workspaceId, input.workspaceId),
+            eq(projects.id, input.projectId),
+          ),
+        ),
+    ] as const);
+
+    return {
+      project: {
+        ...source.project,
+        currentLevel: "video",
+        currentVersion: version,
+        updatedAt: now,
+      },
+      video,
+      job: {
+        id: jobId,
+        kind: "video_render",
+        provider: "creonome",
+        model: "mvp-motion-preview-v1",
+        status: "succeeded",
+        progress: 100,
+        errorCode: null,
+        errorMessage: null,
+        createdAt: now,
+        updatedAt: now,
+        completedAt: now,
+      },
+    };
+  }
+
+  private async loadVideoUpgrade(
+    workspaceId: string,
+    projectId: string,
+    job: ProjectJobRecord,
+  ): Promise<VideoUpgradeRecord | null> {
+    const database = this.requireDatabase();
+    const [project] = await database
+      .select(workflowProjectSelection)
+      .from(projects)
+      .where(
+        and(eq(projects.workspaceId, workspaceId), eq(projects.id, projectId)),
+      )
+      .limit(1);
+    const [videoRow] = await database
+      .select(videoSelection)
+      .from(generatedAssets)
+      .where(
+        and(
+          eq(generatedAssets.workspaceId, workspaceId),
+          eq(generatedAssets.projectId, projectId),
+          eq(generatedAssets.generationJobId, job.id),
+          eq(generatedAssets.kind, "video"),
+        ),
+      )
+      .limit(1);
+    const video = videoRow ? toVideoRecord(videoRow) : null;
+    return project && video ? { project, video, job } : null;
   }
 
   private requireDatabase(): CreonomeDatabase {

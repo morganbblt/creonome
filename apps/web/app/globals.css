@@ -39,6 +39,34 @@
     0 1px 2px rgb(16 20 28 / 5%), 0 24px 60px -24px rgb(16 20 28 / 22%);
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1117;
+  --bg-2: #171d25;
+  --surface: #141a21;
+  --surface-2: #1b222b;
+  --text: #f3f6f8;
+  --text-2: #b0bac5;
+  --text-3: #7d8996;
+  --line: #27313c;
+  --line-2: #35414e;
+  --accent: #7ea9c1;
+  --accent-soft: #1d3441;
+  --accent-text: #b9d8e8;
+  --signal: #86b4ca;
+  --signal-soft: #1c3441;
+  --signal-text: #b9d8e8;
+  --button: #f2f5f7;
+  --button-text: #12161c;
+  --shadow: 0 1px 2px rgb(0 0 0 / 22%), 0 12px 30px -15px rgb(0 0 0 / 50%);
+  --shadow-large:
+    0 1px 2px rgb(0 0 0 / 28%), 0 26px 70px -24px rgb(0 0 0 / 72%);
+}
+
+:root[data-theme="dark"] img[src*="creonome-wordmark-black"] {
+  filter: invert(1);
+}
+
 * {
   box-sizing: border-box;
 }

@@ -6,6 +6,12 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { DemoOpportunity } from "../../../src/features/opportunities/demo-opportunities";
 import styles from "./today.module.css";
 
+const freshnessLabels = {
+  new: "New signal",
+  fresh: "Fresh this week",
+  aging: "Aging signal",
+} as const;
+
 function saveErrorMessage(status: number): string {
   if (status === 404) {
     return "This opportunity is no longer available. Refresh Today to load the current batch.";
@@ -83,7 +89,14 @@ export function TodayOpportunityCard({
           <span aria-hidden="true" />
           {opportunity.badge}
         </span>
-        <span>{opportunity.duration}</span>
+        <span className={styles.cardTiming}>
+          <span
+            className={`${styles.freshness} ${styles[opportunity.freshness]}`}
+          >
+            {freshnessLabels[opportunity.freshness]}
+          </span>
+          <span>{opportunity.duration}</span>
+        </span>
       </div>
 
       <div

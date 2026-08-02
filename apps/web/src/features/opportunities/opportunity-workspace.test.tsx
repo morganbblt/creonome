@@ -253,6 +253,35 @@ describe("OpportunityWorkspace", () => {
     ).toBe("/projects/0198f3a2-82dd-7000-8000-000000000020");
   });
 
+  it("moves confirmed script generation into a non-blocking progress toast", async () => {
+    let resolveRequest!: (response: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockReturnValue(
+        new Promise<Response>((resolve) => {
+          resolveRequest = resolve;
+        }),
+      ),
+    );
+    render(<OpportunityWorkspace opportunity={opportunity} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /move to script/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /generate script · 2 credits/i }),
+    );
+
+    expect(
+      screen.queryByRole("dialog", { name: /generate the script/i }),
+    ).toBeNull();
+    expect(screen.getByRole("status").textContent).toMatch(
+      /building your script.*2 credits held/i,
+    );
+    expect(screen.getByLabelText("Opportunity detail")).toBeTruthy();
+
+    resolveRequest(new Response(null, { status: 503 }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+  });
+
   it("explains a stale opportunity without claiming credits were reserved", async () => {
     vi.stubGlobal(
       "fetch",
@@ -305,6 +334,7 @@ describe("OpportunityWorkspace", () => {
       string
     >;
 
+    fireEvent.click(screen.getByRole("button", { name: /move to script/i }));
     fireEvent.click(
       screen.getByRole("button", { name: /generate script · 2 credits/i }),
     );

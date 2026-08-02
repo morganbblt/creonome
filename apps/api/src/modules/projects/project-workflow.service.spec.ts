@@ -138,6 +138,41 @@ function upgradeRecord() {
   };
 }
 
+function videoUpgradeRecord() {
+  return {
+    project: {
+      ...source.project,
+      currentLevel: "video",
+      currentVersion: 4,
+      updatedAt: now,
+    },
+    video: {
+      id: "0198f3a2-82dd-7000-8000-000000000060",
+      projectId,
+      previewUrl: "/demo/creonome-vertical-demo.mp4",
+      mimeType: "video/mp4",
+      durationSeconds: 30,
+      width: 540,
+      height: 960,
+      simulated: true,
+      createdAt: now,
+    },
+    job: {
+      id: "0198f3a2-82dd-7000-8000-000000000061",
+      kind: "video_render",
+      provider: "creonome",
+      model: "mvp-motion-preview-v1",
+      status: "succeeded",
+      progress: 100,
+      errorCode: null,
+      errorMessage: null,
+      createdAt: now,
+      updatedAt: now,
+      completedAt: now,
+    },
+  };
+}
+
 function setup(options?: {
   existing?: boolean;
   idempotent?: boolean;
@@ -163,6 +198,17 @@ function setup(options?: {
     createStoryboardUpgrade: options?.persistenceRejects
       ? vi.fn().mockRejectedValue(new Error("database unavailable"))
       : vi.fn().mockResolvedValue(upgradeRecord()),
+    findVideoUpgradeByIdempotency: vi.fn().mockResolvedValue(null),
+    findExistingVideoUpgrade: vi.fn().mockResolvedValue(null),
+    findVideoSource: vi.fn().mockResolvedValue({
+      project: {
+        ...source.project,
+        currentLevel: "storyboard",
+        currentVersion: 3,
+      },
+      storyboard: upgradeRecord().storyboard,
+    }),
+    createVideoUpgrade: vi.fn().mockResolvedValue(videoUpgradeRecord()),
   } as unknown as ProjectsRepository;
   const credits = {
     getAccount: vi.fn().mockResolvedValue({
@@ -170,16 +216,16 @@ function setup(options?: {
       reserved: 0,
       available: 58,
     }),
-    reserve: vi.fn().mockResolvedValue({
+    reserve: vi.fn().mockImplementation((_workspaceId, amount: number) => ({
       balance: 58,
-      reserved: 4,
-      available: 54,
-    }),
-    commit: vi.fn().mockResolvedValue({
-      balance: 54,
+      reserved: amount,
+      available: 58 - amount,
+    })),
+    commit: vi.fn().mockImplementation((_workspaceId, amount: number) => ({
+      balance: 58 - amount,
       reserved: 0,
-      available: 54,
-    }),
+      available: 58 - amount,
+    })),
     release: vi.fn().mockResolvedValue({
       balance: 58,
       reserved: 0,
@@ -205,6 +251,45 @@ function setup(options?: {
 }
 
 describe("ProjectWorkflowService", () => {
+  it("persists the MVP video level and atomically commits twelve credits", async () => {
+    const { service, repository, credits } = setup();
+
+    await expect(
+      service.upgrade(
+        principal,
+        projectId,
+        { targetLevel: "video", confirmedCreditCost: true },
+        "upgrade-video-1",
+      ),
+    ).resolves.toMatchObject({
+      project: { currentLevel: "video", currentVersion: 4 },
+      video: {
+        previewUrl: "/demo/creonome-vertical-demo.mp4",
+        simulated: true,
+      },
+      credits: { balance: 46, reserved: 0 },
+    });
+    expect(repository.createVideoUpgrade).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: context.workspaceId,
+        projectId,
+        idempotencyKey: "upgrade-video-1",
+      }),
+    );
+    expect(credits.reserve).toHaveBeenCalledWith(
+      context.workspaceId,
+      12,
+      "upgrade-video-1:reserve",
+      expect.stringMatching(/video/i),
+    );
+    expect(credits.commit).toHaveBeenCalledWith(
+      context.workspaceId,
+      12,
+      "upgrade-video-1:commit",
+      expect.stringMatching(/video/i),
+    );
+  });
+
   it("reserves and commits four credits around a persisted storyboard", async () => {
     const { service, repository, credits } = setup();
 
