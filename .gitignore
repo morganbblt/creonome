@@ -149,6 +149,7 @@ Thumbs.db
 .turbo/
 .vercel/
 .playwright-cli/
+.playwright-mcp/
 output/
 
 # Local Claude Design reference uploads may contain personal/copyrighted source
