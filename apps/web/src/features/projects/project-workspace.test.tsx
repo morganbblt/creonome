@@ -71,6 +71,29 @@ const project: ProjectDetail = {
 };
 
 describe("ProjectWorkspace", () => {
+  it("switches to a newly generated latest deliverable after refresh", () => {
+    const scriptProject: ProjectDetail = {
+      ...project,
+      currentLevel: "script",
+      currentVersion: 2,
+      hasStoryboard: false,
+      storyboard: null,
+    };
+    const { rerender } = render(<ProjectWorkspace project={scriptProject} />);
+
+    expect(
+      screen.getByRole("tab", { name: "Script" }).getAttribute("aria-selected"),
+    ).toBe("true");
+
+    rerender(<ProjectWorkspace project={project} />);
+
+    expect(
+      screen
+        .getByRole("tab", { name: "Storyboard" })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
   it("opens the latest deliverable first and navigates older tabs", () => {
     render(<ProjectWorkspace project={project} />);
 

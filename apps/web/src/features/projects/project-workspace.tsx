@@ -2,7 +2,7 @@
 
 import type { ProjectDetail, ProjectLevel } from "@creonome/contracts";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./projects.module.css";
 import { ProjectExportButton } from "./project-export-button";
 import { splitScriptSegments } from "./script-segments";
@@ -31,6 +31,12 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
   const [activeDeliverable, setActiveDeliverable] = useState<
     "script" | "storyboard" | "video"
   >(project.video ? "video" : project.storyboard ? "storyboard" : "script");
+
+  useEffect(() => {
+    setActiveDeliverable(
+      project.hasVideo ? "video" : project.hasStoryboard ? "storyboard" : "script",
+    );
+  }, [project.hasStoryboard, project.hasVideo]);
 
   return (
     <main className={styles.workspace}>
