@@ -15,8 +15,9 @@ const opportunityStyles = readFileSync(
 );
 
 describe("requested interaction styles", () => {
-  it("reveals Today details after a deliberate 0.75 second hover delay", () => {
-    expect(todayStyles).toMatch(/\.details[\s\S]*transition-delay:\s*0\.75s/);
+  it("reveals Today details through the explicit accessible toggle", () => {
+    expect(todayStyles).toMatch(/\.detailsToggle\s*\{/);
+    expect(todayStyles).toMatch(/\.details\[data-open\]\s*\{/);
   });
 
   it("keeps the page sharp behind a lightly translucent glass side sheet", () => {
