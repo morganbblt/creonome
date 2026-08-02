@@ -8,6 +8,7 @@ import type {
 import {
   CreatorDnaSchema,
   LibraryItemSchema,
+  UpdateCreatorDnaTraitInputSchema,
   UploadSignResponseSchema,
 } from "@creonome/contracts";
 import { useRef, useState } from "react";
@@ -45,6 +46,10 @@ export function CreatorDnaView({
   const [currentDna, setCurrentDna] = useState(dna);
   const [referenceBusy, setReferenceBusy] = useState(false);
   const [referenceError, setReferenceError] = useState<string | null>(null);
+  const [editingTraitId, setEditingTraitId] = useState<string | null>(null);
+  const [traitDraft, setTraitDraft] = useState("");
+  const [traitBusy, setTraitBusy] = useState(false);
+  const [traitError, setTraitError] = useState<string | null>(null);
   const referenceInput = useRef<HTMLInputElement>(null);
 
   async function uploadReferenceImage(file: File) {
@@ -123,6 +128,49 @@ export function CreatorDnaView({
       setReferenceError("The reference image could not be removed. Try again.");
     } finally {
       setReferenceBusy(false);
+    }
+  }
+
+  function startTraitEdit(trait: CreatorDnaTrait) {
+    setTraitError(null);
+    setEditingTraitId(trait.id);
+    setTraitDraft(trait.value);
+  }
+
+  function cancelTraitEdit() {
+    setEditingTraitId(null);
+    setTraitDraft("");
+    setTraitError(null);
+  }
+
+  async function saveTraitEdit(traitId: string) {
+    const parsed = UpdateCreatorDnaTraitInputSchema.safeParse({
+      value: traitDraft,
+    });
+    if (!parsed.success) {
+      setTraitError("Add a short correction before saving.");
+      return;
+    }
+    setTraitBusy(true);
+    setTraitError(null);
+    try {
+      const response = await fetch(
+        `/api/creonome/creator-dna/traits/${encodeURIComponent(traitId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(parsed.data),
+        },
+      );
+      if (!response.ok) throw new Error("trait");
+      setCurrentDna(CreatorDnaSchema.parse(await response.json()));
+      cancelTraitEdit();
+    } catch {
+      setTraitError(
+        "The correction could not be saved. Your previous DNA version is intact.",
+      );
+    } finally {
+      setTraitBusy(false);
     }
   }
 
@@ -262,10 +310,54 @@ export function CreatorDnaView({
                 <article className={styles.card} key={trait.id}>
                   <header>
                     <span>{String(index + 1).padStart(2, "0")}</span>
-                    <em>{categoryLabel(trait.category)}</em>
+                    <div className={styles.cardHeaderActions}>
+                      <em>{categoryLabel(trait.category)}</em>
+                      <button
+                        className={styles.editButton}
+                        disabled={traitBusy}
+                        onClick={() => startTraitEdit(trait)}
+                        type="button"
+                      >
+                        Edit
+                      </button>
+                    </div>
                   </header>
                   <h2>{trait.label}</h2>
-                  <p>{trait.value}</p>
+                  {editingTraitId === trait.id ? (
+                    <div className={styles.traitEditor}>
+                      <textarea
+                        aria-label={`Edit ${trait.label}`}
+                        autoFocus
+                        maxLength={500}
+                        onChange={(event) => setTraitDraft(event.target.value)}
+                        value={traitDraft}
+                      />
+                      <div className={styles.traitEditorActions}>
+                        <button
+                          disabled={traitBusy}
+                          onClick={() => void saveTraitEdit(trait.id)}
+                          type="button"
+                        >
+                          {traitBusy ? "Saving…" : "Save correction"}
+                        </button>
+                        <button
+                          className={styles.traitCancel}
+                          disabled={traitBusy}
+                          onClick={cancelTraitEdit}
+                          type="button"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {traitError ? (
+                        <p className={styles.traitError} role="alert">
+                          {traitError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p>{trait.value}</p>
+                  )}
                   <div className={styles.confidence}>
                     <span style={{ width: `${confidence ?? 0}%` }} />
                   </div>

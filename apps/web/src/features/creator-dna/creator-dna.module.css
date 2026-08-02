@@ -221,12 +221,31 @@
   justify-content: space-between;
   gap: 10px;
 }
+.cardHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .card header span,
 .card header em {
   color: var(--text-3);
   font: 500 8.5px/1 var(--mono);
   font-style: normal;
   text-transform: uppercase;
+}
+.editButton {
+  padding: 4px 7px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font: 550 8px/1 var(--mono);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.editButton:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 .card h2 {
   margin: 24px 0 9px;
@@ -239,6 +258,54 @@
   color: var(--text-2);
   font-size: 12px;
   line-height: 1.6;
+}
+.traitEditor {
+  min-height: 60px;
+}
+.traitEditor textarea {
+  width: 100%;
+  min-height: 74px;
+  padding: 9px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: vertical;
+}
+.traitEditorActions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+}
+.traitEditorActions button {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--text);
+  border-radius: var(--radius-control);
+  background: var(--text);
+  color: var(--surface);
+  font-size: 9px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.traitEditorActions .traitCancel {
+  border-color: var(--line-2);
+  background: transparent;
+  color: var(--text-2);
+}
+.traitEditorActions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.traitError {
+  margin: 7px 0 0;
+  color: var(--danger-text);
+  font-size: 9px;
+  line-height: 1.35;
 }
 .confidence {
   height: 3px;

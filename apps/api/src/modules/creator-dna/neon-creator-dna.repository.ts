@@ -1,4 +1,5 @@
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import {
   creatorDnaVersions,
   type CreonomeDatabase,
@@ -52,6 +53,58 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
       .orderBy(asc(dnaTraits.position));
 
     return { ...version, traits };
+  }
+
+  async updateTrait(
+    creatorProfileId: string,
+    userId: string,
+    traitId: string,
+    value: string,
+  ): Promise<CreatorDnaRecord | null> {
+    const database = this.requireDatabase();
+    const current = await this.getCurrent(creatorProfileId);
+    const target = current?.traits.find((trait) => trait.id === traitId);
+    if (!current || !target) return null;
+
+    const normalizedValue = value.trim();
+    if (normalizedValue === target.value) return current;
+
+    const now = new Date();
+    const versionId = randomUUID();
+    await database.batch([
+      database.insert(creatorDnaVersions).values({
+        id: versionId,
+        creatorProfileId,
+        version: current.version + 1,
+        summary: current.summary,
+        source: "creator_edit",
+        confirmed: true,
+        createdByUserId: userId,
+        createdAt: now,
+      }),
+      database.insert(dnaTraits).values(
+        current.traits.map((trait, index) => ({
+          id: randomUUID(),
+          dnaVersionId: versionId,
+          category: trait.category,
+          label: trait.label,
+          value: trait.id === traitId ? normalizedValue : trait.value,
+          confidence: trait.confidence,
+          evidence:
+            trait.id === traitId
+              ? {
+                  ...trait.evidence,
+                  source: "creator_edit",
+                  previousValue: trait.value,
+                }
+              : trait.evidence,
+          position: index + 1,
+          createdAt: now,
+        })),
+      ),
+    ] as const);
+
+    return this.getCurrent(creatorProfileId);
   }
 
   async confirmCurrent(

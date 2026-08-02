@@ -16,10 +16,12 @@ export {
   CreatorDnaSchema,
   CreatorDnaTraitSchema,
   SetCreatorDnaReferenceImageInputSchema,
+  UpdateCreatorDnaTraitInputSchema,
   type CreatorDnaReferenceImage,
   type CreatorDna,
   type CreatorDnaTrait,
   type SetCreatorDnaReferenceImageInput,
+  type UpdateCreatorDnaTraitInput,
 } from "./creator-dna.js";
 export {
   CreditLedgerEntrySchema,

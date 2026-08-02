@@ -43,7 +43,7 @@ apps/api/src/modules/projects/                    credited Scriptâ†’Storyboardâ†
 apps/api/src/modules/projects/video/              Veo (including people references), GCS and deterministic resilience providers
 apps/api/src/modules/exports/                     recorded, downloadable project Markdown packages
 apps/api/src/modules/assets/                      tenant-scoped asset registry, GCS deletion and mixed library
-apps/api/src/modules/creator-dna/                 creator profile read model and Veo people-reference selection
+apps/api/src/modules/creator-dna/                 creator profile read model, trait corrections and Veo people-reference selection
 apps/api/src/modules/credits/                     reserve/commit/release ledger
 apps/api/src/modules/jobs/                        asynchronous job state
 apps/api/src/modules/memory/                      Mem0 adapter, approval queue and review history

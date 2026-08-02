@@ -10,7 +10,7 @@ This public repository is the end-to-end hackathon build: a production-deployed 
 
 ## The core product journey
 
-1. **Sign in and establish Creator DNA.** Upload or describe representative work; Creonome extracts evidence-backed patterns that remain editable and reviewable.
+1. **Sign in and establish Creator DNA.** Upload or describe representative work; Creonome extracts evidence-backed patterns that remain editable, versioned and reviewable.
 2. **Open Today.** Three opportunities explain their signal, freshness, confidence and fit instead of presenting a black-box ranking.
 3. **Choose an idea.** Modify it conversationally or save it while preserving version history and the creator's original intent.
 4. **Generate deliverables.** Progress from Script → Storyboard → Video with explicit credit costs and non-blocking progress feedback.
@@ -35,20 +35,20 @@ flowchart LR
 
 ## What is working
 
-| Area                   | Current implementation                                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Authentication         | Neon Auth email/password and Sign in with Google                                                                                      |
-| Creator onboarding     | Private GCS uploads, multimodal analysis, editable evidence-backed Creator DNA and an optional private people reference image for Veo |
-| Trend intelligence     | Normalized sources, candidates, snapshots and clusters attached to opportunity reasoning                                              |
-| Today                  | Three explainable opportunities, multiple filters, incremental batches and card carousel                                              |
-| Creative direction     | Conversational idea modification with version preservation                                                                            |
-| Production workflow    | Credited Script → Storyboard → Video project progression                                                                              |
-| Video                  | Verified Vertex AI Veo 3.1 rendering, private GCS delivery and deterministic MP4 fallback                                             |
-| Memory                 | Mem0 adapter plus approval-gated memory candidate queue                                                                               |
-| Credits                | Idempotent reserve / commit / release ledger; no charge for unusable output                                                           |
-| Library and export     | Tenant-scoped assets, confirmed source deletion and Markdown project package                                                          |
-| Privacy                | Persisted consent/retention controls, sanitized export, cancellable deletion request                                                  |
-| Themes and interaction | Responsive light/dark UI, route progress and non-blocking generation toasts                                                           |
+| Area                   | Current implementation                                                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication         | Neon Auth email/password and Sign in with Google                                                                                                |
+| Creator onboarding     | Private GCS uploads, multimodal analysis, editable/versioned evidence-backed Creator DNA and an optional private people reference image for Veo |
+| Trend intelligence     | Normalized sources, candidates, snapshots and clusters attached to opportunity reasoning                                                        |
+| Today                  | Three explainable opportunities, multiple filters, incremental batches and card carousel                                                        |
+| Creative direction     | Conversational idea modification with version preservation                                                                                      |
+| Production workflow    | Credited Script → Storyboard → Video project progression                                                                                        |
+| Video                  | Verified Vertex AI Veo 3.1 rendering, private GCS delivery and deterministic MP4 fallback                                                       |
+| Memory                 | Mem0 adapter plus approval-gated memory candidate queue                                                                                         |
+| Credits                | Idempotent reserve / commit / release ledger; no charge for unusable output                                                                     |
+| Library and export     | Tenant-scoped assets, confirmed source deletion and Markdown project package                                                                    |
+| Privacy                | Persisted consent/retention controls, sanitized export, cancellable deletion request                                                            |
+| Themes and interaction | Responsive light/dark UI, route progress and non-blocking generation toasts                                                                     |
 
 TikTok/Instagram connections and Stripe are intentionally marked **Coming soon**. They are outside the MVP rather than mocked as live integrations.
 

@@ -30,6 +30,12 @@ export type CreatorDnaReferenceImageRecord = {
 
 export interface CreatorDnaRepository {
   getCurrent(creatorProfileId: string): Promise<CreatorDnaRecord | null>;
+  updateTrait(
+    creatorProfileId: string,
+    userId: string,
+    traitId: string,
+    value: string,
+  ): Promise<CreatorDnaRecord | null>;
   confirmCurrent(creatorProfileId: string): Promise<CreatorDnaRecord | null>;
   listVersions(creatorProfileId: string): Promise<CreatorDnaVersionRecord[]>;
   getPeopleReferenceImage(

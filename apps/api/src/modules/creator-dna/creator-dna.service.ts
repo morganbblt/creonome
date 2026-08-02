@@ -27,6 +27,27 @@ export class CreatorDnaService {
     );
   }
 
+  async updateTrait(
+    principal: AuthPrincipal,
+    traitId: string,
+    value: string,
+  ): Promise<CreatorDna> {
+    const context = await this.workspaces.resolve(principal);
+    const dna = await this.repository.updateTrait(
+      context.creatorProfileId,
+      context.userId,
+      traitId,
+      value,
+    );
+    if (!dna) {
+      throw new NotFoundException("Creator DNA trait was not found");
+    }
+    return this.toContract(
+      dna,
+      await this.repository.getPeopleReferenceImage(context.workspaceId),
+    );
+  }
+
   async confirm(principal: AuthPrincipal): Promise<CreatorDna> {
     const context = await this.workspaces.resolve(principal);
     const dna = await this.repository.confirmCurrent(context.creatorProfileId);

@@ -112,4 +112,39 @@ describe("CreatorDnaView", () => {
     );
     expect(screen.getByRole("button", { name: "Replace image" })).toBeTruthy();
   });
+
+  it("saves a trait correction as the next DNA version", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        ...dna,
+        version: 3,
+        traits: [
+          {
+            ...dna.traits[0],
+            value: "Precise, intimate and understated.",
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+
+    render(<CreatorDnaView dna={dna} memories={memories} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Edit Direction artistique" }),
+      {
+        target: { value: "Precise, intimate and understated." },
+      },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save correction" }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Confirmed · version\s+3/)).toBeTruthy(),
+    );
+    expect(screen.getByText("Precise, intimate and understated.")).toBeTruthy();
+    expect(request).toHaveBeenCalledWith(
+      `/api/creonome/creator-dna/traits/${dna.traits[0]!.id}`,
+      expect.objectContaining({ method: "PATCH" }),
+    );
+  });
 });

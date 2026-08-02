@@ -32,6 +32,7 @@ describe("CreatorDnaService", () => {
           },
         ],
       }),
+      updateTrait: vi.fn(),
       confirmCurrent: vi.fn(),
       listVersions: vi.fn(),
       getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
@@ -72,6 +73,7 @@ describe("CreatorDnaService", () => {
         confirmed: true,
         traits: [],
       }),
+      updateTrait: vi.fn(),
       confirmCurrent: vi.fn(),
       listVersions: vi.fn(),
       getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
@@ -96,6 +98,61 @@ describe("CreatorDnaService", () => {
     expect(repository.setPeopleReferenceImage).toHaveBeenCalledWith(
       "0198f3a2-82dd-7000-8000-000000000010",
       image.id,
+    );
+  });
+
+  it("persists a corrected trait as a new DNA version", async () => {
+    const workspaces = {
+      resolve: vi.fn().mockResolvedValue({
+        userId: "0198f3a2-82dd-7000-8000-000000000011",
+        workspaceId: "0198f3a2-82dd-7000-8000-000000000010",
+        creatorProfileId: "0198f3a2-82dd-7000-8000-000000000002",
+      }),
+    } as unknown as WorkspaceContextService;
+    const updated = {
+      id: "0198f3a2-82dd-7000-8000-000000000003",
+      version: 3,
+      summary: "Nocturnal electronic stories grounded in tactile details.",
+      confirmed: true,
+      traits: [
+        {
+          id: "0198f3a2-82dd-7000-8000-000000000004",
+          category: "voice",
+          label: "Tone",
+          value: "precise, intimate and understated",
+          confidence: "0.950",
+          evidence: { source: "creator_edit" },
+        },
+      ],
+    };
+    const repository: CreatorDnaRepository = {
+      getCurrent: vi.fn(),
+      updateTrait: vi.fn().mockResolvedValue(updated),
+      confirmCurrent: vi.fn(),
+      listVersions: vi.fn(),
+      getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
+      setPeopleReferenceImage: vi.fn(),
+      clearPeopleReferenceImage: vi.fn(),
+    };
+    const service = new CreatorDnaService(workspaces, repository);
+
+    await expect(
+      service.updateTrait(
+        principal,
+        "0198f3a2-82dd-7000-8000-000000000004",
+        "precise, intimate and understated",
+      ),
+    ).resolves.toMatchObject({
+      version: 3,
+      traits: [
+        expect.objectContaining({ value: "precise, intimate and understated" }),
+      ],
+    });
+    expect(repository.updateTrait).toHaveBeenCalledWith(
+      "0198f3a2-82dd-7000-8000-000000000002",
+      "0198f3a2-82dd-7000-8000-000000000011",
+      "0198f3a2-82dd-7000-8000-000000000004",
+      "precise, intimate and understated",
     );
   });
 });

@@ -29,6 +29,10 @@ export const SetCreatorDnaReferenceImageInputSchema = z.object({
   assetId: z.uuid(),
 });
 
+export const UpdateCreatorDnaTraitInputSchema = z.object({
+  value: z.string().trim().min(1).max(500),
+});
+
 export type CreatorDna = z.infer<typeof CreatorDnaSchema>;
 export type CreatorDnaReferenceImage = z.infer<
   typeof CreatorDnaReferenceImageSchema
@@ -36,4 +40,7 @@ export type CreatorDnaReferenceImage = z.infer<
 export type CreatorDnaTrait = z.infer<typeof CreatorDnaTraitSchema>;
 export type SetCreatorDnaReferenceImageInput = z.infer<
   typeof SetCreatorDnaReferenceImageInputSchema
+>;
+export type UpdateCreatorDnaTraitInput = z.infer<
+  typeof UpdateCreatorDnaTraitInputSchema
 >;
