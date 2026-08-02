@@ -450,6 +450,27 @@
   font-weight: 560;
 }
 
+.removeAssetButton {
+  align-self: center;
+  padding: 7px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.removeAssetButton:hover,
+.removeAssetButton:focus-visible {
+  color: var(--danger-text);
+}
+
+.removeAssetButton:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 .failedRow > div {
   min-width: 0;
   flex: 1;

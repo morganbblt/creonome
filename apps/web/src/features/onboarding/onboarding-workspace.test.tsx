@@ -154,6 +154,30 @@ describe("OnboardingWorkspace", () => {
     );
   });
 
+  it("removes a source and refreshes the onboarding evidence", async () => {
+    const afterRemoval = onboardingState();
+    afterRemoval.assets = afterRemoval.assets.slice(1);
+    afterRemoval.readyCount = 2;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ id: afterRemoval.assets[0]?.id, deleted: true }),
+      )
+      .mockResolvedValueOnce(Response.json(afterRemoval));
+    vi.stubGlobal("fetch", request);
+    render(<OnboardingWorkspace initialState={onboardingState()} />);
+
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Remove source" })[0]!,
+    );
+
+    expect(await screen.findByText("2 of 3 sources analyzed")).toBeTruthy();
+    expect(request).toHaveBeenCalledWith(
+      "/api/creonome/assets/0198f3a2-82dd-7000-8000-000000000060",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
   it("saves creator corrections and enters the workspace", async () => {
     const completed = {
       ...onboardingState("profile"),

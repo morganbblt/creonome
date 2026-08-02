@@ -313,6 +313,24 @@ export function OnboardingWorkspace({
     }
   }
 
+  async function removeAsset(assetId: string) {
+    setBusyAsset(assetId);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/creonome/assets/${encodeURIComponent(assetId)}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) throw new Error("remove");
+      await refreshState();
+      setNotice("Source removed. Its derived evidence was removed too.");
+    } catch {
+      setError("The source could not be removed. Nothing was deleted.");
+    } finally {
+      setBusyAsset(null);
+    }
+  }
+
   async function buildProfile() {
     setBuildingProfile(true);
     setError(null);
@@ -537,6 +555,14 @@ export function OnboardingWorkspace({
                       Try analysis again
                     </button>
                   ) : null}
+                  <button
+                    type="button"
+                    className={styles.removeAssetButton}
+                    disabled={busyAsset === asset.id}
+                    onClick={() => void removeAsset(asset.id)}
+                  >
+                    Remove source
+                  </button>
                 </article>
               ))}
               {failures.map((failure) => (
