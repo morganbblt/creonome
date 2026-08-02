@@ -1,15 +1,15 @@
 .page {
-  --billing-bg: #f3f7fa;
-  --billing-surface: #fff;
-  --billing-text: #14202a;
-  --billing-muted: #667b88;
-  --billing-line: #dce8ee;
-  --billing-accent: #3f7897;
+  --billing-bg: var(--bg);
+  --billing-surface: var(--surface);
+  --billing-text: var(--text);
+  --billing-muted: var(--text-2);
+  --billing-line: var(--line);
+  --billing-accent: var(--accent-text);
   min-height: 100%;
   padding: clamp(24px, 5vw, 64px);
   background: var(--billing-bg);
   color: var(--billing-text);
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui);
 }
 
 .header {

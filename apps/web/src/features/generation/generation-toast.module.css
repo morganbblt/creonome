@@ -19,7 +19,7 @@
 }
 
 .toast[data-state="error"] {
-  border-color: color-mix(in srgb, #b94848 55%, var(--line));
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
 }
 
 .heading {
