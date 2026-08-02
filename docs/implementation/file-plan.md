@@ -18,6 +18,7 @@ apps/web/app/api/creonome/opportunities/[id]/feedback/ authenticated explicit-fe
 apps/web/src/features/opportunities/              six-signal feedback UI + memory review handoff
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
 apps/web/app/api/creonome/projects/[id]/upgrade/  authenticated storyboard generation proxy
+apps/web/app/api/creonome/projects/[id]/video/    authenticated range-aware private video proxy
 apps/web/app/api/creonome/projects/[id]/exports/  authenticated Markdown export proxy
 apps/web/app/(app)/library/                       live private library + confirmed source deletion
 apps/web/app/api/creonome/assets/[id]/             authenticated source detail/deletion proxy
@@ -38,7 +39,8 @@ apps/api/src/modules/auth/                        Neon JWT verification
 apps/api/src/modules/workspaces/                  tenant resolution and demo claim
 apps/api/src/modules/onboarding/                  private GCS analysis + editable DNA persistence
 apps/api/src/modules/opportunities/               daily cards, generation, save, revision and explicit feedback
-apps/api/src/modules/projects/                    project read model + credited script→storyboard workflow
+apps/api/src/modules/projects/                    credited Script→Storyboard→Video workflow
+apps/api/src/modules/projects/video/              Veo, GCS and deterministic resilience providers
 apps/api/src/modules/exports/                     recorded, downloadable project Markdown packages
 apps/api/src/modules/assets/                      tenant-scoped asset registry, GCS deletion and mixed library
 apps/api/src/modules/creator-dna/                 creator profile read model
@@ -72,12 +74,12 @@ docs/setup/environment.md                         credentials and provider statu
 - TikTok and Instagram OAuth, insights ingestion and publishing.
 - Stripe billing; the current billing experience is intentionally synthetic.
 - Lyria generation while its preview access and product flow are finalized.
-- Automated video rendering/export from a completed storyboard.
+- Multi-clip editing and timeline assembly beyond the current 8-second Veo/fallback render.
 - Automatic 30-day source retention and final account/media deletion workers; the MVP records the preferences and cancellable request but does not execute those destructive background jobs.
 
 ## Manual inputs still required
 
-- Add Google AI Studio prepaid credits only if the optional API-key fallback should be used outside Vertex AI.
+- Confirm Gemini API Veo quota/billing if real renders should run instead of the automatic deterministic fallback.
 - Verify a Resend sending domain and choose the production `RESEND_FROM_EMAIL`.
 - Authorize the Vercel GitHub App for `morganbblt/creonome` if automatic Git deployments are wanted. Manual production deployment already works.
 - Choose a branded API domain only if the current Cloud Run URL should be replaced.

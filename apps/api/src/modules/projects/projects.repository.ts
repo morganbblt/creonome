@@ -56,6 +56,9 @@ export type ProjectVideoRecord = {
   durationSeconds: number | null;
   width: number;
   height: number;
+  gcsUri: string;
+  provider: string;
+  model: string;
   simulated: boolean;
   createdAt: Date;
 };
@@ -108,7 +111,17 @@ export type StoryboardSourceRecord = {
 
 export type VideoSourceRecord = {
   project: WorkflowProjectRecord;
+  script: ProjectScriptRecord;
   storyboard: ProjectStoryboardRecord;
+  creativeIdentity: {
+    stageName: string;
+    bio: string | null;
+    audienceDescription: string | null;
+    languages: string[];
+    genres: string[];
+    dnaSummary: string | null;
+    traits: string[];
+  };
 };
 
 export type GeneratedStoryboardScene = Omit<
@@ -151,10 +164,7 @@ export type CreateVideoUpgradeInput = {
   userId: string;
   projectId: string;
   idempotencyKey: string;
-  previewUrl: string;
-  durationSeconds: number;
-  width: number;
-  height: number;
+  artifact: import("./video/video-provider.js").GeneratedVideoArtifact;
 };
 
 export interface ProjectsRepository {

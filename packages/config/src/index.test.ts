@@ -34,6 +34,10 @@ describe("API environment", () => {
     expect(env.GEMINI_MODEL).toBe("gemini-3.5-flash");
     expect(env.GOOGLE_CLOUD_LOCATION).toBe("global");
     expect(env.VERTEX_AI_MODEL).toBe("gemini-3.5-flash");
+    expect(env.VIDEO_PROVIDER).toBe("auto");
+    expect(env.VEO_MODEL).toBe("veo-3.1-fast-generate-preview");
+    expect(env.VEO_POLL_INTERVAL_MS).toBe(10_000);
+    expect(env.VEO_TIMEOUT_MS).toBe(240_000);
     expect(env.MEM0_BASE_URL).toBe("https://api.mem0.ai");
     expect(env.TIKTOK_CLIENT_KEY).toBeUndefined();
   });

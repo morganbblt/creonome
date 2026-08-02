@@ -82,6 +82,8 @@ export const ProjectVideoSchema = z.object({
   durationSeconds: z.number().int().positive().max(3_600).nullable(),
   width: z.number().int().positive().max(8_192),
   height: z.number().int().positive().max(8_192),
+  provider: z.string().trim().min(1).max(120),
+  model: z.string().trim().min(1).max(160),
   simulated: z.boolean(),
   createdAt: z.iso.datetime(),
 });

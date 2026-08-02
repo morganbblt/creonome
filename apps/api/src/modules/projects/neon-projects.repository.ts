@@ -2,6 +2,9 @@ import { randomUUID } from "node:crypto";
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
 import {
   type CreonomeDatabase,
+  creatorDnaVersions,
+  creatorProfiles,
+  dnaTraits,
   generatedAssets,
   generationJobs,
   opportunities,
@@ -146,10 +149,17 @@ function toVideoRecord(row: VideoSelectionRow): ProjectVideoRecord | null {
       typeof metadata.publicUrl === "string"
         ? metadata.publicUrl
         : row.previewUri,
+    gcsUri: row.previewUri,
     mimeType: row.mimeType,
     durationSeconds: row.durationSeconds,
     width: typeof metadata.width === "number" ? metadata.width : 540,
     height: typeof metadata.height === "number" ? metadata.height : 960,
+    provider:
+      typeof metadata.provider === "string" ? metadata.provider : "creonome",
+    model:
+      typeof metadata.model === "string"
+        ? metadata.model
+        : "deterministic-motion-preview-v1",
     simulated: metadata.simulated === true || metadata.fixture === true,
     createdAt: row.createdAt,
   };
@@ -590,7 +600,13 @@ export class NeonProjectsRepository implements ProjectsRepository {
       .where(eq(storyboards.projectId, projectId))
       .orderBy(desc(storyboards.updatedAt))
       .limit(1);
-    if (!project || !storyboard) return null;
+    const [script] = await database
+      .select(scriptSelection)
+      .from(scripts)
+      .where(eq(scripts.projectId, projectId))
+      .orderBy(desc(scripts.updatedAt))
+      .limit(1);
+    if (!project || !storyboard || !script) return null;
     const sceneRows = await database
       .select(sceneSelection)
       .from(storyboardScenes)
@@ -602,7 +618,57 @@ export class NeonProjectsRepository implements ProjectsRepository {
       startSeconds += scene.durationSeconds ?? 0;
       return result;
     });
-    return { project, storyboard: { ...storyboard, scenes } };
+    const [profile] = await database
+      .select({
+        id: creatorProfiles.id,
+        stageName: creatorProfiles.stageName,
+        bio: creatorProfiles.bio,
+        audienceDescription: creatorProfiles.audienceDescription,
+        languages: creatorProfiles.languages,
+        genres: creatorProfiles.genres,
+      })
+      .from(creatorProfiles)
+      .where(eq(creatorProfiles.workspaceId, workspaceId))
+      .orderBy(desc(creatorProfiles.updatedAt))
+      .limit(1);
+    const [dna] = profile
+      ? await database
+          .select({
+            id: creatorDnaVersions.id,
+            summary: creatorDnaVersions.summary,
+          })
+          .from(creatorDnaVersions)
+          .where(eq(creatorDnaVersions.creatorProfileId, profile.id))
+          .orderBy(desc(creatorDnaVersions.version))
+          .limit(1)
+      : [];
+    const traits = dna
+      ? await database
+          .select({
+            category: dnaTraits.category,
+            label: dnaTraits.label,
+            value: dnaTraits.value,
+          })
+          .from(dnaTraits)
+          .where(eq(dnaTraits.dnaVersionId, dna.id))
+          .orderBy(asc(dnaTraits.position))
+      : [];
+    return {
+      project,
+      script,
+      storyboard: { ...storyboard, scenes },
+      creativeIdentity: {
+        stageName: profile?.stageName ?? "Independent creator",
+        bio: profile?.bio ?? null,
+        audienceDescription: profile?.audienceDescription ?? null,
+        languages: profile?.languages ?? [],
+        genres: profile?.genres ?? [],
+        dnaSummary: dna?.summary ?? null,
+        traits: traits.map(
+          (trait) => `${trait.category}: ${trait.label} — ${trait.value}`,
+        ),
+      },
+    };
   }
 
   async createVideoUpgrade(
@@ -625,15 +691,19 @@ export class NeonProjectsRepository implements ProjectsRepository {
     const projectVersionId = randomUUID();
     const jobId = randomUUID();
     const assetId = randomUUID();
+    const artifact = input.artifact;
     const video: ProjectVideoRecord = {
       id: assetId,
       projectId: input.projectId,
-      previewUrl: input.previewUrl,
-      mimeType: "video/mp4",
-      durationSeconds: input.durationSeconds,
-      width: input.width,
-      height: input.height,
-      simulated: true,
+      previewUrl: artifact.previewUrl,
+      gcsUri: artifact.gcsUri,
+      mimeType: artifact.mimeType,
+      durationSeconds: artifact.durationSeconds,
+      width: artifact.width,
+      height: artifact.height,
+      provider: artifact.provider,
+      model: artifact.model,
+      simulated: artifact.simulated,
       createdAt: now,
     };
 
@@ -645,7 +715,9 @@ export class NeonProjectsRepository implements ProjectsRepository {
         level: "video",
         parentVersion: source.project.currentVersion,
         changeSource: "video_generation",
-        changeSummary: "Generated a simulated vertical-video MVP render",
+        changeSummary: artifact.simulated
+          ? "Generated a vertical-video preview with the resilient MVP fallback"
+          : "Generated a production vertical-video render with Veo",
         snapshot: {
           storyboardId: source.storyboard.id,
           generatedAssetId: assetId,
@@ -659,13 +731,18 @@ export class NeonProjectsRepository implements ProjectsRepository {
         projectId: input.projectId,
         requestedByUserId: input.userId,
         kind: "video_render",
-        provider: "creonome",
-        model: "mvp-motion-preview-v1",
+        provider: artifact.provider,
+        model: artifact.model,
         status: "succeeded",
         progress: 100,
         idempotencyKey: input.idempotencyKey,
         input: { storyboardId: source.storyboard.id },
-        output: { generatedAssetId: assetId, previewUrl: input.previewUrl },
+        output: {
+          generatedAssetId: assetId,
+          previewUrl: artifact.previewUrl,
+          simulated: artifact.simulated,
+          fallbackReasonCode: artifact.fallbackReasonCode,
+        },
         createdAt: now,
         startedAt: now,
         completedAt: now,
@@ -677,14 +754,18 @@ export class NeonProjectsRepository implements ProjectsRepository {
         workspaceId: input.workspaceId,
         projectId: input.projectId,
         kind: "video",
-        gcsUri: `mvp://${input.workspaceId}/${input.projectId}/${jobId}.mp4`,
-        mimeType: "video/mp4",
-        durationSeconds: input.durationSeconds,
+        gcsUri: artifact.gcsUri,
+        mimeType: artifact.mimeType,
+        byteSize: artifact.byteSize,
+        durationSeconds: artifact.durationSeconds,
         metadata: {
-          publicUrl: input.previewUrl,
-          width: input.width,
-          height: input.height,
-          simulated: true,
+          publicUrl: artifact.previewUrl,
+          width: artifact.width,
+          height: artifact.height,
+          provider: artifact.provider,
+          model: artifact.model,
+          simulated: artifact.simulated,
+          fallbackReasonCode: artifact.fallbackReasonCode,
         },
         createdAt: now,
       }),
@@ -710,8 +791,8 @@ export class NeonProjectsRepository implements ProjectsRepository {
       job: {
         id: jobId,
         kind: "video_render",
-        provider: "creonome",
-        model: "mvp-motion-preview-v1",
+        provider: artifact.provider,
+        model: artifact.model,
         status: "succeeded",
         progress: 100,
         errorCode: null,

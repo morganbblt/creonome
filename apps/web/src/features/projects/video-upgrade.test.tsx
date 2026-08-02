@@ -26,6 +26,8 @@ const result = {
     durationSeconds: 30,
     width: 540,
     height: 960,
+    provider: "creonome",
+    model: "deterministic-motion-preview-v1",
     simulated: true,
     createdAt: "2026-08-02T10:00:00.000Z",
   },
@@ -62,20 +64,22 @@ describe("VideoUpgrade", () => {
     render(<VideoUpgrade projectId={projectId} />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /generate mvp video · 12 cr/i }),
+      screen.getByRole("button", { name: /generate video · 12 cr/i }),
     );
     fireEvent.click(
       screen.getByRole("button", { name: /confirm and generate/i }),
     );
 
     expect(screen.getByRole("status").textContent).toMatch(
-      /rendering your mvp video.*12 credits held/i,
+      /rendering your vertical video.*12 credits held/i,
     );
     expect(screen.getByText(/you can keep working/i)).toBeTruthy();
     resolveRequest(Response.json(result));
 
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
-    expect(screen.getByText("Video ready")).toBeTruthy();
+    expect(
+      screen.getByText("Video preview ready — generated with MVP fallback."),
+    ).toBeTruthy();
     expect(request).toHaveBeenCalledWith(
       `/api/creonome/projects/${projectId}/upgrade`,
       expect.objectContaining({

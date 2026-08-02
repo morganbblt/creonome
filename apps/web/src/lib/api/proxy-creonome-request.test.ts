@@ -53,4 +53,43 @@ describe("proxyCreonomeRequest", () => {
     expect(init?.body).toBeUndefined();
     expect(init?.headers).not.toHaveProperty("Content-Type");
   });
+
+  it("streams authenticated video ranges without buffering or dropping headers", async () => {
+    const upstream = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(new Uint8Array([0, 1, 2, 3]), {
+        status: 206,
+        headers: {
+          "Content-Type": "video/mp4",
+          "Content-Length": "4",
+          "Content-Range": "bytes 100-103/2048",
+          "Accept-Ranges": "bytes",
+          "Content-Disposition": 'inline; filename="creonome-video.mp4"',
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", upstream);
+
+    const response = await proxyCreonomeRequest(
+      new Request(
+        "https://www.creonome.com/api/creonome/projects/project-1/video",
+        { headers: { Accept: "video/mp4", Range: "bytes=100-103" } },
+      ),
+      "/projects/project-1/video",
+    );
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-range")).toBe("bytes 100-103/2048");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(
+      Buffer.from([0, 1, 2, 3]),
+    );
+    expect(upstream).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: "video/mp4",
+          Range: "bytes=100-103",
+        }),
+      }),
+    );
+  });
 });

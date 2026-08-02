@@ -10,6 +10,10 @@ import type { CreditsService } from "../credits/credits.service.js";
 import type { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import type { ProjectsRepository } from "./projects.repository.js";
 import { ProjectWorkflowService } from "./project-workflow.service.js";
+import type {
+  GeneratedVideoArtifact,
+  VideoProvider,
+} from "./video/video-provider.js";
 
 const principal: AuthPrincipal = {
   subject: "0198f3a2-82dd-7000-8000-000000000001",
@@ -138,7 +142,36 @@ function upgradeRecord() {
   };
 }
 
-function videoUpgradeRecord() {
+const deterministicVideo: GeneratedVideoArtifact = {
+  previewUrl: "/demo/creonome-vertical-demo.mp4",
+  gcsUri: "mvp://workspace/project/video.mp4",
+  mimeType: "video/mp4",
+  durationSeconds: 8,
+  width: 540,
+  height: 960,
+  byteSize: 771_365,
+  provider: "creonome",
+  model: "deterministic-motion-preview-v1",
+  simulated: true,
+  fallbackReasonCode: "VEO_QUOTA",
+};
+
+const realVideo: GeneratedVideoArtifact = {
+  ...deterministicVideo,
+  previewUrl: `/api/creonome/projects/${projectId}/video`,
+  gcsUri: "gs://creonome-media/generated-videos/workspace/project/video.mp4",
+  width: 720,
+  height: 1280,
+  byteSize: 2_048,
+  provider: "google-gemini-api",
+  model: "veo-3.1-fast-generate-preview",
+  simulated: false,
+  fallbackReasonCode: null,
+};
+
+function videoUpgradeRecord(
+  artifact: GeneratedVideoArtifact = deterministicVideo,
+) {
   return {
     project: {
       ...source.project,
@@ -149,19 +182,22 @@ function videoUpgradeRecord() {
     video: {
       id: "0198f3a2-82dd-7000-8000-000000000060",
       projectId,
-      previewUrl: "/demo/creonome-vertical-demo.mp4",
-      mimeType: "video/mp4",
-      durationSeconds: 30,
-      width: 540,
-      height: 960,
-      simulated: true,
+      previewUrl: artifact.previewUrl,
+      gcsUri: artifact.gcsUri,
+      mimeType: artifact.mimeType,
+      durationSeconds: artifact.durationSeconds,
+      width: artifact.width,
+      height: artifact.height,
+      provider: artifact.provider,
+      model: artifact.model,
+      simulated: artifact.simulated,
       createdAt: now,
     },
     job: {
       id: "0198f3a2-82dd-7000-8000-000000000061",
       kind: "video_render",
-      provider: "creonome",
-      model: "mvp-motion-preview-v1",
+      provider: artifact.provider,
+      model: artifact.model,
       status: "succeeded",
       progress: 100,
       errorCode: null,
@@ -179,6 +215,8 @@ function setup(options?: {
   missing?: boolean;
   generatorRejects?: boolean;
   persistenceRejects?: boolean;
+  realVideo?: boolean;
+  videoRejects?: boolean;
 }) {
   const workspaces = {
     resolve: vi.fn().mockResolvedValue(context),
@@ -206,9 +244,23 @@ function setup(options?: {
         currentLevel: "storyboard",
         currentVersion: 3,
       },
+      script: source.script,
       storyboard: upgradeRecord().storyboard,
+      creativeIdentity: {
+        stageName: "Nova Sainte",
+        bio: "Independent electronic artist",
+        audienceDescription: "Curious producers",
+        languages: ["English"],
+        genres: ["ambient"],
+        dnaSummary: "Restrained studio storytelling.",
+        traits: ["tone: precise"],
+      },
     }),
-    createVideoUpgrade: vi.fn().mockResolvedValue(videoUpgradeRecord()),
+    createVideoUpgrade: vi
+      .fn()
+      .mockImplementation(({ artifact }) =>
+        Promise.resolve(videoUpgradeRecord(artifact)),
+      ),
   } as unknown as ProjectsRepository;
   const credits = {
     getAccount: vi.fn().mockResolvedValue({
@@ -237,6 +289,15 @@ function setup(options?: {
       ? vi.fn().mockRejectedValue(new Error("quota unavailable"))
       : vi.fn().mockResolvedValue(generated),
   } as unknown as StructuredGenerator;
+  const videoProvider = {
+    generate: options?.videoRejects
+      ? vi.fn().mockRejectedValue(new Error("both providers unavailable"))
+      : vi
+          .fn()
+          .mockResolvedValue(
+            options?.realVideo ? realVideo : deterministicVideo,
+          ),
+  } as VideoProvider;
 
   return {
     service: new ProjectWorkflowService(
@@ -244,15 +305,17 @@ function setup(options?: {
       repository,
       credits,
       generator,
+      videoProvider,
     ),
     repository,
     credits,
+    videoProvider,
   };
 }
 
 describe("ProjectWorkflowService", () => {
-  it("persists the MVP video level and atomically commits twelve credits", async () => {
-    const { service, repository, credits } = setup();
+  it("persists the deterministic fallback and atomically commits twelve credits", async () => {
+    const { service, repository, credits, videoProvider } = setup();
 
     await expect(
       service.upgrade(
@@ -274,8 +337,13 @@ describe("ProjectWorkflowService", () => {
         workspaceId: context.workspaceId,
         projectId,
         idempotencyKey: "upgrade-video-1",
+        artifact: expect.objectContaining({
+          simulated: true,
+          fallbackReasonCode: "VEO_QUOTA",
+        }),
       }),
     );
+    expect(videoProvider.generate).toHaveBeenCalledTimes(1);
     expect(credits.reserve).toHaveBeenCalledWith(
       context.workspaceId,
       12,
@@ -288,6 +356,49 @@ describe("ProjectWorkflowService", () => {
       "upgrade-video-1:commit",
       expect.stringMatching(/video/i),
     );
+  });
+
+  it("commits the same single reservation when a real Veo render succeeds", async () => {
+    const { service, repository, credits } = setup({ realVideo: true });
+
+    await expect(
+      service.upgrade(
+        principal,
+        projectId,
+        { targetLevel: "video", confirmedCreditCost: true },
+        "upgrade-video-real",
+      ),
+    ).resolves.toMatchObject({
+      video: {
+        provider: "google-gemini-api",
+        simulated: false,
+        width: 720,
+        height: 1280,
+      },
+      credits: { balance: 46, reserved: 0 },
+    });
+    expect(repository.createVideoUpgrade).toHaveBeenCalledWith(
+      expect.objectContaining({ artifact: realVideo }),
+    );
+    expect(credits.reserve).toHaveBeenCalledTimes(1);
+    expect(credits.commit).toHaveBeenCalledTimes(1);
+    expect(credits.release).not.toHaveBeenCalled();
+  });
+
+  it("refunds the reservation only when neither video provider produced an artifact", async () => {
+    const { service, credits, repository } = setup({ videoRejects: true });
+
+    await expect(
+      service.upgrade(
+        principal,
+        projectId,
+        { targetLevel: "video", confirmedCreditCost: true },
+        "upgrade-video-total-failure",
+      ),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(repository.createVideoUpgrade).not.toHaveBeenCalled();
+    expect(credits.commit).not.toHaveBeenCalled();
+    expect(credits.release).toHaveBeenCalledTimes(1);
   });
 
   it("reserves and commits four credits around a persisted storyboard", async () => {

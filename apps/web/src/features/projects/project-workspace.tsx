@@ -34,7 +34,11 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
 
   useEffect(() => {
     setActiveDeliverable(
-      project.hasVideo ? "video" : project.hasStoryboard ? "storyboard" : "script",
+      project.hasVideo
+        ? "video"
+        : project.hasStoryboard
+          ? "storyboard"
+          : "script",
     );
   }, [project.hasStoryboard, project.hasVideo]);
 
@@ -322,12 +326,15 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                   <strong>9:16 delivery preview</strong>
                   <span>
                     {project.video.simulated
-                      ? "MVP simulated render · replaceable by the production video provider"
-                      : "Production render"}
+                      ? `MVP fallback · ${project.video.model}`
+                      : `Veo render · ${project.video.model}`}
                   </span>
                 </div>
-                <a href={project.video.previewUrl} download>
-                  Download MVP video
+                <a
+                  href={`${project.video.previewUrl}${project.video.previewUrl.includes("?") ? "&" : "?"}download=1`}
+                  download
+                >
+                  Download video
                 </a>
               </footer>
             </section>

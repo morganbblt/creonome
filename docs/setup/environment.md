@@ -8,6 +8,7 @@ Creonome uses one committed template, [`.env.example`](../../.env.example), and 
 | ------------------------------------------- | ------------------------- | -------------- | ------------------------------------------------------------------------ |
 | `GOOGLE_CLOUD_PROJECT` / `VERTEX_AI_MODEL`  | Creonome/GCP              | No             | Cloud Run identity; primary structured and multimodal generation         |
 | `GEMINI_API_KEY`                            | Creonome/GCP              | No             | Secret Manager; optional Google AI Studio fallback for local development |
+| `VIDEO_PROVIDER` / `VEO_MODEL`              | Creonome                  | No             | Cloud Run env; Veo-first with a mandatory deterministic fallback         |
 | `MEM0_API_KEY`                              | Creonome                  | No             | Secret Manager; live read smoke test passed                              |
 | `RESEND_API_KEY`                            | Creonome                  | No             | Secret Manager; verified sender/domain still required                    |
 | `DATABASE_URL`                              | Neon                      | No             | Secret Manager, pooled endpoint                                          |
@@ -33,6 +34,18 @@ For local Google client libraries, use Application Default Credentials instead o
 ```bash
 gcloud auth application-default login
 ```
+
+## Veo and resilient video rendering
+
+`VIDEO_PROVIDER=auto` is the production default. The API attempts Gemini API Veo with the server-only `GEMINI_API_KEY`, polls the long-running operation for at most `VEO_TIMEOUT_MS`, validates the complete MP4, and then writes it to the private media bucket. Any model, quota, permission, timeout, response, download or storage failure automatically selects the committed deterministic MP4 instead. `VIDEO_PROVIDER=deterministic` is useful for local development and demos without provider spend. `VIDEO_PROVIDER=veo` still preserves the mandatory fallback; it expresses provider preference, not permission to break the workflow.
+
+The Cloud Run service account needs:
+
+- `roles/storage.objectUser` on `gs://creonome-909754432431-media`;
+- `roles/aiplatform.user` only when Vertex-based generation is enabled elsewhere;
+- `roles/secretmanager.secretAccessor` on the explicitly mounted secrets.
+
+No downloaded service-account JSON is used. See [`../architecture/video-rendering.md`](../architecture/video-rendering.md) for failure and credit semantics.
 
 ## Neon Auth
 

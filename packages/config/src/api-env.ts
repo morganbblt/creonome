@@ -67,6 +67,20 @@ const ApiEnvSchema = z.object({
   GOOGLE_CLOUD_PROJECT: z.string().min(1).default("creonome"),
   GOOGLE_CLOUD_LOCATION: z.string().min(1).default("global"),
   VERTEX_AI_MODEL: z.string().min(1).default("gemini-3.5-flash"),
+  VIDEO_PROVIDER: z.enum(["auto", "veo", "deterministic"]).default("auto"),
+  VEO_MODEL: z.string().min(1).default("veo-3.1-fast-generate-preview"),
+  VEO_POLL_INTERVAL_MS: z.coerce
+    .number()
+    .int()
+    .min(1_000)
+    .max(60_000)
+    .default(10_000),
+  VEO_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .min(10_000)
+    .max(300_000)
+    .default(240_000),
   GCP_MEDIA_BUCKET: z.string().min(3).optional(),
   TIKTOK_CLIENT_KEY: OptionalSecretSchema,
   TIKTOK_CLIENT_SECRET: OptionalSecretSchema,

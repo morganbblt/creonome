@@ -28,6 +28,7 @@ import {
   type StoryboardUpgradeRecord,
   type VideoUpgradeRecord,
 } from "./projects.repository.js";
+import { VIDEO_PROVIDER, type VideoProvider } from "./video/video-provider.js";
 
 const GeneratedStoryboardSceneSchema = z.object({
   heading: z.string().trim().min(1).max(160),
@@ -151,6 +152,8 @@ export class ProjectWorkflowService {
     private readonly credits: CreditsService,
     @Inject(STRUCTURED_GENERATOR)
     private readonly generator: StructuredGenerator,
+    @Inject(VIDEO_PROVIDER)
+    private readonly videoProvider: VideoProvider,
   ) {}
 
   async upgrade(
@@ -273,7 +276,7 @@ export class ProjectWorkflowService {
         context.workspaceId,
         creditCosts.video,
         `${idempotencyKey}:commit`,
-        `Committed ${creditCosts.video} credits for MVP video generation`,
+        `Committed ${creditCosts.video} credits for video generation`,
       );
       return this.toVideoContract(idempotent, credits);
     }
@@ -302,20 +305,23 @@ export class ProjectWorkflowService {
       context.workspaceId,
       cost,
       `${idempotencyKey}:reserve`,
-      `Reserve ${cost} credits for MVP video generation`,
+      `Reserve ${cost} credits for video generation`,
     );
 
     let persisted = false;
     try {
+      const artifact = await this.videoProvider.generate({
+        workspaceId: context.workspaceId,
+        projectId,
+        idempotencyKey,
+        source,
+      });
       const upgrade = await this.repository.createVideoUpgrade({
         workspaceId: context.workspaceId,
         userId: context.userId,
         projectId,
         idempotencyKey,
-        previewUrl: "/demo/creonome-vertical-demo.mp4",
-        durationSeconds: 8,
-        width: 540,
-        height: 960,
+        artifact,
       });
       if (!upgrade) {
         throw new NotFoundException("A storyboard-ready project was not found");
@@ -325,7 +331,7 @@ export class ProjectWorkflowService {
         context.workspaceId,
         cost,
         `${idempotencyKey}:commit`,
-        `Committed ${cost} credits for MVP video generation`,
+        `Committed ${cost} credits for ${artifact.simulated ? "fallback" : "Veo"} video generation`,
       );
       return this.toVideoContract(upgrade, credits);
     } catch (error) {
@@ -335,13 +341,13 @@ export class ProjectWorkflowService {
             context.workspaceId,
             cost,
             `${idempotencyKey}:release`,
-            `Released ${cost} credits after failed MVP video generation`,
+            `Released ${cost} credits after failed video generation`,
           );
         } catch {
           throw error;
         }
         throw new ServiceUnavailableException({
-          message: "MVP video generation could not be completed",
+          message: "Video generation could not be completed",
           retryMode: "new_request",
         });
       }

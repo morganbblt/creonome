@@ -99,8 +99,8 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
           <p>READY FOR LEVEL 04</p>
           <h2>Turn this storyboard into a vertical motion preview.</h2>
           <span>
-            A deterministic 9:16 MVP render connects the complete workflow and
-            remains downloadable from this project.
+            Creonome attempts a real 9:16 Veo render first, with the resilient
+            deterministic preview ready if the provider is unavailable.
           </span>
         </div>
 
@@ -110,7 +110,7 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
             disabled={pending}
             onClick={() => setConfirming(true)}
           >
-            {pending ? "Rendering…" : "Generate MVP video · 12 cr"}
+            {pending ? "Rendering…" : "Generate video · 12 cr"}
           </button>
         ) : (
           <div className={styles.upgradeConfirmation}>
@@ -133,15 +133,23 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
       {pending ? (
         <GenerationToast
           state="pending"
-          title="Rendering your MVP video"
-          detail="Composing the vertical motion preview from the saved storyboard."
+          title="Rendering your vertical video"
+          detail="Veo is composing the saved script and storyboard. The resilient preview will take over automatically if needed."
           creditLabel="12 credits held"
         />
       ) : receipt ? (
         <GenerationToast
           state="success"
-          title="Video ready"
-          detail="The vertical preview is saved to this project and ready to download."
+          title={
+            receipt.video.simulated
+              ? "Video preview ready — generated with MVP fallback."
+              : "Video ready"
+          }
+          detail={
+            receipt.video.simulated
+              ? "The deterministic 9:16 preview is saved and downloadable; your workflow stayed uninterrupted."
+              : "The Veo render is safely stored in this project and ready to play or download."
+          }
           onDismiss={() => setReceipt(null)}
         />
       ) : error ? (

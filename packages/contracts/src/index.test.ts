@@ -14,6 +14,7 @@ import {
   UpdateOnboardingProfileInputSchema,
   ProjectListSchema,
   ProjectSchema,
+  ProjectVideoSchema,
   UpgradeOpportunityInputSchema,
   UpgradeOpportunityResultSchema,
 } from "./index.js";
@@ -44,6 +45,27 @@ describe("shared API contracts", () => {
         updatedAt: "2026-08-02T10:00:00.000Z",
       }),
     ).toMatchObject({ currentLevel: "idea", currentVersion: 1 });
+  });
+
+  it("keeps real versus fallback video provenance explicit", () => {
+    expect(
+      ProjectVideoSchema.parse({
+        id: "0198f3a2-82dd-7000-8000-000000000060",
+        projectId: "0198f3a2-82dd-7000-8000-000000000001",
+        previewUrl: "/api/creonome/projects/project-1/video",
+        mimeType: "video/mp4",
+        durationSeconds: 8,
+        width: 720,
+        height: 1280,
+        provider: "google-gemini-api",
+        model: "veo-3.1-fast-generate-preview",
+        simulated: false,
+        createdAt: "2026-08-02T10:00:00.000Z",
+      }),
+    ).toMatchObject({
+      provider: "google-gemini-api",
+      simulated: false,
+    });
   });
 
   it("requires the maturity and discovery metadata used by the project index", () => {
@@ -393,6 +415,8 @@ describe("shared API contracts", () => {
           durationSeconds: 35,
           width: 540,
           height: 960,
+          provider: "creonome",
+          model: "deterministic-motion-preview-v1",
           simulated: true,
           createdAt: "2026-08-02T10:00:00.000Z",
         },

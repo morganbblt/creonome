@@ -39,7 +39,7 @@ export async function proxyCreonomeRequest(
       method: request.method,
       cache: "no-store",
       headers: {
-        Accept: "application/json",
+        Accept: request.headers.get("accept") ?? "application/json",
         Authorization: `Bearer ${token}`,
         ...(body
           ? {
@@ -50,16 +50,27 @@ export async function proxyCreonomeRequest(
         ...(request.headers.get("idempotency-key")
           ? { "Idempotency-Key": request.headers.get("idempotency-key")! }
           : {}),
+        ...(request.headers.get("range")
+          ? { Range: request.headers.get("range")! }
+          : {}),
       },
       body: body || undefined,
     });
-    const payload = await upstream.text();
-    return new Response(payload, {
+    const headers = new Headers();
+    for (const name of [
+      "content-type",
+      "content-length",
+      "content-disposition",
+      "accept-ranges",
+      "content-range",
+      "cache-control",
+    ]) {
+      const value = upstream.headers.get(name);
+      if (value) headers.set(name, value);
+    }
+    return new Response(upstream.body, {
       status: upstream.status,
-      headers: {
-        "Content-Type":
-          upstream.headers.get("content-type") ?? "application/json",
-      },
+      headers,
     });
   } catch {
     return Response.json(

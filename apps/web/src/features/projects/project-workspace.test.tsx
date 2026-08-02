@@ -134,6 +134,8 @@ describe("ProjectWorkspace", () => {
             durationSeconds: 35,
             width: 540,
             height: 960,
+            provider: "creonome",
+            model: "deterministic-motion-preview-v1",
             simulated: true,
             createdAt: "2026-08-02T12:04:00.000Z",
           },
@@ -147,9 +149,9 @@ describe("ProjectWorkspace", () => {
     expect(screen.getByLabelText("Generated vertical video")).toBeTruthy();
     expect(
       screen
-        .getByRole("link", { name: /download mvp video/i })
+        .getByRole("link", { name: /download video/i })
         .getAttribute("href"),
-    ).toBe("/demo/creonome-vertical-demo.mp4");
+    ).toBe("/demo/creonome-vertical-demo.mp4?download=1");
     fireEvent.click(screen.getByRole("tab", { name: "Storyboard" }));
     expect(screen.getByRole("heading", { name: "01 · Silence" })).toBeTruthy();
   });
@@ -158,7 +160,7 @@ describe("ProjectWorkspace", () => {
     render(<ProjectWorkspace project={project} />);
 
     expect(
-      screen.getByRole("button", { name: /generate mvp video · 12 cr/i }),
+      screen.getByRole("button", { name: /generate video · 12 cr/i }),
     ).toBeTruthy();
   });
 });

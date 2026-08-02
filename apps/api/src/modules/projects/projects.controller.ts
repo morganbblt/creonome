@@ -6,6 +6,9 @@ import {
   Inject,
   Param,
   Post,
+  Query,
+  Res,
+  StreamableFile,
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -20,7 +23,9 @@ import type {
   UpgradeVideoResult,
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import type { FastifyReply } from "fastify";
 import { CurrentUser } from "../auth/current-user.decorator.js";
+import { ProjectVideoService } from "./project-video.service.js";
 import { ProjectWorkflowService } from "./project-workflow.service.js";
 import { ProjectsService } from "./projects.service.js";
 import { UpgradeProjectDto } from "./upgrade-project.dto.js";
@@ -34,6 +39,8 @@ export class ProjectsController {
     private readonly projects: ProjectsService,
     @Inject(ProjectWorkflowService)
     private readonly workflow: ProjectWorkflowService,
+    @Inject(ProjectVideoService)
+    private readonly videos: ProjectVideoService,
   ) {}
 
   @Get()
@@ -50,6 +57,31 @@ export class ProjectsController {
     @Param("id") projectId: string,
   ): Promise<ProjectDetail> {
     return this.projects.get(principal, projectId);
+  }
+
+  @Get(":id/video")
+  @ApiOperation({ summary: "Stream the current private generated video" })
+  async video(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("id") projectId: string,
+    @Headers("range") range: string | undefined,
+    @Query("download") download: string | undefined,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<StreamableFile> {
+    const video = await this.videos.read(principal, projectId, range);
+    reply.status(video.contentRange ? 206 : 200);
+    reply.header("Content-Type", "video/mp4");
+    reply.header("Content-Length", String(video.contentLength));
+    reply.header("Accept-Ranges", "bytes");
+    reply.header("Cache-Control", "private, max-age=3600");
+    reply.header(
+      "Content-Disposition",
+      `${download === "1" ? "attachment" : "inline"}; filename="creonome-video.mp4"`,
+    );
+    if (video.contentRange) {
+      reply.header("Content-Range", video.contentRange);
+    }
+    return new StreamableFile(video.stream);
   }
 
   @Post(":id/upgrade")
