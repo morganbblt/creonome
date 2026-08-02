@@ -11,9 +11,9 @@
   --cold-8: #315d76;
   --cold-9: #142f42;
   --ui:
-    "Geist", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  --mono: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+    var(--font-geist-sans), "Inter", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: var(--font-geist-mono), "SFMono-Regular", Consolas, monospace;
   --bg: var(--cold-0);
   --bg-2: var(--cold-1);
   --surface: #ffffff;
@@ -29,6 +29,12 @@
   --signal: var(--cold-5);
   --signal-soft: var(--cold-1);
   --signal-text: var(--cold-8);
+  --danger: #b3453f;
+  --danger-soft: #fff3f2;
+  --danger-text: #8c3232;
+  --success: #5f9d78;
+  --success-soft: #dce4df;
+  --success-text: #3c5346;
   --button: var(--cold-9);
   --button-text: #ffffff;
   --radius-control: 14px;
@@ -56,6 +62,12 @@
   --signal: #86b4ca;
   --signal-soft: #1c3441;
   --signal-text: #b9d8e8;
+  --danger: #c96b64;
+  --danger-soft: #3a2220;
+  --danger-text: #e3a8a3;
+  --success: #6bab82;
+  --success-soft: #1e2b24;
+  --success-text: #a8cbb5;
   --button: #f2f5f7;
   --button-text: #12161c;
   --shadow: 0 1px 2px rgb(0 0 0 / 22%), 0 12px 30px -15px rgb(0 0 0 / 50%);

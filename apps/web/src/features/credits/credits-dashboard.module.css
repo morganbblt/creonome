@@ -92,8 +92,7 @@
 
 .billingActions button,
 .billingActions a,
-.ledgerTitle button,
-.unavailable a {
+.ledgerTitle button {
   display: grid;
   min-height: 40px;
   place-items: center;
@@ -113,8 +112,7 @@
 }
 
 .billingActions a,
-.ledgerTitle button,
-.unavailable a {
+.ledgerTitle button {
   border: 1px solid var(--line-2);
   background: transparent;
   color: var(--text);
@@ -232,46 +230,6 @@
   border-radius: 12px;
   color: var(--text-3);
   text-align: center;
-}
-
-.unavailable {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 25px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-
-.unavailable > span {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  flex: none;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--bg-2);
-}
-
-.unavailable h1,
-.unavailable p {
-  margin: 0;
-}
-
-.unavailable h1 {
-  font-size: 17px;
-}
-
-.unavailable p {
-  margin-top: 4px;
-  color: var(--text-2);
-  font-size: 11px;
-}
-
-.unavailable a {
-  margin-left: auto;
 }
 
 @media (max-width: 820px) {

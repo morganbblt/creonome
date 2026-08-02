@@ -17,6 +17,10 @@
   animation: panel-in 420ms ease-out both;
 }
 
+.unavailablePanel {
+  width: min(560px, 100%);
+}
+
 .panelHeader {
   display: flex;
   min-height: 64px;

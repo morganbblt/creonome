@@ -69,14 +69,40 @@ export default async function AppLayout({
             className={styles.credits}
             initialAvailable={availableCredits}
           />
-          <ThemeToggle className={styles.settings} />
-          <span
-            className={styles.avatar}
-            aria-label={identity.name}
-            title={identity.name}
-          >
-            {identity.initials}
-          </span>
+          <details className={styles.accountMenu}>
+            <summary
+              className={styles.avatar}
+              aria-label={identity.name}
+              title={identity.name}
+            >
+              {identity.initials}
+            </summary>
+            <div className={styles.accountMenuPanel} role="menu">
+              <p className={styles.accountMenuName}>{identity.name}</p>
+              <Link
+                href="/credits"
+                className={styles.accountMenuLink}
+                role="menuitem"
+              >
+                Credits
+              </Link>
+              <Link
+                href="/settings/integrations"
+                className={styles.accountMenuLink}
+                role="menuitem"
+              >
+                Integrations
+              </Link>
+              <Link
+                href="/settings/privacy"
+                className={styles.accountMenuLink}
+                role="menuitem"
+              >
+                Privacy
+              </Link>
+              <ThemeToggle className={styles.accountMenuThemeToggle} />
+            </div>
+          </details>
         </div>
       </header>
       {children}

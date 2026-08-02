@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ProjectIndex } from "../../../src/features/projects/project-index";
 import { loadProjects } from "../../../src/features/projects/projects-data";
+import { UnavailableState } from "../../../src/features/management/unavailable-state";
 import { createServerApiClient } from "../../../src/lib/api/server-client";
 import styles from "../management.module.css";
 
@@ -25,25 +25,21 @@ export default async function ProjectsPage() {
       </header>
 
       {source === "unavailable" ? (
-        <section className={styles.unavailableState} role="status">
-          <span aria-hidden="true">↻</span>
-          <div>
-            <h2>Projects could not be loaded.</h2>
-            <p>Your workspace data is intact. Reconnect and try again.</p>
-          </div>
-          <Link href="/projects">Try again</Link>
-        </section>
+        <UnavailableState
+          title="Projects could not be loaded."
+          description="Your workspace data is intact. Reconnect and try again."
+          actionHref="/projects"
+        />
       ) : projects.length ? (
         <ProjectIndex projects={projects} />
       ) : (
-        <section className={styles.unavailableState}>
-          <span aria-hidden="true">01</span>
-          <div>
-            <h2>Your first project starts with an opportunity.</h2>
-            <p>Save an idea or generate its script to build this workspace.</p>
-          </div>
-          <Link href="/today">Explore Today</Link>
-        </section>
+        <UnavailableState
+          icon="01"
+          title="Your first project starts with an opportunity."
+          description="Save an idea or generate its script to build this workspace."
+          actionHref="/today"
+          actionLabel="Explore Today"
+        />
       )}
     </main>
   );

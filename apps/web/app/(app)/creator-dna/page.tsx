@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { loadCreatorDna } from "../../../src/features/creator-dna/creator-dna-data";
 import { CreatorDnaView } from "../../../src/features/creator-dna/creator-dna-view";
 import { loadMemoryCandidates } from "../../../src/features/creator-dna/memory-candidates-data";
+import { UnavailableState } from "../../../src/features/management/unavailable-state";
 import { createServerApiClient } from "../../../src/lib/api/server-client";
 import managementStyles from "../management.module.css";
 
@@ -26,14 +26,11 @@ export default async function CreatorDnaPage() {
           <h1>Creator DNA</h1>
         </div>
       </header>
-      <section className={managementStyles.unavailableState} role="status">
-        <span aria-hidden="true">↻</span>
-        <div>
-          <h2>Creator DNA could not be loaded.</h2>
-          <p>Your confirmed model is intact. Reconnect and try again.</p>
-        </div>
-        <Link href="/creator-dna">Try again</Link>
-      </section>
+      <UnavailableState
+        title="Creator DNA could not be loaded."
+        description="Your confirmed model is intact. Reconnect and try again."
+        actionHref="/creator-dna"
+      />
     </main>
   );
 }

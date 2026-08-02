@@ -18,7 +18,11 @@ const exportLabels: Record<PrivacyExportKind, string> = {
   everything: "Everything",
 };
 
-export function PrivacyWorkspace({ initialState }: { initialState: PrivacyState }) {
+export function PrivacyWorkspace({
+  initialState,
+}: {
+  initialState: PrivacyState;
+}) {
   const [state, setState] = useState(initialState);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState<PrivacyExportKind | null>(null);
@@ -101,7 +105,9 @@ export function PrivacyWorkspace({ initialState }: { initialState: PrivacyState 
       setDialogOpen(false);
       setConfirmation("");
     } catch {
-      setError("The deletion request could not be recorded. Your data is intact.");
+      setError(
+        "The deletion request could not be recorded. Your data is intact.",
+      );
     } finally {
       setDeletionBusy(false);
     }
@@ -240,8 +246,11 @@ export function PrivacyWorkspace({ initialState }: { initialState: PrivacyState 
               <div className={styles.scheduled} role="status">
                 <strong>Your deletion request is scheduled.</strong>
                 <p>
-                  Recorded for {new Date(state.accountDeletion.scheduledFor).toLocaleString()}.
-                  Final deletion processing is not active in this MVP.
+                  Recorded for{" "}
+                  {new Date(
+                    state.accountDeletion.scheduledFor,
+                  ).toLocaleString()}
+                  . Final deletion processing is not active in this MVP.
                 </p>
                 <button
                   type="button"
@@ -297,9 +306,7 @@ export function PrivacyWorkspace({ initialState }: { initialState: PrivacyState 
               </button>
               <button
                 type="button"
-                disabled={
-                  deletionBusy || confirmation !== "DELETE MY ACCOUNT"
-                }
+                disabled={deletionBusy || confirmation !== "DELETE MY ACCOUNT"}
                 onClick={() => void scheduleDeletion()}
               >
                 {deletionBusy ? "Scheduling…" : "Schedule account deletion"}

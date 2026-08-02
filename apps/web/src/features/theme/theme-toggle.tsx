@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MoonIcon, SunIcon } from "@/src/features/icons/icons";
 
 type Theme = "light" | "dark";
 
@@ -29,7 +30,12 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={`Switch to ${dark ? "light" : "dark"} mode`}
       onClick={toggleTheme}
     >
-      <span aria-hidden="true">{dark ? "☀" : "☾"}</span>
+      {dark ? (
+        <SunIcon width={16} height={16} />
+      ) : (
+        <MoonIcon width={16} height={16} />
+      )}
+      <span>{dark ? "Light mode" : "Dark mode"}</span>
     </button>
   );
 }

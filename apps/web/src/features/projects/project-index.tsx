@@ -3,6 +3,7 @@
 import type { ProjectLevel, ProjectSummary } from "@creonome/contracts";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ExternalLinkIcon, SearchIcon } from "@/src/features/icons/icons";
 import styles from "./projects.module.css";
 
 const levels = ["idea", "script", "storyboard", "video"] as const;
@@ -71,7 +72,7 @@ export function ProjectIndex({ projects }: { projects: ProjectSummary[] }) {
           ))}
         </div>
         <label className={styles.search}>
-          <span aria-hidden="true">⌕</span>
+          <SearchIcon width={14} height={14} aria-hidden="true" />
           <input
             type="search"
             aria-label="Search projects"
@@ -125,7 +126,7 @@ export function ProjectIndex({ projects }: { projects: ProjectSummary[] }) {
                 className={styles.open}
                 aria-label={`Open ${project.title}`}
               >
-                Open <span aria-hidden="true">↗</span>
+                Open <ExternalLinkIcon width={12} height={12} aria-hidden="true" />
               </Link>
             </article>
           ))}

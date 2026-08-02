@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { LibraryWorkspace } from "../../../src/features/library/library-workspace";
 import { loadLibrary } from "../../../src/features/library/library-data";
+import { UnavailableState } from "../../../src/features/management/unavailable-state";
 import { createServerApiClient } from "../../../src/lib/api/server-client";
 import managementStyles from "../management.module.css";
 
@@ -19,14 +19,11 @@ export default async function LibraryPage() {
           <h1>Library</h1>
         </div>
       </header>
-      <section className={managementStyles.unavailableState} role="status">
-        <span aria-hidden="true">↻</span>
-        <div>
-          <h2>Library could not be loaded.</h2>
-          <p>Your private assets are intact. Reconnect and try again.</p>
-        </div>
-        <Link href="/library">Try again</Link>
-      </section>
+      <UnavailableState
+        title="Library could not be loaded."
+        description="Your private assets are intact. Reconnect and try again."
+        actionHref="/library"
+      />
     </main>
   );
 }

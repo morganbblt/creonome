@@ -27,13 +27,13 @@
   margin: 0 0 7px;
   color: var(--text-3);
   font: 500 10px/1 var(--mono);
-  letter-spacing: .1em;
+  letter-spacing: 0.1em;
 }
 
 .header h1 {
   margin: 0;
   font-size: 24px;
-  letter-spacing: -.03em;
+  letter-spacing: -0.03em;
 }
 
 .header > span {
@@ -120,7 +120,7 @@
 }
 
 .notice [role="alert"] {
-  color: #8c3232;
+  color: var(--danger-text);
 }
 
 .exportSection,
@@ -166,28 +166,28 @@
 }
 
 .danger {
-  border-color: #d79898;
-  background: #fff3f2;
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .danger h2,
 .danger > p:not(.sectionLabel) {
-  color: #8c3232;
+  color: var(--danger-text);
 }
 
 .danger .actions button,
 .danger .actions a,
 .scheduled button {
-  border-color: #b85050;
-  color: #8c3232;
+  border-color: var(--danger);
+  color: var(--danger-text);
 }
 
 .scheduled {
   margin-top: 14px;
   padding: 13px;
-  border: 1px solid #d79898;
+  border: 1px solid var(--danger);
   border-radius: 12px;
-  background: rgba(255, 255, 255, .5);
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
 }
 
 .scheduled button {
@@ -201,7 +201,7 @@
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(10, 12, 15, .48);
+  background: rgba(10, 12, 15, 0.48);
   backdrop-filter: blur(5px);
 }
 
@@ -211,7 +211,7 @@
   border: 1px solid var(--line-2);
   border-radius: 18px;
   background: var(--surface);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, .25);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
 }
 
 .dialog label {
@@ -229,7 +229,7 @@
   border: 1px solid var(--line-2);
   border-radius: var(--radius-control);
   background: var(--surface);
-  color: var(--text-1);
+  color: var(--text);
   font: 500 12px/1 var(--mono);
 }
 
@@ -238,8 +238,8 @@
 }
 
 .dialogActions button:last-child {
-  border-color: #9f4141;
-  background: #9f4141;
+  border-color: var(--danger);
+  background: var(--danger);
   color: white;
 }
 
@@ -248,14 +248,28 @@
 .preference > button:disabled,
 .scheduled button:disabled {
   cursor: wait;
-  opacity: .55;
+  opacity: 0.55;
 }
 
 @media (max-width: 620px) {
-  .page { padding: 24px 14px 40px; }
-  .header { align-items: flex-start; }
-  .header > span { display: none; }
-  .content { padding: 14px; }
-  .actions { flex-direction: column; }
-  .actions button, .actions a { justify-content: center; width: 100%; }
+  .page {
+    padding: 24px 14px 40px;
+  }
+  .header {
+    align-items: flex-start;
+  }
+  .header > span {
+    display: none;
+  }
+  .content {
+    padding: 14px;
+  }
+  .actions {
+    flex-direction: column;
+  }
+  .actions button,
+  .actions a {
+    justify-content: center;
+    width: 100%;
+  }
 }

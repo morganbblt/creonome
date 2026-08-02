@@ -57,7 +57,7 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--text-1);
+  color: var(--text);
   font: 450 12px/1 var(--sans);
 }
 
@@ -163,7 +163,7 @@
 }
 
 .maturity .reached {
-  background: var(--text-1);
+  background: var(--text);
 }
 
 .level {
@@ -190,7 +190,7 @@
   gap: 6px;
   border: 1px solid var(--line-2);
   border-radius: var(--radius-control);
-  color: var(--text-1);
+  color: var(--text);
   font-size: 11.5px;
   font-weight: 600;
   text-decoration: none;
@@ -221,7 +221,7 @@
 .empty button {
   border: 0;
   background: none;
-  color: var(--text-1);
+  color: var(--text);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -509,7 +509,7 @@
 }
 .hookBlock {
   padding: 20px;
-  border-left: 3px solid var(--text-1);
+  border-left: 3px solid var(--text);
   background: var(--surface-2);
 }
 .hookBlock > span,
@@ -615,7 +615,7 @@
 .upgradeConfirmation button:last-child {
   border-color: var(--line-2);
   background: transparent;
-  color: var(--text-1);
+  color: var(--text);
 }
 .upgradeConfirmation button:disabled {
   cursor: wait;
@@ -735,7 +735,7 @@
   text-align: right;
 }
 .receiptLedger > div:last-child dd {
-  color: var(--text-1);
+  color: var(--text);
   font-weight: 650;
 }
 .receiptNote {
@@ -768,7 +768,7 @@
 }
 .receiptActions a {
   background: transparent;
-  color: var(--text-1);
+  color: var(--text);
 }
 .upgradeError {
   grid-column: 1 / -1;
@@ -962,7 +962,7 @@
 }
 .ideaState a,
 .sourceLink {
-  color: var(--text-1);
+  color: var(--text);
   font-size: 11px;
   font-weight: 600;
 }
@@ -1059,7 +1059,7 @@
   width: 100%;
   height: 3px;
   margin: 13px 0 7px;
-  accent-color: var(--text-1);
+  accent-color: var(--text);
 }
 .job small {
   color: var(--text-3);

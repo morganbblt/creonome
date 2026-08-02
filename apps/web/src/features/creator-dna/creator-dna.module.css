@@ -44,7 +44,7 @@
   border: 1px solid var(--line-2);
   border-radius: var(--radius-control);
   background: transparent;
-  color: var(--text-1);
+  color: var(--text);
   font-size: 11px;
   font-weight: 650;
   cursor: pointer;
@@ -256,7 +256,7 @@
   text-transform: uppercase;
 }
 .memoryCard > p {
-  color: var(--text-1);
+  color: var(--text);
   font-size: 13px;
   font-weight: 570;
 }
@@ -279,7 +279,7 @@
   opacity: 0.55;
 }
 .accept {
-  background: var(--text-1);
+  background: var(--text);
   color: var(--surface);
 }
 .reject {

@@ -2,6 +2,7 @@
 
 import type { CreditLedgerEntry } from "@creonome/contracts";
 import Link from "next/link";
+import { UnavailableState } from "@/src/features/management/unavailable-state";
 import type { CreditOverview } from "./credits-data";
 import { creditLedgerCsv, creditMovement } from "./credit-ledger-export";
 import styles from "./credits-dashboard.module.css";
@@ -47,14 +48,11 @@ export function CreditsDashboard({
   if (!overview) {
     return (
       <main className={styles.page}>
-        <section className={styles.unavailable} role="status">
-          <span aria-hidden="true">↻</span>
-          <div>
-            <h1>Credits could not be loaded.</h1>
-            <p>No balance was assumed. Your ledger remains intact.</p>
-          </div>
-          <Link href="/credits">Try again</Link>
-        </section>
+        <UnavailableState
+          title="Credits could not be loaded."
+          description="No balance was assumed. Your ledger remains intact."
+          actionHref="/credits"
+        />
       </main>
     );
   }

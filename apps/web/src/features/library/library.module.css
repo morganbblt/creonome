@@ -104,10 +104,10 @@
 .error {
   margin: 14px 18px 0;
   padding: 11px 13px;
-  border: 1px solid #d79898;
+  border: 1px solid var(--danger);
   border-radius: 10px;
-  background: #fff3f2;
-  color: #8c3232;
+  background: var(--danger-soft);
+  color: var(--danger-text);
   font-size: 11.5px;
 }
 .uploadProgress {
@@ -155,24 +155,28 @@
   justify-content: space-between;
   padding: 13px;
   border-radius: 10px;
-  background: #e2e5e7;
-  color: #535b61;
+  background: var(--surface-2);
+  color: var(--text-2);
   font: 500 8px/1 var(--mono);
 }
 .visual[data-kind="audio"] {
-  background: repeating-linear-gradient(90deg, #d9dee3 0 4px, #eef0f2 4px 8px);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--bg-2) 0 4px,
+    var(--surface-2) 4px 8px
+  );
 }
 .visual[data-kind="script"] {
-  background: #e9e7df;
-  color: #665f4e;
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface-2));
+  color: var(--accent-text);
 }
 .visual[data-kind="export"] {
-  background: #dce4df;
-  color: #40574b;
+  background: color-mix(in srgb, var(--accent) 35%, var(--surface-2));
+  color: var(--accent-text);
 }
 .visual[data-kind="image"] {
-  background: #e2dfe7;
-  color: #5c5269;
+  background: color-mix(in srgb, var(--accent) 50%, var(--surface-2));
+  color: var(--accent-text);
 }
 .visual strong {
   margin: auto;
@@ -241,7 +245,7 @@
   padding: 5px 0 5px 8px;
   border: 0;
   background: transparent;
-  color: #9b2c2c;
+  color: var(--danger-text);
   font-size: 9.5px;
   cursor: pointer;
 }
@@ -265,7 +269,7 @@
 }
 .deleteDialog > p:first-child {
   margin: 0 0 10px;
-  color: #9b2c2c;
+  color: var(--danger-text);
   font: 550 9.5px/1 var(--mono);
   letter-spacing: 0.1em;
 }
@@ -300,8 +304,8 @@
   cursor: pointer;
 }
 .deleteDialog button:last-child {
-  border-color: #8c3232;
-  background: #8c3232;
+  border-color: var(--danger);
+  background: var(--danger);
   color: white;
 }
 .deleteDialog button:disabled {
