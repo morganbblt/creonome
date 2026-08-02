@@ -178,6 +178,8 @@ describe("VeoVideoProvider", () => {
     expect(client.generateVideos).not.toHaveBeenCalledWith(
       expect.objectContaining({ prompt: expect.any(String) }),
     );
+    const request = vi.mocked(client.generateVideos).mock.calls[0]?.[0];
+    expect(request?.config).not.toHaveProperty("generateAudio");
     expect(download).toHaveBeenCalledWith(
       expect.stringMatching(/^https:\/\/generativelanguage\.googleapis\.com/),
       expect.objectContaining({

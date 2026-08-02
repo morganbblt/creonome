@@ -149,7 +149,6 @@ export class VeoVideoProvider implements VideoProvider {
             aspectRatio: "9:16",
             resolution: "720p",
             personGeneration: "allow_adult",
-            generateAudio: true,
             enhancePrompt: true,
             negativePrompt:
               "landscape, horizontal framing, letterboxing, watermark, logo, duplicated limbs, distorted hands, unreadable text, copyrighted character, unsafe content",
