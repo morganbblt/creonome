@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import {
   OpportunityRevisionSchema,
@@ -41,11 +42,11 @@ const GeneratedRevisionSchema = z.object({
 const generatedRevisionJsonSchema = {
   type: "object",
   properties: {
-    title: { type: "string" },
-    pitch: { type: "string" },
-    hook: { type: "string" },
-    changeSummary: { type: "string" },
-    memoryContent: { type: "string" },
+    title: { type: "string", minLength: 3, maxLength: 160 },
+    pitch: { type: "string", minLength: 12, maxLength: 320 },
+    hook: { type: "string", minLength: 3, maxLength: 220 },
+    changeSummary: { type: "string", minLength: 3, maxLength: 320 },
+    memoryContent: { type: "string", minLength: 3, maxLength: 500 },
   },
   required: ["title", "pitch", "hook", "changeSummary", "memoryContent"],
   additionalProperties: false,
@@ -64,11 +65,19 @@ const GeneratedScriptSchema = z.object({
 const generatedScriptJsonSchema = {
   type: "object",
   properties: {
-    title: { type: "string" },
-    hook: { type: "string" },
-    body: { type: "string" },
-    callToAction: { type: ["string", "null"] },
-    caption: { type: ["string", "null"] },
+    title: { type: "string", minLength: 3, maxLength: 160 },
+    hook: { type: "string", minLength: 3, maxLength: 220 },
+    body: { type: "string", minLength: 12, maxLength: 4_000 },
+    callToAction: {
+      type: ["string", "null"],
+      minLength: 3,
+      maxLength: 220,
+    },
+    caption: {
+      type: ["string", "null"],
+      minLength: 3,
+      maxLength: 2_200,
+    },
     platforms: {
       type: "array",
       minItems: 1,
@@ -206,12 +215,20 @@ export class OpportunityWorkflowService {
       return this.toUpgradeContract(upgrade, credits);
     } catch (error) {
       if (!persisted) {
-        await this.credits.release(
-          context.workspaceId,
-          cost,
-          `${normalizedKey}:release`,
-          `Released ${cost} credits after failed script generation`,
-        );
+        try {
+          await this.credits.release(
+            context.workspaceId,
+            cost,
+            `${normalizedKey}:release`,
+            `Released ${cost} credits after failed script generation`,
+          );
+        } catch {
+          throw error;
+        }
+        throw new ServiceUnavailableException({
+          message: "Script generation could not be completed",
+          retryMode: "new_request",
+        });
       }
       throw error;
     }
@@ -275,7 +292,7 @@ export class OpportunityWorkflowService {
         schema: GeneratedScriptSchema,
         jsonSchema: generatedScriptJsonSchema,
       });
-      return { provider: "gemini", model: "gemini-3.6-flash", script };
+      return { provider: "vertex-ai", model: "gemini-3.5-flash", script };
     } catch {
       return {
         provider: "creonome",

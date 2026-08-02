@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import {
   UpgradeProjectResultSchema,
@@ -59,8 +60,8 @@ const GeneratedStoryboardSchema = z
 const generatedStoryboardJsonSchema = {
   type: "object",
   properties: {
-    title: { type: "string" },
-    aspectRatio: { type: "string" },
+    title: { type: "string", minLength: 3, maxLength: 160 },
+    aspectRatio: { type: "string", minLength: 3, maxLength: 24 },
     durationSeconds: { type: "integer", minimum: 1, maximum: 3_600 },
     scenes: {
       type: "array",
@@ -69,16 +70,48 @@ const generatedStoryboardJsonSchema = {
       items: {
         type: "object",
         properties: {
-          heading: { type: "string" },
-          description: { type: "string" },
-          shotType: { type: ["string", "null"] },
-          voiceover: { type: ["string", "null"] },
-          onScreenText: { type: ["string", "null"] },
-          bRoll: { type: ["string", "null"] },
-          transition: { type: ["string", "null"] },
-          requiredAsset: { type: ["string", "null"] },
-          sound: { type: ["string", "null"] },
-          editingNote: { type: ["string", "null"] },
+          heading: { type: "string", minLength: 1, maxLength: 160 },
+          description: { type: "string", minLength: 3, maxLength: 2_000 },
+          shotType: {
+            type: ["string", "null"],
+            minLength: 1,
+            maxLength: 120,
+          },
+          voiceover: {
+            type: ["string", "null"],
+            minLength: 1,
+            maxLength: 2_000,
+          },
+          onScreenText: {
+            type: ["string", "null"],
+            minLength: 1,
+            maxLength: 500,
+          },
+          bRoll: {
+            type: ["string", "null"],
+            minLength: 1,
+            maxLength: 1_000,
+          },
+          transition: {
+            type: ["string", "null"],
+            minLength: 1,
+            maxLength: 500,
+          },
+          requiredAsset: {
+            type: ["string", "null"],
+            minLength: 1,
+            maxLength: 500,
+          },
+          sound: {
+            type: ["string", "null"],
+            minLength: 1,
+            maxLength: 1_000,
+          },
+          editingNote: {
+            type: ["string", "null"],
+            minLength: 1,
+            maxLength: 1_000,
+          },
           referenceFrameUrl: { type: ["string", "null"] },
           durationSeconds: { type: "integer", minimum: 1, maximum: 600 },
         },
@@ -196,12 +229,20 @@ export class ProjectWorkflowService {
       return this.toContract(upgrade, credits);
     } catch (error) {
       if (!persisted) {
-        await this.credits.release(
-          context.workspaceId,
-          cost,
-          `${normalizedKey}:release`,
-          `Released ${cost} credits after failed storyboard generation`,
-        );
+        try {
+          await this.credits.release(
+            context.workspaceId,
+            cost,
+            `${normalizedKey}:release`,
+            `Released ${cost} credits after failed storyboard generation`,
+          );
+        } catch {
+          throw error;
+        }
+        throw new ServiceUnavailableException({
+          message: "Storyboard generation could not be completed",
+          retryMode: "new_request",
+        });
       }
       throw error;
     }
@@ -230,8 +271,8 @@ export class ProjectWorkflowService {
         jsonSchema: generatedStoryboardJsonSchema,
       });
       return {
-        provider: "gemini",
-        model: "gemini-3.6-flash",
+        provider: "vertex-ai",
+        model: "gemini-3.5-flash",
         storyboard,
       };
     } catch {

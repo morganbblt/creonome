@@ -14,4 +14,12 @@ describe("CreditBalance", () => {
 
     expect(screen.getByText("58 cr")).toBeTruthy();
   });
+
+  it("syncs the server balance after a router refresh", () => {
+    const { rerender } = render(<CreditBalance initialAvailable={52} />);
+
+    rerender(<CreditBalance initialAvailable={49} />);
+
+    expect(screen.getByText("49 cr")).toBeTruthy();
+  });
 });

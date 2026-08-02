@@ -393,17 +393,30 @@
   gap: 6px;
 }
 
-.newBatch > div span {
+.newBatch > div button {
   padding: 8px 12px;
   border: 1px solid var(--line-2);
   border-radius: 999px;
+  background: transparent;
   color: var(--text-2);
   font-size: 12px;
+  cursor: pointer;
+}
+
+.newBatch > div button.selectedDirection {
+  border-color: var(--text);
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 .newBatch > p {
   margin: 0 0 0 auto;
   text-align: right;
+}
+
+.newBatch > p.batchError {
+  max-width: 280px;
+  color: #9b2c2c;
 }
 
 @media (max-width: 980px) {

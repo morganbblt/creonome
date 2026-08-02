@@ -114,11 +114,17 @@ describe("StoryboardUpgrade", () => {
     );
   });
 
-  it("keeps the script actionable when generation fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(null, { status: 503 })),
-    );
+  it("starts a fresh request after released storyboard credits", async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json(
+          { message: "generation failed", retryMode: "new_request" },
+          { status: 503 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 503 }));
+    vi.stubGlobal("fetch", request);
 
     render(<StoryboardUpgrade projectId={projectId} />);
     fireEvent.click(
@@ -129,12 +135,26 @@ describe("StoryboardUpgrade", () => {
     );
 
     expect(
-      await screen.findByText(
-        "Storyboard generation is temporarily unavailable. Your script is intact and no credits were charged. Try again in a moment.",
-      ),
+      await screen.findByText(/reserved credits were released/i),
     ).toBeTruthy();
+    const firstHeaders = request.mock.calls[0]?.[1]?.headers as Record<
+      string,
+      string
+    >;
     expect(
       screen.getByRole("button", { name: /confirm and generate/i }),
     ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /confirm and generate/i }),
+    );
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    const secondHeaders = request.mock.calls[1]?.[1]?.headers as Record<
+      string,
+      string
+    >;
+    expect(secondHeaders["Idempotency-Key"]).not.toBe(
+      firstHeaders["Idempotency-Key"],
+    );
   });
 });

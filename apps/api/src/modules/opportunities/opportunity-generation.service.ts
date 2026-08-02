@@ -1,5 +1,13 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import { OpportunityBatchSchema, type OpportunityBatch } from "@creonome/contracts";
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from "@nestjs/common";
+import {
+  OpportunityBatchSchema,
+  type OpportunityBatch,
+} from "@creonome/contracts";
 import { z } from "zod";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CreatorDnaService } from "../creator-dna/creator-dna.service.js";
@@ -42,8 +50,8 @@ const generatedSetJsonSchema = {
       items: {
         type: "object",
         properties: {
-          title: { type: "string" },
-          pitch: { type: "string" },
+          title: { type: "string", minLength: 3, maxLength: 120 },
+          pitch: { type: "string", minLength: 12, maxLength: 320 },
           score: { type: "integer", minimum: 0, maximum: 100 },
           confidence: { type: "string", enum: ["low", "medium", "high"] },
         },
@@ -76,24 +84,34 @@ export class OpportunityGenerationService {
     direction?: string,
   ): Promise<OpportunityBatch> {
     if (idempotencyKey.trim().length < 8) {
-      throw new BadRequestException("A valid Idempotency-Key header is required");
+      throw new BadRequestException(
+        "A valid Idempotency-Key header is required",
+      );
     }
     const context = await this.workspaces.resolve(principal);
+    const cost = 3;
     const existing = await this.repository.findByIdempotency(
       context.workspaceId,
       idempotencyKey,
     );
     if (existing.length === 3) {
+      await this.credits.commit(
+        context.workspaceId,
+        cost,
+        `${idempotencyKey}:commit`,
+        "Generated three opportunities",
+      );
       return this.toContract(existing);
     }
 
     await this.credits.reserve(
       context.workspaceId,
-      3,
+      cost,
       `${idempotencyKey}:reserve`,
       "Generate three opportunities",
     );
 
+    let persisted = false;
     try {
       const [dna, memories] = await Promise.all([
         this.creatorDna.getCurrent(principal),
@@ -123,23 +141,32 @@ export class OpportunityGenerationService {
         idempotencyKey,
         opportunities: generated.opportunities,
       });
+      persisted = true;
       await this.credits.commit(
         context.workspaceId,
-        3,
+        cost,
         `${idempotencyKey}:commit`,
         "Generated three opportunities",
       );
       return this.toContract(records);
     } catch (error) {
-      await this.credits
-        .release(
+      if (persisted) {
+        throw error;
+      }
+      try {
+        await this.credits.release(
           context.workspaceId,
-          3,
+          cost,
           `${idempotencyKey}:release`,
           "Opportunity generation failed",
-        )
-        .catch(() => undefined);
-      throw error;
+        );
+      } catch {
+        throw error;
+      }
+      throw new ServiceUnavailableException({
+        message: "Opportunity generation could not be completed",
+        retryMode: "new_request",
+      });
     }
   }
 

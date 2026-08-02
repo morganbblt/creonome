@@ -20,6 +20,10 @@ export function CreditBalance({
   const [available, setAvailable] = useState(initialAvailable);
 
   useEffect(() => {
+    setAvailable(initialAvailable);
+  }, [initialAvailable]);
+
+  useEffect(() => {
     const update = (event: Event) => {
       const detail = (event as CustomEvent<unknown>).detail;
       if (typeof detail === "number" && Number.isFinite(detail)) {

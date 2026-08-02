@@ -5,6 +5,8 @@ import { CreditBalance } from "../../src/features/navigation/credit-balance";
 import { createServerApiClient } from "../../src/lib/api/server-client";
 import styles from "./shell.module.css";
 
+export const dynamic = "force-dynamic";
+
 function LogoMark() {
   return (
     <svg aria-hidden="true" viewBox="0 0 302 302" className={styles.logoMark}>

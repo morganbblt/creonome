@@ -59,7 +59,17 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
         },
       );
       if (!response.ok) {
-        setError(storyboardErrorMessage(response.status));
+        const failure = (await response.json().catch(() => null)) as {
+          retryMode?: string;
+        } | null;
+        if (failure?.retryMode === "new_request") {
+          key.current = null;
+          setError(
+            "The reserved credits were released. Your script is intact; start a fresh request to try again.",
+          );
+        } else {
+          setError(storyboardErrorMessage(response.status));
+        }
         return;
       }
 

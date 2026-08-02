@@ -48,14 +48,8 @@ export class GeminiStructuredGenerator implements StructuredGenerator {
         body: JSON.stringify({
           contents: [{ parts: [{ text: input.prompt }] }],
           generationConfig: {
-            responseFormat: {
-              text: {
-                // The generateContent REST API expects the enum value here.
-                // Client SDKs accept the human-readable MIME string instead.
-                mimeType: "APPLICATION_JSON",
-                schema: input.jsonSchema,
-              },
-            },
+            responseMimeType: "application/json",
+            responseJsonSchema: input.jsonSchema,
           },
         }),
       },

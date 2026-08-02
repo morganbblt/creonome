@@ -1,4 +1,8 @@
-import { HttpException, NotFoundException } from "@nestjs/common";
+import {
+  HttpException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
@@ -272,6 +276,12 @@ describe("OpportunityWorkflowService", () => {
     expect(credits.reserve).toHaveBeenCalledBefore(
       vi.mocked(repository.createScriptUpgrade),
     );
+    expect(repository.createScriptUpgrade).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "vertex-ai",
+        model: "gemini-3.5-flash",
+      }),
+    );
     expect(credits.commit).toHaveBeenCalledWith(
       context.workspaceId,
       2,
@@ -335,14 +345,18 @@ describe("OpportunityWorkflowService", () => {
       new Error("database unavailable"),
     );
 
-    await expect(
-      service.upgrade(
+    const failure = await service
+      .upgrade(
         principal,
         opportunity.id,
         { targetLevel: "script", confirmedCreditCost: true },
         "upgrade-script-2",
-      ),
-    ).rejects.toThrow("database unavailable");
+      )
+      .catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(ServiceUnavailableException);
+    expect(
+      (failure as ServiceUnavailableException).getResponse(),
+    ).toMatchObject({ retryMode: "new_request" });
     expect(credits.release).toHaveBeenCalledWith(
       context.workspaceId,
       2,

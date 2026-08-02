@@ -207,4 +207,44 @@ describe("OpportunityWorkspace", () => {
     ).toBeTruthy();
     expect(screen.queryByText(/reserved credits were released/i)).toBeNull();
   });
+
+  it("uses a fresh idempotency key after released script credits", async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json(
+          { message: "generation failed", retryMode: "new_request" },
+          { status: 503 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ message: "still unavailable" }, { status: 503 }),
+      );
+    vi.stubGlobal("fetch", request);
+    render(<OpportunityWorkspace opportunity={opportunity} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /move to script/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /generate script · 2 credits/i }),
+    );
+    expect(
+      await screen.findByText(/reserved credits were released/i),
+    ).toBeTruthy();
+    const firstHeaders = request.mock.calls[0]?.[1]?.headers as Record<
+      string,
+      string
+    >;
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /generate script · 2 credits/i }),
+    );
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    const secondHeaders = request.mock.calls[1]?.[1]?.headers as Record<
+      string,
+      string
+    >;
+    expect(secondHeaders["Idempotency-Key"]).not.toBe(
+      firstHeaders["Idempotency-Key"],
+    );
+  });
 });

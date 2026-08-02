@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createServerApiClient } from "../../../src/lib/api/server-client";
 import { loadTodayOpportunities } from "../../../src/features/opportunities/today-data";
+import { TodayBatchGenerator } from "./today-batch-generator";
 import styles from "./today.module.css";
 
 export const metadata: Metadata = { title: "Today" };
@@ -125,13 +126,7 @@ export default async function TodayPage() {
           className={styles.newBatch}
           aria-label="Generate another batch"
         >
-          <button type="button">+ 3 new opportunities · 3 credits</button>
-          <div>
-            <span>Closer to my DNA</span>
-            <span>More experimental</span>
-            <span>Easier to shoot</span>
-          </div>
-          <p>previous batch stays in Projects</p>
+          <TodayBatchGenerator />
         </section>
       ) : null}
     </main>

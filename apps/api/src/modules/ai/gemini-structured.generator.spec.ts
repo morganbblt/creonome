@@ -8,7 +8,7 @@ const ConceptSchema = z.object({
 });
 
 describe("GeminiStructuredGenerator", () => {
-  it("requests schema-constrained JSON using the REST enum accepted by Gemini", async () => {
+  it("requests schema-constrained JSON using the current Gemini REST fields", async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({
         candidates: [
@@ -21,7 +21,7 @@ describe("GeminiStructuredGenerator", () => {
       }),
     );
     const generator = new GeminiStructuredGenerator(
-      { apiKey: "gemini-test-key", model: "gemini-3.6-flash" },
+      { apiKey: "gemini-test-key", model: "gemini-3.5-flash" },
       request,
     );
 
@@ -41,7 +41,7 @@ describe("GeminiStructuredGenerator", () => {
 
     expect(result).toEqual({ title: "Warehouse hush", score: 92 });
     expect(request).toHaveBeenCalledWith(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
@@ -50,9 +50,9 @@ describe("GeminiStructuredGenerator", () => {
       }),
     );
     const body = JSON.parse(String(request.mock.calls[0]?.[1]?.body));
-    expect(body.generationConfig.responseFormat.text).toEqual({
-      mimeType: "APPLICATION_JSON",
-      schema: expect.objectContaining({
+    expect(body.generationConfig).toEqual({
+      responseMimeType: "application/json",
+      responseJsonSchema: expect.objectContaining({
         required: ["title", "score"],
       }),
     });

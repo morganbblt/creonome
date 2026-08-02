@@ -162,7 +162,17 @@ export function OpportunityWorkspace({
         },
       );
       if (!response.ok) {
-        setError(scriptErrorMessage(response.status));
+        const failure = (await response.json().catch(() => null)) as {
+          retryMode?: string;
+        } | null;
+        if (failure?.retryMode === "new_request") {
+          scriptRequestKey.current = null;
+          setError(
+            "The reserved credits were released. Your idea is intact; start a fresh request to try again.",
+          );
+        } else {
+          setError(scriptErrorMessage(response.status));
+        }
         return;
       }
       const upgrade = UpgradeOpportunityResultSchema.parse(
