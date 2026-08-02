@@ -26,7 +26,9 @@ export class NeonJwksTokenVerifier implements AuthTokenVerifier {
   constructor(
     jwksUrl: string,
     private readonly verifyJwt: VerifyJwt = jwtVerify,
-    private readonly key: JWTVerifyGetKey = createRemoteJWKSet(new URL(jwksUrl)),
+    private readonly key: JWTVerifyGetKey = createRemoteJWKSet(
+      new URL(jwksUrl),
+    ),
   ) {}
 
   async verify(token: string): Promise<AuthPrincipal> {

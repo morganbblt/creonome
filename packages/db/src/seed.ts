@@ -11,4 +11,6 @@ const repository = createDrizzleDemoSeedRepository(
 );
 const result = await seedDemoDatabase(repository);
 
-console.info(`Creonome demo seed ready (${result.insertedRows} deterministic rows).`);
+console.info(
+  `Creonome demo seed ready (${result.insertedRows} deterministic rows).`,
+);

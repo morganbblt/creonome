@@ -104,9 +104,7 @@ export const privacyPreferences = pgTable("privacy_preferences", {
   workspaceId: uuid("workspace_id")
     .primaryKey()
     .references(() => workspaces.id, { onDelete: "cascade" }),
-  modelTrainingOptIn: boolean("model_training_opt_in")
-    .notNull()
-    .default(false),
+  modelTrainingOptIn: boolean("model_training_opt_in").notNull().default(false),
   keepRushesAfterExport: boolean("keep_rushes_after_export")
     .notNull()
     .default(true),
@@ -123,10 +121,9 @@ export const accountDeletionRequests = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    requestedByUserId: uuid("requested_by_user_id").references(
-      () => users.id,
-      { onDelete: "set null" },
-    ),
+    requestedByUserId: uuid("requested_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     status: text("status").notNull().default("scheduled"),
     scheduledFor: timestamp("scheduled_for", {
       mode: "date",

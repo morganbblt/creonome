@@ -54,9 +54,9 @@ describe("JwtAuthGuard", () => {
     const verifier: AuthTokenVerifier = { verify: vi.fn() };
     const guard = new JwtAuthGuard(reflector, verifier);
 
-    await expect(
-      guard.canActivate(contextFor({ headers: {} })),
-    ).resolves.toBe(true);
+    await expect(guard.canActivate(contextFor({ headers: {} }))).resolves.toBe(
+      true,
+    );
     expect(verifier.verify).not.toHaveBeenCalled();
   });
 });

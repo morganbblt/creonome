@@ -126,7 +126,8 @@ export function ProjectIndex({ projects }: { projects: ProjectSummary[] }) {
                 className={styles.open}
                 aria-label={`Open ${project.title}`}
               >
-                Open <ExternalLinkIcon width={12} height={12} aria-hidden="true" />
+                Open{" "}
+                <ExternalLinkIcon width={12} height={12} aria-hidden="true" />
               </Link>
             </article>
           ))}

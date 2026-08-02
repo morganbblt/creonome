@@ -14,7 +14,9 @@ describe("privacy proxy routes", () => {
   beforeEach(() => vi.mocked(proxyCreonomeRequest).mockClear());
 
   it("forwards every privacy operation to the versioned backend path", async () => {
-    const request = new Request("https://www.creonome.com/api/creonome/privacy");
+    const request = new Request(
+      "https://www.creonome.com/api/creonome/privacy",
+    );
     await getPrivacy(request);
     await updatePreferences(request);
     await createExport(request);
@@ -25,7 +27,9 @@ describe("privacy proxy routes", () => {
       }),
     });
 
-    expect(vi.mocked(proxyCreonomeRequest).mock.calls.map((call) => call[1])).toEqual([
+    expect(
+      vi.mocked(proxyCreonomeRequest).mock.calls.map((call) => call[1]),
+    ).toEqual([
       "/privacy",
       "/privacy/preferences",
       "/privacy/exports",

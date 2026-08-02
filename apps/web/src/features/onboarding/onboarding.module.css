@@ -334,8 +334,8 @@
 
 .assetRow[data-status="failed"],
 .failedRow {
-  border-color: #d9a7a2;
-  background: #fff7f6;
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .fileVisual {
@@ -376,7 +376,7 @@
 .assetDetails > p,
 .failedRow p {
   margin: 0;
-  color: #8d3e39;
+  color: var(--danger-text);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -458,10 +458,10 @@
 .failedRow button {
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid #c66e67;
+  border: 1px solid var(--danger);
   border-radius: var(--radius-control);
   background: transparent;
-  color: #8d3e39;
+  color: var(--danger-text);
   cursor: pointer;
   font-size: 11px;
 }
@@ -577,8 +577,8 @@
 }
 
 .boundaryField input {
-  border-color: #d9a7a2;
-  background: #fffafa;
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .profileFooter > span {
@@ -602,13 +602,13 @@
 }
 
 .error {
-  border-color: #e6c3bf;
-  background: #fff7f6;
-  color: #8d3e39;
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger-text);
 }
 
 .notice {
-  border-color: #dbe5aa;
+  border-color: var(--signal);
   background: var(--signal-soft);
   color: var(--signal-text);
 }

@@ -25,7 +25,9 @@ describe("NeonJwksTokenVerifier", () => {
   });
 
   it("rejects a verified payload without a UUID subject", async () => {
-    const verify = vi.fn().mockResolvedValue({ payload: { sub: "not-a-uuid" } });
+    const verify = vi
+      .fn()
+      .mockResolvedValue({ payload: { sub: "not-a-uuid" } });
     const verifier = new NeonJwksTokenVerifier(
       "https://auth.example.com/.well-known/jwks.json",
       verify,

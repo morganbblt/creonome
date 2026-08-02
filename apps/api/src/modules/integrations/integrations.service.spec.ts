@@ -37,7 +37,8 @@ describe("TikTokOAuthClient", () => {
     const client = new TikTokOAuthClient({
       clientKey: "client-key",
       clientSecret: "client-secret",
-      redirectUri: "https://api.creonome.app/api/v1/integrations/tiktok/callback",
+      redirectUri:
+        "https://api.creonome.app/api/v1/integrations/tiktok/callback",
     });
 
     const url = new URL(client.createAuthorizationUrl("csrf-state"));

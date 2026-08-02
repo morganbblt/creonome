@@ -38,18 +38,66 @@ export const demoLibraryItems = [
 ] as const;
 
 export const demoDnaDimensions = [
-  ["Observé", "Disciplines et médiums", "production musicale · sampling · vidéo DIY · photo argentique"],
-  ["Observé", "Signature créative", "Boucles tape jamais quantisées, plans fixes serrés sur les mains, silence avant le drop."],
-  ["Observé", "Direction artistique", "gris froids · lumière rasante · béton, vinyle · grain 70s"],
+  [
+    "Observé",
+    "Disciplines et médiums",
+    "production musicale · sampling · vidéo DIY · photo argentique",
+  ],
+  [
+    "Observé",
+    "Signature créative",
+    "Boucles tape jamais quantisées, plans fixes serrés sur les mains, silence avant le drop.",
+  ],
+  [
+    "Observé",
+    "Direction artistique",
+    "gris froids · lumière rasante · béton, vinyle · grain 70s",
+  ],
   ["Déclaré", "Thèmes", "mémoire · nuit urbaine · artisanat · solitude douce"],
   ["Appris", "Émotions", "nostalgie · apaisement · fascination · tension"],
-  ["Déclaré", "Valeurs et intentions", "authenticité · transmission · expérimentation · accessibilité"],
-  ["Observé", "Narration et tonalité", "Intime et documentaire, contemplative, sans commentaire parlé."],
-  ["Observé", "Formats de création", "titres musicaux · shorts d’atelier · clips courts · live tape"],
-  ["Déclaré", "Processus et outils", "MPC, Ableton, quatre-pistes cassette. Montage minimal."],
-  ["Déclaré", "Références culturelles", "dub jamaïcain · krautrock · library music 70s · cinéma nocturne"],
-  ["Observé", "Public recherché", "Diggers et producteurs débutants, 18–34, FR et EN."],
-  ["Déclaré", "Relation avec la communauté", "Proche mais peu bavarde. Coulisses oui, co-création sur les remix."],
-  ["Appris", "Objectifs créatifs", "Faire ressentir avant d’expliquer. Fédérer une petite communauté fidèle."],
-  ["Interdit", "Limites et contre-références", "pas de danse · pas de clone vocal · pas de fausse urgence · pas de face-cam"],
+  [
+    "Déclaré",
+    "Valeurs et intentions",
+    "authenticité · transmission · expérimentation · accessibilité",
+  ],
+  [
+    "Observé",
+    "Narration et tonalité",
+    "Intime et documentaire, contemplative, sans commentaire parlé.",
+  ],
+  [
+    "Observé",
+    "Formats de création",
+    "titres musicaux · shorts d’atelier · clips courts · live tape",
+  ],
+  [
+    "Déclaré",
+    "Processus et outils",
+    "MPC, Ableton, quatre-pistes cassette. Montage minimal.",
+  ],
+  [
+    "Déclaré",
+    "Références culturelles",
+    "dub jamaïcain · krautrock · library music 70s · cinéma nocturne",
+  ],
+  [
+    "Observé",
+    "Public recherché",
+    "Diggers et producteurs débutants, 18–34, FR et EN.",
+  ],
+  [
+    "Déclaré",
+    "Relation avec la communauté",
+    "Proche mais peu bavarde. Coulisses oui, co-création sur les remix.",
+  ],
+  [
+    "Appris",
+    "Objectifs créatifs",
+    "Faire ressentir avant d’expliquer. Fédérer une petite communauté fidèle.",
+  ],
+  [
+    "Interdit",
+    "Limites et contre-références",
+    "pas de danse · pas de clone vocal · pas de fausse urgence · pas de face-cam",
+  ],
 ] as const;

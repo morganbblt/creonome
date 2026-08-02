@@ -40,7 +40,9 @@ export class CreditsService {
 
   async getAccount(principal: AuthPrincipal): Promise<CreditsResponse> {
     const context = await this.workspaces.resolve(principal);
-    return this.toContract(await this.repository.getAccount(context.workspaceId));
+    return this.toContract(
+      await this.repository.getAccount(context.workspaceId),
+    );
   }
 
   async listLedger(principal: AuthPrincipal): Promise<CreditLedger> {

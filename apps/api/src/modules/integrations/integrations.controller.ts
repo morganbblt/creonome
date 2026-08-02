@@ -37,7 +37,9 @@ export class IntegrationsController {
   }
 
   @Get("instagram/start")
-  @ApiOperation({ summary: "Instagram OAuth placeholder pending app credentials" })
+  @ApiOperation({
+    summary: "Instagram OAuth placeholder pending app credentials",
+  })
   startInstagram(): never {
     throw new ServiceUnavailableException(
       "Instagram OAuth requires the Creonome Meta app credentials and final callback domain",
@@ -46,12 +48,16 @@ export class IntegrationsController {
 
   @Get("tiktok/callback")
   callbackTikTok(): never {
-    throw new NotImplementedException("TikTok OAuth callback is not enabled yet");
+    throw new NotImplementedException(
+      "TikTok OAuth callback is not enabled yet",
+    );
   }
 
   @Get("instagram/callback")
   callbackInstagram(): never {
-    throw new NotImplementedException("Instagram OAuth callback is not enabled yet");
+    throw new NotImplementedException(
+      "Instagram OAuth callback is not enabled yet",
+    );
   }
 
   @Delete(":id")

@@ -10,7 +10,8 @@ import type { SignUploadDto } from "./sign-upload.dto.js";
 import { UPLOAD_SIGNER, type UploadSigner } from "./upload-signer.js";
 
 const MAX_UPLOAD_BYTES = 500_000_000;
-const supportedMimeType = /^(audio|video|image)\/[a-z0-9.+-]+$|^application\/(pdf|json)$|^text\/(plain|markdown)$/i;
+const supportedMimeType =
+  /^(audio|video|image)\/[a-z0-9.+-]+$|^application\/(pdf|json)$|^text\/(plain|markdown)$/i;
 
 function sanitizeFileName(fileName: string): string {
   const normalized = fileName

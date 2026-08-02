@@ -47,9 +47,9 @@ describe("privacy contracts", () => {
         createdAt: "2026-08-02T10:00:00.000Z",
       }),
     ).toMatchObject({ kind: "projects" });
-    expect(PrivacyExportInputSchema.safeParse({ kind: "media_zip" }).success).toBe(
-      false,
-    );
+    expect(
+      PrivacyExportInputSchema.safeParse({ kind: "media_zip" }).success,
+    ).toBe(false);
   });
 
   it("requires deliberate account-deletion confirmation and confirms cancellation", () => {

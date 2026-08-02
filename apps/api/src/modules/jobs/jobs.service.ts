@@ -24,7 +24,10 @@ export class JobsService {
     );
   }
 
-  async cancel(principal: AuthPrincipal, jobId: string): Promise<GenerationJob> {
+  async cancel(
+    principal: AuthPrincipal,
+    jobId: string,
+  ): Promise<GenerationJob> {
     const context = await this.workspaces.resolve(principal);
     return this.toContract(
       await this.repository.cancel(context.workspaceId, jobId),

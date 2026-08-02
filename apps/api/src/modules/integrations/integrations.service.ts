@@ -37,7 +37,9 @@ export class IntegrationsService {
           provider === "tiktok"
             ? this.configuration.tiktokConfigured
             : this.configuration.instagramConfigured;
-        const connection = connections.find((item) => item.provider === provider);
+        const connection = connections.find(
+          (item) => item.provider === provider,
+        );
 
         if (!connection) {
           return {

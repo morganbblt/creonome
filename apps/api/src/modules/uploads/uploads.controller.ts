@@ -10,7 +10,9 @@ import { UploadsService } from "./uploads.service.js";
 @ApiBearerAuth()
 @Controller({ path: "uploads", version: "1" })
 export class UploadsController {
-  constructor(@Inject(UploadsService) private readonly uploads: UploadsService) {}
+  constructor(
+    @Inject(UploadsService) private readonly uploads: UploadsService,
+  ) {}
 
   @Post("sign")
   @ApiOperation({ summary: "Create a 15-minute private GCS upload URL" })

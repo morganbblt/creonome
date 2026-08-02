@@ -6,9 +6,12 @@ export const CreditsResponseSchema = z
     reserved: z.number().int().nonnegative(),
     available: z.number().int().nonnegative(),
   })
-  .refine((account) => account.available === account.balance - account.reserved, {
-    message: "Available credits must equal balance minus reserved credits",
-  });
+  .refine(
+    (account) => account.available === account.balance - account.reserved,
+    {
+      message: "Available credits must equal balance minus reserved credits",
+    },
+  );
 
 export const CreditLedgerEntrySchema = z.object({
   id: z.uuid(),

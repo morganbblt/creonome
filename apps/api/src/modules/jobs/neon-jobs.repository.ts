@@ -24,7 +24,10 @@ export class NeonJobsRepository implements JobsRepository {
     private readonly database: CreonomeDatabase | undefined,
   ) {}
 
-  async findById(workspaceId: string, jobId: string): Promise<JobRecord | null> {
+  async findById(
+    workspaceId: string,
+    jobId: string,
+  ): Promise<JobRecord | null> {
     const [job] = await this.requireDatabase()
       .select(jobSelection)
       .from(generationJobs)
@@ -41,7 +44,11 @@ export class NeonJobsRepository implements JobsRepository {
   async cancel(workspaceId: string, jobId: string): Promise<JobRecord | null> {
     const [job] = await this.requireDatabase()
       .update(generationJobs)
-      .set({ status: "cancelled", updatedAt: new Date(), completedAt: new Date() })
+      .set({
+        status: "cancelled",
+        updatedAt: new Date(),
+        completedAt: new Date(),
+      })
       .where(
         and(
           eq(generationJobs.workspaceId, workspaceId),

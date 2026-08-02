@@ -106,7 +106,8 @@ export class NeonCreditsRepository implements CreditsRepository {
       mutation === "reservation"
         ? sql`balance - reserved >= ${amount}`
         : sql`reserved >= ${amount}`;
-    const result = await this.requireDatabase().execute<CreditAccountRecord>(sql`
+    const result = await this.requireDatabase()
+      .execute<CreditAccountRecord>(sql`
       with existing as (
         select 1 from credit_ledger where idempotency_key = ${idempotencyKey}
       ), updated as (

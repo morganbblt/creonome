@@ -32,10 +32,7 @@ export class NeonWorkspaceRepository implements WorkspaceRepository {
       })
       .from(users)
       .innerJoin(workspaceMembers, eq(workspaceMembers.userId, users.id))
-      .innerJoin(
-        workspaces,
-        eq(workspaces.id, workspaceMembers.workspaceId),
-      )
+      .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
       .innerJoin(
         creatorProfiles,
         and(
@@ -88,7 +85,8 @@ export class NeonWorkspaceRepository implements WorkspaceRepository {
     const userId = randomUUID();
     const workspaceId = randomUUID();
     const creatorProfileId = randomUUID();
-    const displayName = principal.name ?? principal.email?.split("@")[0] ?? "Creator";
+    const displayName =
+      principal.name ?? principal.email?.split("@")[0] ?? "Creator";
     const slug = `creator-${principal.subject.replaceAll("-", "").slice(0, 16)}`;
 
     await database.batch([

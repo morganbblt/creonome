@@ -31,7 +31,9 @@ export class CreatorDnaService {
 
   async listVersions(principal: AuthPrincipal) {
     const context = await this.workspaces.resolve(principal);
-    const versions = await this.repository.listVersions(context.creatorProfileId);
+    const versions = await this.repository.listVersions(
+      context.creatorProfileId,
+    );
     return {
       versions: versions.map((version) => ({
         id: version.id,
@@ -55,7 +57,9 @@ export class CreatorDnaService {
       traits: dna.traits.map((trait) => ({
         ...trait,
         confidence:
-          trait.confidence === null ? null : Number.parseFloat(trait.confidence),
+          trait.confidence === null
+            ? null
+            : Number.parseFloat(trait.confidence),
       })),
     });
   }

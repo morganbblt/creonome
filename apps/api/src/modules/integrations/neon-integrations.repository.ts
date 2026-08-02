@@ -29,7 +29,10 @@ export class NeonIntegrationsRepository implements IntegrationsRepository {
     return rows as IntegrationRecord[];
   }
 
-  async disconnect(workspaceId: string, connectionId: string): Promise<boolean> {
+  async disconnect(
+    workspaceId: string,
+    connectionId: string,
+  ): Promise<boolean> {
     const rows = await this.requireDatabase()
       .update(socialConnections)
       .set({

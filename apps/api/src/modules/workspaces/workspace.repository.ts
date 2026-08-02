@@ -8,7 +8,9 @@ export type WorkspaceContext = {
 
 export interface WorkspaceRepository {
   findForAuthUser(authUserId: string): Promise<WorkspaceContext | null>;
-  claimDemoWorkspace(principal: AuthPrincipal): Promise<WorkspaceContext | null>;
+  claimDemoWorkspace(
+    principal: AuthPrincipal,
+  ): Promise<WorkspaceContext | null>;
   createPersonalWorkspace(
     principal: AuthPrincipal,
     initialCreditBalance: number,

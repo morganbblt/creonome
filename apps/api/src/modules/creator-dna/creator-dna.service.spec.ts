@@ -41,9 +41,7 @@ describe("CreatorDnaService", () => {
       version: 2,
       summary: "Nocturnal electronic stories grounded in tactile details.",
       confirmed: true,
-      traits: [
-        expect.objectContaining({ confidence: 0.95, label: "Tone" }),
-      ],
+      traits: [expect.objectContaining({ confidence: 0.95, label: "Tone" })],
     });
   });
 });

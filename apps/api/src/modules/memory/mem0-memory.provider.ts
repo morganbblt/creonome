@@ -96,9 +96,12 @@ export class Mem0MemoryProvider implements MemoryProvider {
   }
 
   async forget(memoryId: string): Promise<void> {
-    const response = await this.send(`/v1/memories/${encodeURIComponent(memoryId)}`, {
-      method: "DELETE",
-    });
+    const response = await this.send(
+      `/v1/memories/${encodeURIComponent(memoryId)}`,
+      {
+        method: "DELETE",
+      },
+    );
 
     if (!response.ok) {
       throw new Error(`Mem0 delete failed with status ${response.status}`);

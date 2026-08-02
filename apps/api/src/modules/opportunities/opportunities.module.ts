@@ -12,7 +12,13 @@ import { OpportunityGenerationService } from "./opportunity-generation.service.j
 import { OpportunityWorkflowService } from "./opportunity-workflow.service.js";
 
 @Module({
-  imports: [AiModule, CreatorDnaModule, CreditsModule, MemoryModule, WorkspacesModule],
+  imports: [
+    AiModule,
+    CreatorDnaModule,
+    CreditsModule,
+    MemoryModule,
+    WorkspacesModule,
+  ],
   controllers: [OpportunitiesController],
   providers: [
     OpportunitiesService,

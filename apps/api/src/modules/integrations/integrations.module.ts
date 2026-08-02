@@ -24,19 +24,20 @@ import { NeonIntegrationsRepository } from "./neon-integrations.repository.js";
         repository: NeonIntegrationsRepository,
         config: ConfigService,
       ) => {
-        const enabled = config.get<boolean>("FEATURE_SOCIAL_CONNECTIONS") ?? false;
+        const enabled =
+          config.get<boolean>("FEATURE_SOCIAL_CONNECTIONS") ?? false;
         return new IntegrationsService(workspaces, repository, {
           tiktokConfigured: Boolean(
             enabled &&
-              config.get("TIKTOK_CLIENT_KEY") &&
-              config.get("TIKTOK_CLIENT_SECRET") &&
-              config.get("TIKTOK_REDIRECT_URI"),
+            config.get("TIKTOK_CLIENT_KEY") &&
+            config.get("TIKTOK_CLIENT_SECRET") &&
+            config.get("TIKTOK_REDIRECT_URI"),
           ),
           instagramConfigured: Boolean(
             enabled &&
-              config.get("META_APP_ID") &&
-              config.get("META_APP_SECRET") &&
-              config.get("META_REDIRECT_URI"),
+            config.get("META_APP_ID") &&
+            config.get("META_APP_SECRET") &&
+            config.get("META_REDIRECT_URI"),
           ),
         });
       },

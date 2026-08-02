@@ -11,7 +11,9 @@ describe("CreonomeApiClient", () => {
       },
       accountDeletion: null,
     } as const;
-    const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(privacy));
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json(privacy));
     const client = new CreonomeApiClient(
       "https://api.creonome.app/api/v1",
       async () => "neon-jwt",

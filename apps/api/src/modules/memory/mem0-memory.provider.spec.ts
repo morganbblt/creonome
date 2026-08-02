@@ -103,7 +103,9 @@ describe("Mem0MemoryProvider", () => {
 
   it("does not leak provider response bodies through errors", async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response('{"detail":"secret upstream diagnostic"}', { status: 401 }),
+      new Response('{"detail":"secret upstream diagnostic"}', {
+        status: 401,
+      }),
     );
     const provider = new Mem0MemoryProvider(
       { apiKey: "mem0-test-key" },

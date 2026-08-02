@@ -37,7 +37,9 @@ describe("UploadsService", () => {
     });
 
     expect(result.objectName).toMatch(
-      new RegExp(`^workspaces/${context.workspaceId}/sources/[0-9a-f-]+-warehouse-take-01\\.mov$`),
+      new RegExp(
+        `^workspaces/${context.workspaceId}/sources/[0-9a-f-]+-warehouse-take-01\\.mov$`,
+      ),
     );
     expect(result.gcsUri).toContain(result.objectName);
     expect(signer.signWrite).toHaveBeenCalledWith(

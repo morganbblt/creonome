@@ -8,7 +8,9 @@ describe("database migrations", () => {
     const migrationDirectory = resolve(packageDirectory, "drizzle");
     const migrationSql = readdirSync(migrationDirectory)
       .filter((fileName) => fileName.endsWith(".sql"))
-      .map((fileName) => readFileSync(resolve(migrationDirectory, fileName), "utf8"))
+      .map((fileName) =>
+        readFileSync(resolve(migrationDirectory, fileName), "utf8"),
+      )
       .join("\n");
 
     expect(migrationSql).toMatch(

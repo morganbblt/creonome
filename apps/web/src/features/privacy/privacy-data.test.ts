@@ -20,7 +20,9 @@ describe("loadPrivacy", () => {
 
   it("fails closed without replacing privacy state with demo data", async () => {
     await expect(
-      loadPrivacy({ getPrivacy: vi.fn().mockRejectedValue(new Error("offline")) }),
+      loadPrivacy({
+        getPrivacy: vi.fn().mockRejectedValue(new Error("offline")),
+      }),
     ).resolves.toBeNull();
   });
 });

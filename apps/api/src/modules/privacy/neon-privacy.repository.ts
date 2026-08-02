@@ -88,7 +88,10 @@ export class NeonPrivacyRepository implements PrivacyRepository {
     };
   }
 
-  async isWorkspaceOwner(workspaceId: string, userId: string): Promise<boolean> {
+  async isWorkspaceOwner(
+    workspaceId: string,
+    userId: string,
+  ): Promise<boolean> {
     const [workspace] = await this.requireDatabase()
       .select({ id: workspaces.id })
       .from(workspaces)
@@ -380,22 +383,58 @@ export class NeonPrivacyRepository implements PrivacyRepository {
       audits,
       integrations,
     ] = await Promise.all([
-      database.select().from(sourceAssets).where(eq(sourceAssets.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(sourceAssets)
+        .where(eq(sourceAssets.workspaceId, workspaceId)),
       database
         .select({ analysis: assetAnalyses })
         .from(assetAnalyses)
-        .innerJoin(sourceAssets, eq(assetAnalyses.sourceAssetId, sourceAssets.id))
+        .innerJoin(
+          sourceAssets,
+          eq(assetAnalyses.sourceAssetId, sourceAssets.id),
+        )
         .where(eq(sourceAssets.workspaceId, workspaceId)),
-      database.select().from(memoryCandidates).where(eq(memoryCandidates.workspaceId, workspaceId)),
-      database.select().from(opportunities).where(eq(opportunities.workspaceId, workspaceId)),
-      database.select().from(generationJobs).where(eq(generationJobs.workspaceId, workspaceId)),
-      database.select().from(generatedAssets).where(eq(generatedAssets.workspaceId, workspaceId)),
-      database.select().from(projectExports).where(eq(projectExports.workspaceId, workspaceId)),
-      database.select().from(creditAccounts).where(eq(creditAccounts.workspaceId, workspaceId)),
-      database.select().from(creditLedger).where(eq(creditLedger.workspaceId, workspaceId)),
-      database.select().from(feedbackEvents).where(eq(feedbackEvents.workspaceId, workspaceId)),
-      database.select().from(auditEvents).where(eq(auditEvents.workspaceId, workspaceId)),
-      database.select().from(socialConnections).where(eq(socialConnections.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(memoryCandidates)
+        .where(eq(memoryCandidates.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(opportunities)
+        .where(eq(opportunities.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(generationJobs)
+        .where(eq(generationJobs.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(generatedAssets)
+        .where(eq(generatedAssets.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(projectExports)
+        .where(eq(projectExports.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(creditAccounts)
+        .where(eq(creditAccounts.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(creditLedger)
+        .where(eq(creditLedger.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(feedbackEvents)
+        .where(eq(feedbackEvents.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(auditEvents)
+        .where(eq(auditEvents.workspaceId, workspaceId)),
+      database
+        .select()
+        .from(socialConnections)
+        .where(eq(socialConnections.workspaceId, workspaceId)),
     ]);
     return {
       sourceAssets: sources,

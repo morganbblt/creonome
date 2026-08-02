@@ -143,9 +143,7 @@ export class PrivacyService {
     });
   }
 
-  private toPreferences(
-    record: PrivacyPreferencesRecord,
-  ): PrivacyPreferences {
+  private toPreferences(record: PrivacyPreferencesRecord): PrivacyPreferences {
     return PrivacyPreferencesSchema.parse({
       ...record,
       updatedAt: record.updatedAt.toISOString(),

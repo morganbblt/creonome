@@ -1,5 +1,4 @@
-const privateKeyPattern =
-  /(?:token|ciphertext|secret|gcsUri|checksumSha256)/i;
+const privateKeyPattern = /(?:token|ciphertext|secret|gcsUri|checksumSha256)/i;
 
 export function sanitizePrivacyExport(value: unknown): unknown {
   if (Array.isArray(value)) {
