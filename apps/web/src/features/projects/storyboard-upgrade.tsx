@@ -1,6 +1,10 @@
 "use client";
 
-import { UpgradeProjectResultSchema } from "@creonome/contracts";
+import {
+  UpgradeProjectResultSchema,
+  type UpgradeProjectResult,
+} from "@creonome/contracts";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { publishCreditBalance } from "../navigation/credit-balance";
@@ -36,7 +40,7 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<UpgradeProjectResult | null>(null);
 
   async function generateStoryboard() {
     setPending(true);
@@ -75,11 +79,9 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
 
       const upgrade = UpgradeProjectResultSchema.parse(await response.json());
       publishCreditBalance(upgrade.credits.available);
-      setNotice(
-        `Storyboard generated: ${upgrade.storyboard.scenes.length} scenes are ready.`,
-      );
+      setReceipt(upgrade);
       setConfirming(false);
-      router.refresh();
+      key.current = null;
     } catch {
       setError(
         "The storyboard response could not be verified. Your script is intact; reload the project before retrying.",
@@ -87,6 +89,63 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
     } finally {
       setPending(false);
     }
+  }
+
+  if (receipt) {
+    return (
+      <section
+        className={styles.generationReceipt}
+        aria-label="Storyboard generation receipt"
+      >
+        <div className={styles.receiptTitle}>
+          <span aria-hidden="true">✓</span>
+          <div>
+            <p>DELIVERED</p>
+            <h2>Storyboard ready</h2>
+          </div>
+          <small>receipt {receipt.job.id.slice(-8)}</small>
+        </div>
+
+        <p className={styles.receiptSummary}>
+          {receipt.storyboard.scenes.length} scene
+          {receipt.storyboard.scenes.length === 1 ? "" : "s"} ·{" "}
+          {receipt.storyboard.durationSeconds}s ·{" "}
+          {receipt.storyboard.aspectRatio}
+        </p>
+
+        <dl className={styles.receiptLedger}>
+          <div>
+            <dt>Reservation</dt>
+            <dd>4 credits held</dd>
+          </div>
+          <div>
+            <dt>Committed</dt>
+            <dd>−4 credits</dd>
+          </div>
+          <div>
+            <dt>Generation</dt>
+            <dd>
+              {receipt.job.provider} · {receipt.job.model}
+            </dd>
+          </div>
+          <div>
+            <dt>Balance</dt>
+            <dd>{receipt.credits.available} credits available</dd>
+          </div>
+        </dl>
+
+        <p className={styles.receiptNote}>
+          The storyboard is saved. Your original script and its version history
+          remain intact.
+        </p>
+        <div className={styles.receiptActions}>
+          <button type="button" onClick={() => router.refresh()}>
+            Open storyboard
+          </button>
+          <Link href="/credits">Open ledger</Link>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -100,7 +159,19 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
         </span>
       </div>
 
-      {!confirming ? (
+      {pending ? (
+        <div className={styles.generationProgress} role="status">
+          <div>
+            <strong>Building the storyboard</strong>
+            <span>4 credits held</span>
+          </div>
+          <progress aria-label="Storyboard generation progress" />
+          <p>Structuring scenes, framing, action and edit notes.</p>
+          <small>
+            You can leave this page — the project and reservation are persisted.
+          </small>
+        </div>
+      ) : !confirming ? (
         <button type="button" onClick={() => setConfirming(true)}>
           Generate storyboard · 4 cr
         </button>
@@ -111,25 +182,16 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
             is generated.
           </p>
           <div>
-            <button
-              type="button"
-              onClick={generateStoryboard}
-              disabled={pending}
-            >
-              {pending ? "Generating…" : "Confirm and generate"}
+            <button type="button" onClick={generateStoryboard}>
+              Confirm and generate
             </button>
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              disabled={pending}
-            >
+            <button type="button" onClick={() => setConfirming(false)}>
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {notice ? <p className={styles.upgradeNotice}>{notice}</p> : null}
       {error ? (
         <p className={styles.upgradeError} role="alert">
           {error}

@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe("StoryboardUpgrade", () => {
-  it("confirms the credit reservation and refreshes the persisted storyboard", async () => {
+  it("shows a receipt before opening the persisted storyboard", async () => {
     const request = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(upgrade), {
         status: 200,
@@ -106,12 +106,47 @@ describe("StoryboardUpgrade", () => {
         }),
       }),
     );
-    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(await screen.findByText("Storyboard ready")).toBeTruthy();
+    expect(screen.getByText("receipt 00000040")).toBeTruthy();
+    expect(screen.getByText("54 credits available")).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Open ledger" }).getAttribute("href"),
+    ).toBe("/credits");
+    expect(refresh).not.toHaveBeenCalled();
     expect(balanceChanged).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open storyboard" }));
+    expect(refresh).toHaveBeenCalledOnce();
     window.removeEventListener(
       "creonome:credit-balance-changed",
       balanceChanged,
     );
+  });
+
+  it("keeps the reserved amount visible while the job is running", async () => {
+    let resolveRequest!: (response: Response) => void;
+    const request = vi.fn().mockReturnValue(
+      new Promise<Response>((resolve) => {
+        resolveRequest = resolve;
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+
+    render(<StoryboardUpgrade projectId={projectId} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /generate storyboard · 4 cr/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /confirm and generate/i }),
+    );
+
+    expect(await screen.findByText("Building the storyboard")).toBeTruthy();
+    expect(screen.getByText("4 credits held")).toBeTruthy();
+    expect(screen.getByRole("progressbar")).toBeTruthy();
+    expect(screen.getByText(/you can leave this page/i)).toBeTruthy();
+
+    resolveRequest(Response.json(upgrade));
+    expect(await screen.findByText("Storyboard ready")).toBeTruthy();
   });
 
   it("starts a fresh request after released storyboard credits", async () => {
