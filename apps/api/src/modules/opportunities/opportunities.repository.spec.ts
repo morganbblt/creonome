@@ -56,3 +56,34 @@ describe("NeonOpportunitiesRepository feedback", () => {
     });
   });
 });
+
+describe("NeonOpportunitiesRepository trend signals", () => {
+  it("returns the strongest normalized workspace clusters", async () => {
+    const rows = [
+      {
+        id: "0198f3a2-82dd-7000-8000-000000000041",
+        title: "Quiet process, loud reveal",
+        summary: "Eight normalized references support this format.",
+        lifecycle: "emerging",
+        momentumScore: 88,
+        lastSeenAt: new Date("2026-08-02T11:00:00.000Z"),
+      },
+    ];
+    const limit = vi.fn().mockResolvedValue(rows);
+    const fakeDatabase = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({ limit }),
+          }),
+        }),
+      }),
+    };
+    const repository = new NeonOpportunitiesRepository(fakeDatabase as never);
+
+    await expect(
+      repository.listTrendSignals("0198f3a2-82dd-7000-8000-000000000011"),
+    ).resolves.toEqual(rows);
+    expect(limit).toHaveBeenCalledWith(3);
+  });
+});

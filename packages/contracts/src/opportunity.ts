@@ -30,6 +30,28 @@ export const OpportunityBatchSchema = z.object({
   opportunities: z.array(OpportunitySchema).length(3),
 });
 
+export const TrendSignalSchema = z.object({
+  status: z.enum(["ok", "partial", "unavailable"]),
+  title: z.string().trim().min(3).max(160).nullable(),
+  lifecycle: z.string().trim().min(2).max(40).nullable(),
+  momentumScore: z.number().int().min(0).max(100).nullable(),
+  observedAt: z.iso.datetime().nullable(),
+  evidenceCount: z.number().int().min(0),
+  source: z.enum(["trend_radar", "sample", "unavailable"]),
+  reason: z.string().trim().min(3).max(240).nullable(),
+});
+
+const UnavailableTrendSignal = {
+  status: "unavailable" as const,
+  title: null,
+  lifecycle: null,
+  momentumScore: null,
+  observedAt: null,
+  evidenceCount: 0,
+  source: "unavailable" as const,
+  reason: "No normalized trend signal is attached to this opportunity.",
+};
+
 export const OpportunityDetailSchema = OpportunitySchema.extend({
   currentLevel: ProjectLevelSchema,
   projectId: z.uuid().nullable(),
@@ -40,6 +62,7 @@ export const OpportunityDetailSchema = OpportunitySchema.extend({
   platform: z.enum(["tiktok", "instagram", "youtube", "multi_platform"]),
   estimatedDurationSeconds: z.number().int().positive().max(600).nullable(),
   evidence: z.array(z.string().trim().min(3).max(240)).max(4),
+  trendSignal: TrendSignalSchema.default(UnavailableTrendSignal),
 });
 
 export const OpportunityMemoryScopeSchema = z.enum([
@@ -111,6 +134,7 @@ export const UpgradeOpportunityResultSchema = z.object({
 export type Opportunity = z.infer<typeof OpportunitySchema>;
 export type OpportunityBatch = z.infer<typeof OpportunityBatchSchema>;
 export type OpportunityDetail = z.infer<typeof OpportunityDetailSchema>;
+export type TrendSignal = z.infer<typeof TrendSignalSchema>;
 export type OpportunityMemoryScope = z.infer<
   typeof OpportunityMemoryScopeSchema
 >;

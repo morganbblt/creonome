@@ -31,6 +31,17 @@ const records: OpportunityRecord[] = [1, 2, 3].map((position) => ({
   projectId: position === 1 ? "0198f3a2-82dd-7000-8000-000000000020" : null,
   projectCurrentLevel: position === 1 ? "storyboard" : null,
   availableAt: new Date("2026-08-02T09:00:00.000Z"),
+  trendSignal:
+    position === 1
+      ? {
+          title: "Quiet process, loud reveal",
+          lifecycle: "emerging",
+          momentumScore: 88,
+          observedAt: new Date("2026-08-02T08:55:00.000Z"),
+          evidenceCount: 8,
+          sampleData: false,
+        }
+      : null,
 }));
 
 function setupService(rows: OpportunityRecord[]) {
@@ -42,6 +53,7 @@ function setupService(rows: OpportunityRecord[]) {
     }),
   } as unknown as WorkspaceContextService;
   const repository = {
+    listTrendSignals: vi.fn(),
     listCurrent: vi.fn().mockResolvedValue(rows),
     findById: vi.fn().mockResolvedValue(rows[0] ?? null),
     saveAsProject: vi.fn().mockResolvedValue({
@@ -118,6 +130,14 @@ describe("OpportunitiesService", () => {
       effort: "low",
       platform: "tiktok",
       estimatedDurationSeconds: 31,
+      trendSignal: {
+        status: "ok",
+        title: "Quiet process, loud reveal",
+        lifecycle: "emerging",
+        momentumScore: 88,
+        evidenceCount: 8,
+        source: "trend_radar",
+      },
       evidence: expect.arrayContaining([expect.stringMatching(/DNA fit/i)]),
     });
   });

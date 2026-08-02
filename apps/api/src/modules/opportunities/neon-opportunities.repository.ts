@@ -10,6 +10,9 @@ import {
   projects,
   projectVersions,
   scripts,
+  trendCandidates,
+  trendClusters,
+  trendSources,
 } from "@creonome/db";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
@@ -26,6 +29,7 @@ import type {
   RecordOpportunityFeedbackInput,
   SaveOpportunityInput,
   ScriptUpgradeRecord,
+  TrendSignalRecord,
 } from "./opportunities.repository.js";
 
 const projectSelection = {
@@ -58,6 +62,25 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
     @Inject(CREONOME_DATABASE)
     private readonly database: CreonomeDatabase | undefined,
   ) {}
+
+  async listTrendSignals(workspaceId: string): Promise<TrendSignalRecord[]> {
+    return this.requireDatabase()
+      .select({
+        id: trendClusters.id,
+        title: trendClusters.title,
+        summary: trendClusters.summary,
+        lifecycle: trendClusters.lifecycle,
+        momentumScore: trendClusters.momentumScore,
+        lastSeenAt: trendClusters.lastSeenAt,
+      })
+      .from(trendClusters)
+      .where(eq(trendClusters.workspaceId, workspaceId))
+      .orderBy(
+        desc(trendClusters.momentumScore),
+        desc(trendClusters.lastSeenAt),
+      )
+      .limit(3);
+  }
 
   async listCurrent(workspaceId: string): Promise<OpportunityRecord[]> {
     const database = this.requireDatabase();
@@ -104,6 +127,11 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
         effort: opportunities.effort,
         platform: opportunities.platform,
         estimatedDurationSeconds: opportunities.estimatedDurationSeconds,
+        trendClusterId: opportunities.trendClusterId,
+        trendTitle: trendClusters.title,
+        trendLifecycle: trendClusters.lifecycle,
+        trendMomentumScore: trendClusters.momentumScore,
+        trendLastSeenAt: trendClusters.lastSeenAt,
         projectId: projects.id,
         projectCurrentLevel: projects.currentLevel,
         availableAt: opportunityBatches.availableAt,
@@ -120,6 +148,10 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
           eq(projects.workspaceId, workspaceId),
         ),
       )
+      .leftJoin(
+        trendClusters,
+        eq(trendClusters.id, opportunities.trendClusterId),
+      )
       .where(
         and(
           eq(opportunities.id, opportunityId),
@@ -130,22 +162,62 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
     if (!row) {
       return null;
     }
-    if (!row.projectId) {
-      return { ...row, hook: null };
-    }
-
-    const [version] = await database
-      .select({ snapshot: projectVersions.snapshot })
-      .from(projectVersions)
-      .where(eq(projectVersions.projectId, row.projectId))
-      .orderBy(desc(projectVersions.version))
-      .limit(1);
+    const [version] = row.projectId
+      ? await database
+          .select({ snapshot: projectVersions.snapshot })
+          .from(projectVersions)
+          .where(eq(projectVersions.projectId, row.projectId))
+          .orderBy(desc(projectVersions.version))
+          .limit(1)
+      : [];
     const snapshot = this.toOpportunitySnapshot(version?.snapshot);
+    const provenance = row.trendClusterId
+      ? await database
+          .select({ metadata: trendSources.metadata })
+          .from(trendCandidates)
+          .innerJoin(
+            trendSources,
+            eq(trendSources.id, trendCandidates.sourceId),
+          )
+          .where(eq(trendCandidates.clusterId, row.trendClusterId))
+          .limit(50)
+      : [];
+    const trendSignal =
+      row.trendTitle &&
+      row.trendLifecycle &&
+      row.trendMomentumScore !== null &&
+      row.trendLastSeenAt
+        ? {
+            title: row.trendTitle,
+            lifecycle: row.trendLifecycle,
+            momentumScore: row.trendMomentumScore,
+            observedAt: row.trendLastSeenAt,
+            evidenceCount: provenance.length,
+            sampleData:
+              provenance.length > 0 &&
+              provenance.every((item) => item.metadata.sampleData === true),
+          }
+        : null;
     return {
-      ...row,
+      id: row.id,
+      position: row.position,
       title: snapshot.title ?? row.title,
       pitch: snapshot.pitch ?? row.pitch,
       hook: snapshot.hook ?? null,
+      scoreOverall: row.scoreOverall,
+      scoreConfidence: row.scoreConfidence,
+      scoreMomentum: row.scoreMomentum,
+      scoreDnaFit: row.scoreDnaFit,
+      scoreNovelty: row.scoreNovelty,
+      scoreFeasibility: row.scoreFeasibility,
+      rationale: row.rationale,
+      effort: row.effort,
+      platform: row.platform,
+      estimatedDurationSeconds: row.estimatedDurationSeconds,
+      projectId: row.projectId,
+      projectCurrentLevel: row.projectCurrentLevel,
+      availableAt: row.availableAt,
+      trendSignal,
     };
   }
 
@@ -266,15 +338,17 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       batchId,
       workspaceId: input.workspaceId,
       creatorProfileId: input.creatorProfileId,
+      trendClusterId: input.trendSignals[index]?.id ?? null,
       position: index + 1,
       strategy: ["signature", "stretch", "repeatable"][index]!,
       title: concept.title,
       pitch: concept.pitch,
-      rationale:
-        "Generated from Creator DNA, current memory and this week's direction.",
+      rationale: input.trendSignals[index]
+        ? `Matched Creator DNA against the ${input.trendSignals[index]!.title} signal (${input.trendSignals[index]!.lifecycle}, ${input.trendSignals[index]!.momentumScore}/100 momentum).`
+        : "Generated from Creator DNA and current memory; no normalized trend signal was available.",
       currentLevel: "idea",
       scoreOverall: concept.score,
-      scoreMomentum: concept.score,
+      scoreMomentum: input.trendSignals[index]?.momentumScore ?? concept.score,
       scoreDnaFit: concept.score,
       scoreNovelty: concept.score,
       scoreFeasibility: concept.score,

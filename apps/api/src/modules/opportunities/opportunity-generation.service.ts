@@ -26,6 +26,7 @@ import {
   type GeneratedOpportunity,
   type OpportunityRecord,
   type OpportunitiesRepository,
+  type TrendSignalRecord,
 } from "./opportunities.repository.js";
 
 const GeneratedSetSchema = z.object({
@@ -114,15 +115,20 @@ export class OpportunityGenerationService {
 
     let persisted = false;
     try {
+      const trendSignals = await this.repository
+        .listTrendSignals(context.workspaceId)
+        .catch(() => []);
       const opportunities = await this.generateOpportunities(
         principal,
         context,
         direction,
+        trendSignals,
       ).catch(() => this.localOpportunities(direction));
       const records = await this.repository.createBatch({
         ...context,
         idempotencyKey,
         opportunities,
+        trendSignals,
       });
       persisted = true;
       await this.credits.commit(
@@ -157,6 +163,7 @@ export class OpportunityGenerationService {
     principal: AuthPrincipal,
     context: { workspaceId: string; creatorProfileId: string },
     direction?: string,
+    trendSignals: TrendSignalRecord[] = [],
   ): Promise<GeneratedOpportunity[]> {
     const [dna, memories] = await Promise.all([
       this.creatorDna.getCurrent(principal),
@@ -175,6 +182,15 @@ export class OpportunityGenerationService {
         "Use one natural fit, one stretch, and one repeatable format in that order.",
         `Creator DNA: ${dna.summary}`,
         `Approved memory: ${memories.map((item) => item.content).join(" | ") || "none"}`,
+        `Normalized trend radar: ${
+          trendSignals
+            .map(
+              (signal) =>
+                `${signal.title} (${signal.lifecycle}, momentum ${signal.momentumScore}/100): ${signal.summary}`,
+            )
+            .join(" | ") ||
+          "unavailable; rely on Creator DNA without inventing evidence"
+        }`,
         `Direction: ${direction ?? "balanced"}`,
         "Do not copy trend wording and do not claim guaranteed virality.",
       ].join("\n"),

@@ -489,6 +489,16 @@ describe("shared API contracts", () => {
           "6 of 8 strong clips open on a gesture",
           "Single-take studio footage is already part of the creator DNA",
         ],
+        trendSignal: {
+          status: "partial",
+          title: "Quiet process, loud reveal",
+          lifecycle: "emerging",
+          momentumScore: 88,
+          observedAt: "2026-08-02T11:00:00.000Z",
+          evidenceCount: 8,
+          source: "sample",
+          reason: "Synthetic signal set for the deterministic demo.",
+        },
       }).currentLevel,
     ).toBe("idea");
   });

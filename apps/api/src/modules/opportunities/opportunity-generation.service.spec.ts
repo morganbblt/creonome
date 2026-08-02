@@ -44,7 +44,18 @@ function setup(existing: OpportunityRecord[] = []) {
   const workspaces = {
     resolve: vi.fn().mockResolvedValue(context),
   } as unknown as WorkspaceContextService;
+  const trendSignals = [
+    {
+      id: "0198f3a2-82dd-7000-8000-000000000041",
+      title: "Quiet process, loud reveal",
+      summary: "A normalized format cluster built from eight references.",
+      lifecycle: "emerging",
+      momentumScore: 88,
+      lastSeenAt: new Date("2026-08-02T11:00:00.000Z"),
+    },
+  ];
   const repository: OpportunitiesRepository = {
+    listTrendSignals: vi.fn().mockResolvedValue(trendSignals),
     listCurrent: vi.fn(),
     findById: vi.fn(),
     saveAsProject: vi.fn(),
@@ -101,12 +112,13 @@ function setup(existing: OpportunityRecord[] = []) {
     repository,
     credits,
     generator,
+    trendSignals,
   };
 }
 
 describe("OpportunityGenerationService", () => {
   it("reserves, generates, persists and commits one idempotent batch", async () => {
-    const { service, credits, repository, generator } = setup();
+    const { service, credits, repository, generator, trendSignals } = setup();
 
     await expect(
       service.generate(principal, "request-2026-08-02", "More experimental"),
@@ -144,6 +156,14 @@ describe("OpportunityGenerationService", () => {
       }),
     );
     expect(repository.createBatch).toHaveBeenCalledOnce();
+    expect(repository.createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ trendSignals }),
+    );
+    expect(generator.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining("Quiet process, loud reveal"),
+      }),
+    );
     expect(credits.commit).toHaveBeenCalledOnce();
   });
 

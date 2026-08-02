@@ -54,6 +54,7 @@ function setup(options?: {
     resolve: vi.fn().mockResolvedValue(context),
   } as unknown as WorkspaceContextService;
   const repository = {
+    listTrendSignals: vi.fn(),
     listCurrent: vi.fn(),
     findById: vi.fn().mockResolvedValue(options?.missing ? null : opportunity),
     saveAsProject: vi.fn(),

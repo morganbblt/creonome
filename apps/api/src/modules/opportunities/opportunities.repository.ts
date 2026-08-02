@@ -19,11 +19,31 @@ export type OpportunityRecord = {
   projectId: string | null;
   projectCurrentLevel: string | null;
   availableAt: Date;
+  trendSignal?: OpportunityTrendSignalRecord | null;
+};
+
+export type OpportunityTrendSignalRecord = {
+  title: string;
+  lifecycle: string;
+  momentumScore: number;
+  observedAt: Date;
+  evidenceCount: number;
+  sampleData: boolean;
+};
+
+export type TrendSignalRecord = {
+  id: string;
+  title: string;
+  summary: string;
+  lifecycle: string;
+  momentumScore: number;
+  lastSeenAt: Date;
 };
 
 export const currentOpportunityStatuses = ["available", "saved"] as const;
 
 export interface OpportunitiesRepository {
+  listTrendSignals(workspaceId: string): Promise<TrendSignalRecord[]>;
   listCurrent(workspaceId: string): Promise<OpportunityRecord[]>;
   findById(
     workspaceId: string,
@@ -103,6 +123,7 @@ export type CreateOpportunityBatchInput = {
   creatorProfileId: string;
   idempotencyKey: string;
   opportunities: GeneratedOpportunity[];
+  trendSignals: TrendSignalRecord[];
 };
 
 export type GeneratedOpportunityRevision = {

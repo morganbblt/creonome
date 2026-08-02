@@ -104,13 +104,29 @@ export class OpportunitiesService {
       effort: row.effort,
       platform: row.platform,
       estimatedDurationSeconds: row.estimatedDurationSeconds,
+      trendSignal: row.trendSignal
+        ? {
+            status: row.trendSignal.sampleData ? "partial" : "ok",
+            title: row.trendSignal.title,
+            lifecycle: row.trendSignal.lifecycle,
+            momentumScore: row.trendSignal.momentumScore,
+            observedAt: row.trendSignal.observedAt.toISOString(),
+            evidenceCount: row.trendSignal.evidenceCount,
+            source: row.trendSignal.sampleData ? "sample" : "trend_radar",
+            reason: row.trendSignal.sampleData
+              ? "Synthetic or authorized sample signal used for the MVP demonstration."
+              : null,
+          }
+        : undefined,
       evidence: [
         row.scoreDnaFit >= 85
           ? "Strong DNA fit with the creator's established language."
           : "A deliberate stretch beyond the creator's usual language.",
-        row.scoreMomentum >= 80
-          ? "The underlying format is building current momentum."
-          : "The format is stable enough for a measured experiment.",
+        row.trendSignal
+          ? `${row.trendSignal.title} is ${row.trendSignal.lifecycle} at ${row.trendSignal.momentumScore}/100 momentum across ${row.trendSignal.evidenceCount} normalized references.`
+          : row.scoreMomentum >= 80
+            ? "The underlying format is building current momentum."
+            : "The format is stable enough for a measured experiment.",
         row.scoreFeasibility >= 85
           ? "Shootable with the creator's existing production habits."
           : "Plan one extra production pass before shooting.",
