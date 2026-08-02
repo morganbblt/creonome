@@ -43,6 +43,13 @@
       "when": 1785630594429,
       "tag": "20260802002954_aspiring_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785640590771,
+      "tag": "20260802031630_plain_stryfe",
+      "breakpoints": true
     }
   ]
 }

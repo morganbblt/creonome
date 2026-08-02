@@ -18,9 +18,11 @@ export function resolveDatabaseUrl(environment: DatabaseEnvironment): string {
   return value;
 }
 
-export function createDatabase(databaseUrl: string) {
+type NeonHttpDatabase = ReturnType<typeof drizzle<typeof schema>>;
+
+export type CreonomeDatabase = Omit<NeonHttpDatabase, "transaction">;
+
+export function createDatabase(databaseUrl: string): CreonomeDatabase {
   const queryClient = neon(databaseUrl);
   return drizzle(queryClient, { schema });
 }
-
-export type CreonomeDatabase = ReturnType<typeof createDatabase>;

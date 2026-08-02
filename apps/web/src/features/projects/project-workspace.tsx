@@ -1,6 +1,7 @@
 import type { ProjectDetail, ProjectLevel } from "@creonome/contracts";
 import Link from "next/link";
 import styles from "./projects.module.css";
+import { StoryboardUpgrade } from "./storyboard-upgrade";
 
 const maturityLevels = ["idea", "script", "storyboard", "video"] as const;
 
@@ -128,6 +129,12 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
             </section>
           )}
 
+          {project.script &&
+          !project.storyboard &&
+          project.currentLevel === "script" ? (
+            <StoryboardUpgrade projectId={project.id} />
+          ) : null}
+
           {project.storyboard ? (
             <section
               className={styles.storyboard}
@@ -148,7 +155,13 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                   <article className={styles.scene} key={scene.id}>
                     <div className={styles.sceneFrame}>
                       <span>{String(scene.position).padStart(2, "0")}</span>
-                      <em>{scene.durationSeconds ?? "—"}s</em>
+                      <em>
+                        {String(scene.startSeconds).padStart(2, "0")}s →{" "}
+                        {String(
+                          scene.startSeconds + (scene.durationSeconds ?? 0),
+                        ).padStart(2, "0")}
+                        s
+                      </em>
                     </div>
                     <div className={styles.sceneCopy}>
                       <p>{scene.shotType ?? "SHOT"}</p>
@@ -163,6 +176,38 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                       {scene.voiceover ? (
                         <small>VO · {scene.voiceover}</small>
                       ) : null}
+                      <dl className={styles.sceneDetails}>
+                        {scene.bRoll ? (
+                          <div>
+                            <dt>B-ROLL</dt>
+                            <dd>{scene.bRoll}</dd>
+                          </div>
+                        ) : null}
+                        {scene.transition ? (
+                          <div>
+                            <dt>TRANSITION</dt>
+                            <dd>{scene.transition}</dd>
+                          </div>
+                        ) : null}
+                        {scene.requiredAsset ? (
+                          <div>
+                            <dt>ASSET</dt>
+                            <dd>{scene.requiredAsset}</dd>
+                          </div>
+                        ) : null}
+                        {scene.sound ? (
+                          <div>
+                            <dt>SOUND</dt>
+                            <dd>{scene.sound}</dd>
+                          </div>
+                        ) : null}
+                        {scene.editingNote ? (
+                          <div>
+                            <dt>EDIT</dt>
+                            <dd>{scene.editingNote}</dd>
+                          </div>
+                        ) : null}
+                      </dl>
                     </div>
                   </article>
                 ))}

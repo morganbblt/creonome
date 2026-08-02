@@ -12,6 +12,7 @@ import {
   projectVersions,
   socialConnections,
   sourceAssets,
+  storyboardScenes,
   workspaces,
 } from "./index.js";
 
@@ -74,9 +75,9 @@ describe("Creonome relational schema", () => {
     expect(opportunityConfig.checks.map((check) => check.name)).toContain(
       "opportunities_position_check",
     );
-    expect(opportunityConfig.uniqueConstraints.map((item) => item.name)).toContain(
-      "opportunities_batch_position_unique",
-    );
+    expect(
+      opportunityConfig.uniqueConstraints.map((item) => item.name),
+    ).toContain("opportunities_batch_position_unique");
   });
 
   it("deduplicates opportunity generation requests by workspace", () => {
@@ -124,5 +125,20 @@ describe("Creonome relational schema", () => {
     );
 
     expect(ownerForeignKey?.onDelete).toBe("cascade");
+  });
+
+  it("persists the production directions required for every storyboard scene", () => {
+    expect(
+      getTableConfig(storyboardScenes).columns.map((column) => column.name),
+    ).toEqual(
+      expect.arrayContaining([
+        "b_roll",
+        "transition",
+        "required_asset",
+        "sound",
+        "editing_note",
+        "reference_frame_url",
+      ]),
+    );
   });
 });

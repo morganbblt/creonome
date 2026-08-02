@@ -22,6 +22,6 @@ describe("database configuration", () => {
     );
 
     expect(database.select).toBeTypeOf("function");
-    expect(database.transaction).toBeTypeOf("function");
+    expect(database.batch).toBeTypeOf("function");
   });
 });

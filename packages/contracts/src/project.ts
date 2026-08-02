@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CreditsResponseSchema } from "./credits.js";
 import { GenerationJobSchema } from "./generation-job.js";
 import { ScriptDraftSchema } from "./script.js";
 
@@ -50,12 +51,19 @@ export const ProjectVersionSchema = z.object({
 export const StoryboardSceneSchema = z.object({
   id: z.uuid(),
   position: z.number().int().positive(),
+  startSeconds: z.number().int().nonnegative().max(86_400).default(0),
   heading: z.string().trim().min(1).max(160),
   description: z.string().trim().min(3).max(2_000),
   shotType: z.string().trim().min(1).max(120).nullable(),
   voiceover: z.string().trim().min(1).max(2_000).nullable(),
   onScreenText: z.string().trim().min(1).max(500).nullable(),
   durationSeconds: z.number().int().positive().max(600).nullable(),
+  bRoll: z.string().trim().min(1).max(1_000).nullable().default(null),
+  transition: z.string().trim().min(1).max(500).nullable().default(null),
+  requiredAsset: z.string().trim().min(1).max(500).nullable().default(null),
+  sound: z.string().trim().min(1).max(1_000).nullable().default(null),
+  editingNote: z.string().trim().min(1).max(1_000).nullable().default(null),
+  referenceFrameUrl: z.url().nullable().default(null),
 });
 
 export const ProjectStoryboardSchema = z.object({
@@ -73,6 +81,18 @@ export const ProjectDetailSchema = ProjectSummarySchema.extend({
   latestJob: GenerationJobSchema.nullable(),
 });
 
+export const UpgradeProjectInputSchema = z.object({
+  targetLevel: z.literal("storyboard"),
+  confirmedCreditCost: z.literal(true),
+});
+
+export const UpgradeProjectResultSchema = z.object({
+  project: ProjectSchema,
+  storyboard: ProjectStoryboardSchema,
+  job: GenerationJobSchema,
+  credits: CreditsResponseSchema,
+});
+
 export type Project = z.infer<typeof ProjectSchema>;
 export type ProjectDetail = z.infer<typeof ProjectDetailSchema>;
 export type ProjectLevel = z.infer<typeof ProjectLevelSchema>;
@@ -82,3 +102,5 @@ export type ProjectStoryboard = z.infer<typeof ProjectStoryboardSchema>;
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>;
 export type ProjectVersion = z.infer<typeof ProjectVersionSchema>;
 export type StoryboardScene = z.infer<typeof StoryboardSceneSchema>;
+export type UpgradeProjectInput = z.infer<typeof UpgradeProjectInputSchema>;
+export type UpgradeProjectResult = z.infer<typeof UpgradeProjectResultSchema>;

@@ -8,7 +8,7 @@ import {
   type ScriptDraft,
 } from "@creonome/contracts";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { publishCreditBalance } from "../navigation/credit-balance";
 import styles from "./opportunity-workspace.module.css";
 
@@ -52,7 +52,7 @@ function scriptErrorMessage(status: number): string {
   if (status === 429) {
     return "Script generation is busy right now. Try again in a moment. No credits were charged.";
   }
-  return "The script could not be generated. Any reserved credits were released automatically.";
+  return "The script request could not be confirmed. Your idea is intact; retry to safely resume the same request.";
 }
 
 function modificationErrorMessage(status: number): string {
@@ -71,7 +71,7 @@ function modificationErrorMessage(status: number): string {
   if (status === 429 || status === 503) {
     return "Creative revision is temporarily unavailable. Your original idea is intact; try again in a moment.";
   }
-  return "The change could not be applied. Your original idea is intact; try again.";
+  return "Creative revision is temporarily unavailable. Your original idea is intact; try again in a moment.";
 }
 
 export function OpportunityWorkspace({
@@ -92,6 +92,7 @@ export function OpportunityWorkspace({
   const [notice, setNotice] = useState<string | null>(null);
   const [script, setScript] = useState<ScriptDraft | null>(null);
   const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
+  const scriptRequestKey = useRef<string | null>(null);
 
   async function applyChange() {
     if (instruction.trim().length < 3) {
@@ -144,6 +145,7 @@ export function OpportunityWorkspace({
   async function generateScript() {
     setPending(true);
     setError(null);
+    scriptRequestKey.current ??= idempotencyKey(opportunity.id);
     try {
       const response = await fetch(
         `/api/creonome/opportunities/${opportunity.id}/upgrade`,
@@ -151,7 +153,7 @@ export function OpportunityWorkspace({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Idempotency-Key": idempotencyKey(opportunity.id),
+            "Idempotency-Key": scriptRequestKey.current,
           },
           body: JSON.stringify({
             targetLevel: "script",
@@ -177,10 +179,11 @@ export function OpportunityWorkspace({
       setNotice(
         "Script generated. The idea remains available in version history.",
       );
+      scriptRequestKey.current = null;
       setPanel(null);
     } catch {
       setError(
-        "The script response was invalid. Any reserved credits were released automatically.",
+        "The script response could not be verified. Your idea is intact; retry to safely resume the same request.",
       );
     } finally {
       setPending(false);

@@ -189,6 +189,76 @@ describe("shared API contracts", () => {
       }).success,
     ).toBe(true);
   });
+
+  it("requires credit confirmation and rich scenes for a storyboard upgrade", () => {
+    const upgradeInputSchema = (contracts as Record<string, unknown>)
+      .UpgradeProjectInputSchema as
+      { safeParse: (value: unknown) => { success: boolean } } | undefined;
+    const upgradeResultSchema = (contracts as Record<string, unknown>)
+      .UpgradeProjectResultSchema as
+      { safeParse: (value: unknown) => { success: boolean } } | undefined;
+
+    expect(upgradeInputSchema).toBeDefined();
+    expect(upgradeResultSchema).toBeDefined();
+    if (!upgradeInputSchema || !upgradeResultSchema) return;
+
+    expect(
+      upgradeInputSchema.safeParse({
+        targetLevel: "storyboard",
+        confirmedCreditCost: false,
+      }).success,
+    ).toBe(false);
+    expect(
+      upgradeResultSchema.safeParse({
+        project: {
+          id: "0198f3a2-82dd-7000-8000-000000000001",
+          opportunityId: "0198f3a2-82dd-7000-8000-000000000002",
+          title: "Warehouse tape loop",
+          status: "active",
+          currentLevel: "storyboard",
+          currentVersion: 4,
+          updatedAt: "2026-08-02T10:00:00.000Z",
+        },
+        storyboard: {
+          id: "0198f3a2-82dd-7000-8000-000000000050",
+          title: "Warehouse tape loop",
+          aspectRatio: "9:16",
+          durationSeconds: 35,
+          scenes: [
+            {
+              id: "0198f3a2-82dd-7000-8000-000000000051",
+              position: 1,
+              startSeconds: 0,
+              heading: "The pause",
+              description: "Hold on the hand above the record.",
+              shotType: "macro handheld",
+              voiceover: "Wait for the room.",
+              onScreenText: "listen first",
+              durationSeconds: 8,
+              bRoll: "Dust catching the practical light.",
+              transition: "Hard cut on needle contact.",
+              requiredAsset: "needle_macro.mov",
+              sound: "Room tone, then needle crackle.",
+              editingNote: "Keep the first two seconds silent.",
+              referenceFrameUrl: null,
+            },
+          ],
+        },
+        job: {
+          id: "0198f3a2-82dd-7000-8000-000000000052",
+          kind: "storyboard",
+          provider: "gemini",
+          model: "gemini-3.6-flash",
+          status: "succeeded",
+          progress: 100,
+          createdAt: "2026-08-02T09:59:00.000Z",
+          updatedAt: "2026-08-02T10:00:00.000Z",
+          completedAt: "2026-08-02T10:00:00.000Z",
+        },
+        credits: { balance: 54, reserved: 0, available: 54 },
+      }).success,
+    ).toBe(true);
+  });
   it("accepts the public health response", () => {
     const result = HealthResponseSchema.parse({
       status: "ok",

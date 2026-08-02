@@ -406,6 +406,7 @@
 .scriptSheet,
 .storyboard,
 .ideaState,
+.upgradeCard,
 .projectAside > section {
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -484,6 +485,83 @@
   line-height: 1.55;
 }
 
+.upgradeCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  padding: 22px;
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+  background:
+    linear-gradient(120deg, var(--accent-soft), transparent 55%), var(--surface);
+}
+.upgradeCard > div:first-child > p {
+  margin: 0 0 7px;
+  color: var(--accent-text);
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.1em;
+}
+.upgradeCard h2 {
+  margin: 0 0 7px;
+  font-size: 18px;
+  letter-spacing: -0.025em;
+}
+.upgradeCard > div:first-child > span {
+  color: var(--text-2);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.upgradeCard > button,
+.upgradeConfirmation button {
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid var(--button);
+  border-radius: 11px;
+  background: var(--button);
+  color: var(--button-text);
+  font: 650 11px/1 var(--sans);
+  cursor: pointer;
+}
+.upgradeConfirmation {
+  width: min(330px, 100%);
+  padding: 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 13px;
+  background: var(--surface);
+}
+.upgradeConfirmation > p {
+  margin: 0 0 11px;
+  color: var(--text-2);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.upgradeConfirmation > div {
+  display: flex;
+  gap: 7px;
+}
+.upgradeConfirmation button:last-child {
+  border-color: var(--line-2);
+  background: transparent;
+  color: var(--text-1);
+}
+.upgradeConfirmation button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+.upgradeNotice,
+.upgradeError {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+  color: var(--accent-text);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.upgradeError {
+  color: #8c3f39;
+}
+
 .storyboard {
   overflow: hidden;
 }
@@ -547,6 +625,28 @@
   margin-top: 9px;
   color: var(--text-3);
   font: 450 9px/1.4 var(--mono);
+}
+.sceneDetails {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 13px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.sceneDetails div {
+  min-width: 0;
+}
+.sceneDetails dt {
+  margin-bottom: 4px;
+  color: var(--text-3);
+  font: 550 8px/1 var(--mono);
+}
+.sceneDetails dd {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .ideaState {
@@ -746,6 +846,16 @@
   }
   .sceneFrame {
     height: 96px;
+  }
+  .upgradeCard {
+    grid-template-columns: 1fr;
+  }
+  .upgradeCard > button,
+  .upgradeConfirmation {
+    width: 100%;
+  }
+  .sceneDetails {
+    grid-template-columns: 1fr;
   }
   .ideaState {
     grid-template-columns: 40px 1fr;

@@ -57,9 +57,7 @@ const GeneratedScriptSchema = z.object({
   body: z.string().trim().min(12).max(4_000),
   callToAction: z.string().trim().min(3).max(220).nullable(),
   caption: z.string().trim().min(3).max(2_200).nullable(),
-  platforms: z
-    .array(z.enum(["tiktok", "instagram", "youtube"]))
-    .min(1),
+  platforms: z.array(z.enum(["tiktok", "instagram", "youtube"])).min(1),
   durationSeconds: z.number().int().positive().max(600).nullable(),
 });
 
@@ -149,10 +147,13 @@ export class OpportunityWorkflowService {
       normalizedKey,
     );
     if (existing) {
-      return this.toUpgradeContract(
-        existing,
-        await this.credits.getAccount(principal),
+      const credits = await this.credits.commit(
+        context.workspaceId,
+        creditCosts.script,
+        `${normalizedKey}:commit`,
+        `Committed ${creditCosts.script} credits for script generation`,
       );
+      return this.toUpgradeContract(existing, credits);
     }
     const existingProject = await this.repository.findExistingScriptUpgrade(
       context.workspaceId,
@@ -181,6 +182,7 @@ export class OpportunityWorkflowService {
       `Reserve ${cost} credits for script generation`,
     );
 
+    let persisted = false;
     try {
       const generated = await this.generateScript(opportunity);
       const upgrade = await this.repository.createScriptUpgrade({
@@ -194,6 +196,7 @@ export class OpportunityWorkflowService {
       if (!upgrade) {
         throw new NotFoundException("Opportunity was not found");
       }
+      persisted = true;
       const credits = await this.credits.commit(
         context.workspaceId,
         cost,
@@ -202,12 +205,14 @@ export class OpportunityWorkflowService {
       );
       return this.toUpgradeContract(upgrade, credits);
     } catch (error) {
-      await this.credits.release(
-        context.workspaceId,
-        cost,
-        `${normalizedKey}:release`,
-        `Released ${cost} credits after failed script generation`,
-      );
+      if (!persisted) {
+        await this.credits.release(
+          context.workspaceId,
+          cost,
+          `${normalizedKey}:release`,
+          `Released ${cost} credits after failed script generation`,
+        );
+      }
       throw error;
     }
   }

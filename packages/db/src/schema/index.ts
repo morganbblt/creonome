@@ -18,7 +18,10 @@ import {
 
 type JsonObject = Record<string, unknown>;
 
-const id = () => uuid("id").primaryKey().default(sql`uuidv7()`);
+const id = () =>
+  uuid("id")
+    .primaryKey()
+    .default(sql`uuidv7()`);
 const createdAt = () =>
   timestamp("created_at", { mode: "date", withTimezone: true })
     .notNull()
@@ -111,8 +114,14 @@ export const creatorProfiles = pgTable(
     handle: text("handle"),
     bio: text("bio"),
     audienceDescription: text("audience_description"),
-    languages: text("languages").array().notNull().default(sql`'{}'::text[]`),
-    genres: text("genres").array().notNull().default(sql`'{}'::text[]`),
+    languages: text("languages")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    genres: text("genres")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     onboardingStatus: text("onboarding_status").notNull().default("pending"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -231,7 +240,10 @@ export const socialConnections = pgTable(
     provider: text("provider").notNull(),
     externalAccountId: text("external_account_id").notNull(),
     displayName: text("display_name").notNull(),
-    scopes: text("scopes").array().notNull().default(sql`'{}'::text[]`),
+    scopes: text("scopes")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     status: text("status").notNull().default("connected"),
     accessTokenCiphertext: text("access_token_ciphertext").notNull(),
     refreshTokenCiphertext: text("refresh_token_ciphertext"),
@@ -335,7 +347,12 @@ export const trendSources = pgTable(
       .defaultNow(),
     createdAt: createdAt(),
   },
-  (table) => [index("trend_sources_provider_observed_idx").on(table.provider, table.observedAt)],
+  (table) => [
+    index("trend_sources_provider_observed_idx").on(
+      table.provider,
+      table.observedAt,
+    ),
+  ],
 );
 
 export const trendClusters = pgTable(
@@ -386,7 +403,10 @@ export const trendCandidates = pgTable(
     title: text("title").notNull(),
     description: text("description"),
     region: text("region"),
-    languages: text("languages").array().notNull().default(sql`'{}'::text[]`),
+    languages: text("languages")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     metrics: jsonb("metrics").$type<JsonObject>().notNull().default({}),
     status: text("status").notNull().default("candidate"),
     observedAt: timestamp("observed_at", { mode: "date", withTimezone: true })
@@ -475,9 +495,12 @@ export const opportunities = pgTable(
     creatorProfileId: uuid("creator_profile_id")
       .notNull()
       .references(() => creatorProfiles.id, { onDelete: "cascade" }),
-    trendClusterId: uuid("trend_cluster_id").references(() => trendClusters.id, {
-      onDelete: "set null",
-    }),
+    trendClusterId: uuid("trend_cluster_id").references(
+      () => trendClusters.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     position: integer("position").notNull(),
     strategy: text("strategy").notNull(),
     title: text("title").notNull(),
@@ -499,8 +522,14 @@ export const opportunities = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [
-    unique("opportunities_batch_position_unique").on(table.batchId, table.position),
-    index("opportunities_workspace_status_idx").on(table.workspaceId, table.status),
+    unique("opportunities_batch_position_unique").on(
+      table.batchId,
+      table.position,
+    ),
+    index("opportunities_workspace_status_idx").on(
+      table.workspaceId,
+      table.status,
+    ),
     index("opportunities_creator_idx").on(table.creatorProfileId),
     index("opportunities_cluster_idx").on(table.trendClusterId),
     check(
@@ -535,7 +564,10 @@ export const projects = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [
-    index("projects_workspace_updated_idx").on(table.workspaceId, table.updatedAt),
+    index("projects_workspace_updated_idx").on(
+      table.workspaceId,
+      table.updatedAt,
+    ),
     index("projects_creator_idx").on(table.creatorProfileId),
     index("projects_opportunity_idx").on(table.opportunityId),
     uniqueIndex("projects_opportunity_unique")
@@ -557,7 +589,10 @@ export const projectVersions = pgTable(
     parentVersion: integer("parent_version"),
     changeSource: text("change_source").notNull(),
     changeSummary: text("change_summary").notNull(),
-    lockedFields: text("locked_fields").array().notNull().default(sql`'{}'::text[]`),
+    lockedFields: text("locked_fields")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     snapshot: jsonb("snapshot").$type<JsonObject>().notNull().default({}),
     createdByUserId: uuid("created_by_user_id").references(() => users.id, {
       onDelete: "set null",
@@ -565,8 +600,14 @@ export const projectVersions = pgTable(
     createdAt: createdAt(),
   },
   (table) => [
-    unique("project_versions_project_version_unique").on(table.projectId, table.version),
-    index("project_versions_project_created_idx").on(table.projectId, table.createdAt),
+    unique("project_versions_project_version_unique").on(
+      table.projectId,
+      table.version,
+    ),
+    index("project_versions_project_created_idx").on(
+      table.projectId,
+      table.createdAt,
+    ),
     index("project_versions_created_by_idx").on(table.createdByUserId),
     check("project_versions_version_check", sql`${table.version} > 0`),
   ],
@@ -579,15 +620,21 @@ export const scripts = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
-    projectVersionId: uuid("project_version_id").references(() => projectVersions.id, {
-      onDelete: "set null",
-    }),
+    projectVersionId: uuid("project_version_id").references(
+      () => projectVersions.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     title: text("title").notNull(),
     hook: text("hook").notNull(),
     body: text("body").notNull(),
     callToAction: text("call_to_action"),
     caption: text("caption"),
-    platforms: text("platforms").array().notNull().default(sql`'{}'::text[]`),
+    platforms: text("platforms")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     durationSeconds: integer("duration_seconds"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -605,9 +652,12 @@ export const storyboards = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
-    projectVersionId: uuid("project_version_id").references(() => projectVersions.id, {
-      onDelete: "set null",
-    }),
+    projectVersionId: uuid("project_version_id").references(
+      () => projectVersions.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     title: text("title").notNull(),
     aspectRatio: text("aspect_ratio").notNull().default("9:16"),
     durationSeconds: integer("duration_seconds"),
@@ -633,6 +683,12 @@ export const storyboardScenes = pgTable(
     shotType: text("shot_type"),
     voiceover: text("voiceover"),
     onScreenText: text("on_screen_text"),
+    bRoll: text("b_roll"),
+    transition: text("transition"),
+    requiredAsset: text("required_asset"),
+    sound: text("sound"),
+    editingNote: text("editing_note"),
+    referenceFrameUrl: text("reference_frame_url"),
     durationSeconds: integer("duration_seconds").notNull(),
     createdAt: createdAt(),
   },
@@ -643,7 +699,10 @@ export const storyboardScenes = pgTable(
     ),
     index("storyboard_scenes_storyboard_idx").on(table.storyboardId),
     check("storyboard_scenes_position_check", sql`${table.position} > 0`),
-    check("storyboard_scenes_duration_check", sql`${table.durationSeconds} > 0`),
+    check(
+      "storyboard_scenes_duration_check",
+      sql`${table.durationSeconds} > 0`,
+    ),
   ],
 );
 
@@ -672,11 +731,17 @@ export const generationJobs = pgTable(
     errorMessage: text("error_message"),
     createdAt: createdAt(),
     startedAt: timestamp("started_at", { mode: "date", withTimezone: true }),
-    completedAt: timestamp("completed_at", { mode: "date", withTimezone: true }),
+    completedAt: timestamp("completed_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
     updatedAt: updatedAt(),
   },
   (table) => [
-    index("generation_jobs_workspace_status_idx").on(table.workspaceId, table.status),
+    index("generation_jobs_workspace_status_idx").on(
+      table.workspaceId,
+      table.status,
+    ),
     index("generation_jobs_project_idx").on(table.projectId),
     index("generation_jobs_requested_by_idx").on(table.requestedByUserId),
     check(
@@ -734,16 +799,25 @@ export const exports = pgTable(
     requestedByUserId: uuid("requested_by_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    generatedAssetId: uuid("generated_asset_id").references(() => generatedAssets.id, {
-      onDelete: "set null",
-    }),
+    generatedAssetId: uuid("generated_asset_id").references(
+      () => generatedAssets.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     format: text("format").notNull(),
     status: text("status").notNull().default("queued"),
     createdAt: createdAt(),
-    completedAt: timestamp("completed_at", { mode: "date", withTimezone: true }),
+    completedAt: timestamp("completed_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
   },
   (table) => [
-    index("exports_workspace_created_idx").on(table.workspaceId, table.createdAt),
+    index("exports_workspace_created_idx").on(
+      table.workspaceId,
+      table.createdAt,
+    ),
     index("exports_project_idx").on(table.projectId),
     index("exports_requested_by_idx").on(table.requestedByUserId),
     index("exports_generated_asset_idx").on(table.generatedAssetId),
@@ -777,9 +851,12 @@ export const creditLedger = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => creditAccounts.workspaceId, { onDelete: "cascade" }),
-    generationJobId: uuid("generation_job_id").references(() => generationJobs.id, {
-      onDelete: "set null",
-    }),
+    generationJobId: uuid("generation_job_id").references(
+      () => generationJobs.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     kind: text("kind").notNull(),
     balanceDelta: integer("balance_delta").notNull().default(0),
     reservedDelta: integer("reserved_delta").notNull().default(0),
@@ -789,7 +866,10 @@ export const creditLedger = pgTable(
     createdAt: createdAt(),
   },
   (table) => [
-    index("credit_ledger_workspace_created_idx").on(table.workspaceId, table.createdAt),
+    index("credit_ledger_workspace_created_idx").on(
+      table.workspaceId,
+      table.createdAt,
+    ),
     index("credit_ledger_job_idx").on(table.generationJobId),
     check(
       "credit_ledger_nonzero_check",
@@ -809,7 +889,9 @@ export const feedbackEvents = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     opportunityId: uuid("opportunity_id").references(() => opportunities.id, {
       onDelete: "set null",
     }),
@@ -823,7 +905,10 @@ export const feedbackEvents = pgTable(
     createdAt: createdAt(),
   },
   (table) => [
-    index("feedback_events_workspace_created_idx").on(table.workspaceId, table.createdAt),
+    index("feedback_events_workspace_created_idx").on(
+      table.workspaceId,
+      table.createdAt,
+    ),
     index("feedback_events_user_idx").on(table.userId),
     index("feedback_events_opportunity_idx").on(table.opportunityId),
     index("feedback_events_project_idx").on(table.projectId),
@@ -852,7 +937,10 @@ export const auditEvents = pgTable(
     createdAt: createdAt(),
   },
   (table) => [
-    index("audit_events_workspace_created_idx").on(table.workspaceId, table.createdAt),
+    index("audit_events_workspace_created_idx").on(
+      table.workspaceId,
+      table.createdAt,
+    ),
     index("audit_events_actor_idx").on(table.actorUserId),
     index("audit_events_entity_idx").on(table.entityType, table.entityId),
   ],

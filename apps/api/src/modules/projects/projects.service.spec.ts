@@ -29,6 +29,10 @@ function createService(detail: Record<string, unknown> | null = null) {
   const repository: ProjectsRepository = {
     list: vi.fn().mockResolvedValue([summaryRecord]),
     findById: vi.fn().mockResolvedValue(detail),
+    findStoryboardUpgradeByIdempotency: vi.fn(),
+    findExistingStoryboardUpgrade: vi.fn(),
+    findStoryboardSource: vi.fn(),
+    createStoryboardUpgrade: vi.fn(),
   };
 
   return { service: new ProjectsService(workspaces, repository), repository };

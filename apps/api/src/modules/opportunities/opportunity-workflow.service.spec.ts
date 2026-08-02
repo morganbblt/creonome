@@ -31,7 +31,8 @@ const opportunity: OpportunityRecord = {
   scoreDnaFit: 96,
   scoreNovelty: 84,
   scoreFeasibility: 94,
-  rationale: "The format fits the creator's restrained visual and sonic language.",
+  rationale:
+    "The format fits the creator's restrained visual and sonic language.",
   effort: "low",
   platform: "tiktok",
   estimatedDurationSeconds: 35,
@@ -50,9 +51,7 @@ function setup(options?: {
   } as unknown as WorkspaceContextService;
   const repository = {
     listCurrent: vi.fn(),
-    findById: vi
-      .fn()
-      .mockResolvedValue(options?.missing ? null : opportunity),
+    findById: vi.fn().mockResolvedValue(options?.missing ? null : opportunity),
     saveAsProject: vi.fn(),
     findByIdempotency: vi.fn(),
     createBatch: vi.fn(),
@@ -304,6 +303,32 @@ describe("OpportunityWorkflowService", () => {
     expect(repository.createScriptUpgrade).not.toHaveBeenCalled();
   });
 
+  it("finishes an idempotent script commit without regenerating", async () => {
+    const { service, credits, repository } = setup();
+    const stored = await repository.createScriptUpgrade({} as never);
+    vi.mocked(repository.createScriptUpgrade).mockClear();
+    vi.mocked(repository.findScriptUpgradeByIdempotency).mockResolvedValue(
+      stored,
+    );
+
+    await expect(
+      service.upgrade(
+        principal,
+        opportunity.id,
+        { targetLevel: "script", confirmedCreditCost: true },
+        "upgrade-script-resume",
+      ),
+    ).resolves.toMatchObject({ credits: { balance: 58, reserved: 0 } });
+    expect(credits.commit).toHaveBeenCalledWith(
+      context.workspaceId,
+      2,
+      "upgrade-script-resume:commit",
+      expect.stringMatching(/script/i),
+    );
+    expect(credits.reserve).not.toHaveBeenCalled();
+    expect(repository.createScriptUpgrade).not.toHaveBeenCalled();
+  });
+
   it("releases reserved credits if persistence fails", async () => {
     const { service, credits, repository } = setup();
     vi.mocked(repository.createScriptUpgrade).mockRejectedValue(
@@ -324,6 +349,23 @@ describe("OpportunityWorkflowService", () => {
       "upgrade-script-2:release",
       expect.stringMatching(/failed/i),
     );
+  });
+
+  it("keeps a persisted reservation recoverable if commit confirmation fails", async () => {
+    const { service, credits } = setup();
+    vi.mocked(credits.commit).mockRejectedValue(
+      new Error("credit commit unavailable"),
+    );
+
+    await expect(
+      service.upgrade(
+        principal,
+        opportunity.id,
+        { targetLevel: "script", confirmedCreditCost: true },
+        "upgrade-script-commit-retry",
+      ),
+    ).rejects.toThrow("credit commit unavailable");
+    expect(credits.release).not.toHaveBeenCalled();
   });
 
   it("does not reveal an opportunity outside the workspace", async () => {

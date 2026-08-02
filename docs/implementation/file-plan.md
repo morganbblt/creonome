@@ -11,6 +11,7 @@ apps/web/app/api/auth/[...path]/route.ts          Neon Auth handler
 apps/web/src/features/auth/                       Creonome auth shell + Google sign-in
 apps/web/app/(app)/today/                         authenticated daily opportunities
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
+apps/web/app/api/creonome/projects/[id]/upgrade/  authenticated storyboard generation proxy
 apps/web/app/(app)/library/                       live private media/script/export library
 apps/web/app/(app)/creator-dna/                   live evidence-backed creator profile
 apps/web/app/(app)/settings/billing/              mock billing page
@@ -24,7 +25,7 @@ apps/api/src/health/                              liveness and readiness
 apps/api/src/modules/auth/                        Neon JWT verification
 apps/api/src/modules/workspaces/                  tenant resolution and demo claim
 apps/api/src/modules/opportunities/               daily cards, generation, save to project
-apps/api/src/modules/projects/                    project list, script, storyboard, versions and jobs
+apps/api/src/modules/projects/                    project read model + credited script→storyboard workflow
 apps/api/src/modules/assets/                      private asset registry and mixed library read model
 apps/api/src/modules/creator-dna/                 creator profile read model
 apps/api/src/modules/credits/                     reserve/commit/release ledger
@@ -56,6 +57,7 @@ docs/setup/environment.md                         credentials and provider statu
 - TikTok and Instagram OAuth, insights ingestion and publishing.
 - Stripe billing; the current billing experience is intentionally synthetic.
 - Lyria generation while its preview access and product flow are finalized.
+- Automated video rendering/export from a completed storyboard.
 
 ## Manual inputs still required
 

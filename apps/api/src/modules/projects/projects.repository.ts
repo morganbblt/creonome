@@ -25,11 +25,18 @@ export type ProjectScriptRecord = {
 export type ProjectSceneRecord = {
   id: string;
   position: number;
+  startSeconds: number;
   heading: string;
   description: string;
   shotType: string | null;
   voiceover: string | null;
   onScreenText: string | null;
+  bRoll: string | null;
+  transition: string | null;
+  requiredAsset: string | null;
+  sound: string | null;
+  editingNote: string | null;
+  referenceFrameUrl: string | null;
   durationSeconds: number | null;
 };
 
@@ -71,12 +78,71 @@ export type ProjectDetailRecord = ProjectSummaryRecord & {
   latestJob: ProjectJobRecord | null;
 };
 
+export type WorkflowProjectRecord = {
+  id: string;
+  opportunityId: string | null;
+  title: string;
+  status: string;
+  currentLevel: string;
+  currentVersion: number;
+  updatedAt: Date;
+};
+
+export type StoryboardSourceRecord = {
+  project: WorkflowProjectRecord;
+  script: ProjectScriptRecord;
+};
+
+export type GeneratedStoryboardScene = Omit<
+  ProjectSceneRecord,
+  "id" | "position" | "startSeconds" | "durationSeconds"
+> & { durationSeconds: number };
+
+export type GeneratedStoryboard = {
+  title: string;
+  aspectRatio: string;
+  durationSeconds: number;
+  scenes: GeneratedStoryboardScene[];
+};
+
+export type StoryboardUpgradeRecord = {
+  project: WorkflowProjectRecord;
+  storyboard: ProjectStoryboardRecord;
+  job: ProjectJobRecord;
+};
+
+export type CreateStoryboardUpgradeInput = {
+  workspaceId: string;
+  creatorProfileId: string;
+  userId: string;
+  projectId: string;
+  idempotencyKey: string;
+  provider: string;
+  model: string;
+  generated: GeneratedStoryboard;
+};
+
 export interface ProjectsRepository {
   list(workspaceId: string): Promise<ProjectSummaryRecord[]>;
   findById(
     workspaceId: string,
     projectId: string,
   ): Promise<ProjectDetailRecord | null>;
+  findStoryboardUpgradeByIdempotency(
+    workspaceId: string,
+    idempotencyKey: string,
+  ): Promise<StoryboardUpgradeRecord | null>;
+  findExistingStoryboardUpgrade(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<StoryboardUpgradeRecord | null>;
+  findStoryboardSource(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<StoryboardSourceRecord | null>;
+  createStoryboardUpgrade(
+    input: CreateStoryboardUpgradeInput,
+  ): Promise<StoryboardUpgradeRecord | null>;
 }
 
 export const PROJECTS_REPOSITORY = Symbol("PROJECTS_REPOSITORY");

@@ -71,6 +71,8 @@ export {
   ProjectSummarySchema,
   ProjectVersionSchema,
   StoryboardSceneSchema,
+  UpgradeProjectInputSchema,
+  UpgradeProjectResultSchema,
   type Project,
   type ProjectDetail,
   type ProjectLevel,
@@ -80,6 +82,8 @@ export {
   type ProjectSummary,
   type ProjectVersion,
   type StoryboardScene,
+  type UpgradeProjectInput,
+  type UpgradeProjectResult,
 } from "./project.js";
 export { ScriptPlatformSchema, type ScriptPlatform } from "./script.js";
 export { UploadSignResponseSchema, type UploadSignResponse } from "./upload.js";
