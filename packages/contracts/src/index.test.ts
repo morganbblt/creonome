@@ -148,6 +148,47 @@ describe("shared API contracts", () => {
       }).success,
     ).toBe(true);
   });
+
+  it("validates the mixed private library and asset registration contract", () => {
+    const librarySchema = (contracts as Record<string, unknown>)
+      .LibrarySchema as
+      { safeParse: (value: unknown) => { success: boolean } } | undefined;
+    const createAssetInputSchema = (contracts as Record<string, unknown>)
+      .CreateAssetInputSchema as
+      { safeParse: (value: unknown) => { success: boolean } } | undefined;
+
+    expect(librarySchema).toBeDefined();
+    expect(createAssetInputSchema).toBeDefined();
+    if (!librarySchema || !createAssetInputSchema) return;
+
+    expect(
+      librarySchema.safeParse({
+        totalByteSize: 8_400_000,
+        items: [
+          {
+            id: "0198f3a2-82dd-7000-8000-000000000040",
+            projectId: "0198f3a2-82dd-7000-8000-000000000001",
+            name: "warehouse-tapes-v1.mp4",
+            kind: "export",
+            mimeType: "video/mp4",
+            byteSize: 8_400_000,
+            durationSeconds: 35,
+            status: "ready",
+            source: "generated",
+            createdAt: "2026-08-02T10:00:00.000Z",
+          },
+        ],
+      }).success,
+    ).toBe(true);
+    expect(
+      createAssetInputSchema.safeParse({
+        fileName: "needle_macro.mov",
+        mimeType: "video/quicktime",
+        byteSize: 12_500_000,
+        gcsUri: "gs://creonome-media/workspaces/workspace-1/sources/asset.mov",
+      }).success,
+    ).toBe(true);
+  });
   it("accepts the public health response", () => {
     const result = HealthResponseSchema.parse({
       status: "ok",

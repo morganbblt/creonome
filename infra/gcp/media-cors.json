@@ -1,0 +1,13 @@
+[
+  {
+    "origin": [
+      "https://www.creonome.com",
+      "https://creonome.com",
+      "http://localhost:3000",
+      "http://localhost:3001"
+    ],
+    "method": ["GET", "HEAD", "PUT"],
+    "responseHeader": ["Content-Type", "ETag"],
+    "maxAgeSeconds": 3600
+  }
+]

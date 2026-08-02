@@ -1,5 +1,15 @@
 export { HealthResponseSchema, type HealthResponse } from "./health.js";
 export {
+  CreateAssetInputSchema,
+  LibraryItemKindSchema,
+  LibraryItemSchema,
+  LibrarySchema,
+  type CreateAssetInput,
+  type Library,
+  type LibraryItem,
+  type LibraryItemKind,
+} from "./asset.js";
+export {
   CreatorDnaSchema,
   CreatorDnaTraitSchema,
   type CreatorDna,

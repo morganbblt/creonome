@@ -2,6 +2,7 @@ import {
   CreatorDnaSchema,
   CreditsResponseSchema,
   IntegrationsResponseSchema,
+  LibrarySchema,
   ModifyOpportunityInputSchema,
   OpportunityBatchSchema,
   OpportunityDetailSchema,
@@ -13,6 +14,7 @@ import {
   type CreatorDna,
   type CreditsResponse,
   type IntegrationsResponse,
+  type Library,
   type ModifyOpportunityInput,
   type OpportunityBatch,
   type OpportunityDetail,
@@ -86,6 +88,10 @@ export class CreonomeApiClient {
 
   getProjects(): Promise<ProjectList> {
     return this.get("/projects", ProjectListSchema);
+  }
+
+  getLibrary(): Promise<Library> {
+    return this.get("/assets", LibrarySchema);
   }
 
   getProject(projectId: string): Promise<ProjectDetail> {

@@ -1,18 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import CreatorDnaPage from "./creator-dna/page";
-import LibraryPage from "./library/page";
 import IntegrationsPage from "./settings/integrations/page";
 import PrivacyPage from "./settings/privacy/page";
 
 describe("management pages", () => {
-  it("renders the mixed media library", () => {
-    render(<LibraryPage />);
-    expect(screen.getByRole("heading", { name: "Library" })).toBeTruthy();
-    expect(screen.getByText("warehouse_01.mov")).toBeTruthy();
-    expect(screen.getByText("tape_loop_A.wav")).toBeTruthy();
-  });
-
   it("renders all fourteen creator DNA dimensions", () => {
     render(<CreatorDnaPage />);
     expect(screen.getByRole("heading", { name: "Creator DNA" })).toBeTruthy();

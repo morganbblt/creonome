@@ -11,7 +11,7 @@ apps/web/app/api/auth/[...path]/route.ts          Neon Auth handler
 apps/web/src/features/auth/                       Creonome auth shell + Google sign-in
 apps/web/app/(app)/today/                         authenticated daily opportunities
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
-apps/web/app/(app)/library/                       media library handoff screen
+apps/web/app/(app)/library/                       live private media/script/export library
 apps/web/app/(app)/creator-dna/                   14-dimension creator profile
 apps/web/app/(app)/settings/billing/              mock billing page
 apps/web/app/(app)/settings/integrations/         TikTok/Instagram “Coming soon” states
@@ -25,6 +25,7 @@ apps/api/src/modules/auth/                        Neon JWT verification
 apps/api/src/modules/workspaces/                  tenant resolution and demo claim
 apps/api/src/modules/opportunities/               daily cards, generation, save to project
 apps/api/src/modules/projects/                    project list, script, storyboard, versions and jobs
+apps/api/src/modules/assets/                      private asset registry and mixed library read model
 apps/api/src/modules/creator-dna/                 creator profile read model
 apps/api/src/modules/credits/                     reserve/commit/release ledger
 apps/api/src/modules/jobs/                        asynchronous job state
@@ -38,7 +39,7 @@ packages/config/                                  validated server environments
 packages/db/src/schema/                           28-table Drizzle data model
 packages/db/drizzle/                              applied Neon migrations
 packages/db/src/demo/                             Nova Sainte demo data
-infra/gcp/                                        Cloud Build and Cloud Run config
+infra/gcp/                                        Cloud Build, Cloud Run and private media CORS config
 vercel.json                                       Vercel monorepo config
 docs/setup/environment.md                         credentials and provider status
 ```

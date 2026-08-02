@@ -2,6 +2,40 @@ import { describe, expect, it, vi } from "vitest";
 import { CreonomeApiClient } from "./creonome-api.client";
 
 describe("CreonomeApiClient", () => {
+  it("loads the mixed workspace library", async () => {
+    const library = {
+      totalByteSize: 8_400_000,
+      items: [
+        {
+          id: "0198f3a2-82dd-7000-8000-000000000040",
+          projectId: "0198f3a2-82dd-7000-8000-000000000020",
+          name: "warehouse-tapes-v1.mp4",
+          kind: "export",
+          mimeType: "video/mp4",
+          byteSize: 8_400_000,
+          durationSeconds: 35,
+          status: "ready",
+          source: "generated",
+          createdAt: "2026-08-02T10:00:00.000Z",
+        },
+      ],
+    } as const;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json(library));
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await expect(client.getLibrary()).resolves.toEqual(library);
+    expect(request).toHaveBeenCalledWith(
+      "https://api.creonome.app/api/v1/assets",
+      expect.any(Object),
+    );
+  });
+
   it("loads the project index and a workspace-scoped project detail", async () => {
     const project = {
       id: "0198f3a2-82dd-7000-8000-000000000020",
