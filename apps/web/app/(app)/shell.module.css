@@ -8,7 +8,7 @@
   z-index: 50;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 28px;
   min-height: 68px;
   padding: 0 22px;
   border-bottom: 1px solid var(--line);
@@ -31,44 +31,31 @@
 .primaryNav {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px;
-  border-radius: 999px;
-  background: var(--bg-2);
+  gap: 28px;
 }
 
 .navItem,
 .activeNavItem {
-  display: flex;
-  min-height: 38px;
+  display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  color: var(--text-2);
+  padding: 22px 0;
+  color: var(--text-3);
   font-size: 13px;
-  font-weight: 520;
+  font-weight: 550;
+  letter-spacing: 0.005em;
   text-decoration: none;
-}
-
-.navItem {
-  background: var(--surface);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 8px;
 }
 
 .navItem:hover {
-  color: var(--text);
+  color: var(--text-2);
 }
 
 .activeNavItem {
-  background: var(--accent);
-  color: white;
-}
-
-.activeDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
+  color: var(--text);
+  text-decoration-line: underline;
+  text-decoration-color: var(--text);
 }
 
 .accountActions {
@@ -114,6 +101,7 @@
 
 @media (max-width: 760px) {
   .header {
+    gap: 18px;
     min-height: 60px;
     padding: 0 14px;
   }
@@ -130,18 +118,14 @@
   .primaryNav {
     flex: 1;
     justify-content: space-between;
+    gap: 14px;
     overflow-x: auto;
   }
 
   .navItem,
   .activeNavItem {
-    min-height: 36px;
-    padding: 9px 11px;
+    padding: 20px 0;
     white-space: nowrap;
-  }
-
-  .activeDot {
-    display: none;
   }
 }
 

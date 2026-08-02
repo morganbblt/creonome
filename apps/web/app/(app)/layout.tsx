@@ -31,7 +31,6 @@ export default async function AppLayout({
           className={styles.primaryNav}
           itemClassName={styles.navItem}
           activeItemClassName={styles.activeNavItem}
-          activeDotClassName={styles.activeDot}
         />
         <div className={styles.accountActions}>
           <CreditBalance

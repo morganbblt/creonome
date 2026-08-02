@@ -1,10 +1,10 @@
 .page {
-  --billing-bg: #f5f4f0;
+  --billing-bg: #f3f7fa;
   --billing-surface: #fff;
-  --billing-text: #151515;
-  --billing-muted: #77736b;
-  --billing-line: #dedbd4;
-  --billing-accent: #6d5dfc;
+  --billing-text: #14202a;
+  --billing-muted: #667b88;
+  --billing-line: #dce8ee;
+  --billing-accent: #3f7897;
   min-height: 100%;
   padding: clamp(24px, 5vw, 64px);
   background: var(--billing-bg);
@@ -160,7 +160,7 @@
   min-height: 38px;
   padding: 0 12px;
   border: 1px solid var(--billing-line);
-  border-radius: 11px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--billing-text);
   font:

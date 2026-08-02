@@ -77,7 +77,7 @@
   min-height: 38px;
   place-items: center;
   border: 1px solid var(--line-2);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -326,7 +326,7 @@
   flex: 1;
   place-items: center;
   border: 1px solid var(--line-2);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--bg-2);
   color: var(--text-2);
   font-size: 12.5px;
@@ -457,7 +457,7 @@
   place-items: center;
   width: 44px;
   border: 1px solid var(--line-2);
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text);
   text-decoration: none;
@@ -476,7 +476,7 @@
 .newBatch > button {
   padding: 0 20px;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   background: var(--button);
   color: var(--button-text);
   font-size: 13.5px;

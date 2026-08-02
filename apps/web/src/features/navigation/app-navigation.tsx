@@ -15,12 +15,10 @@ export function AppNavigation({
   className,
   itemClassName,
   activeItemClassName,
-  activeDotClassName,
 }: {
   className?: string;
   itemClassName?: string;
   activeItemClassName?: string;
-  activeDotClassName?: string;
 }) {
   const pathname = usePathname();
 
@@ -35,9 +33,6 @@ export function AppNavigation({
             className={active ? activeItemClassName : itemClassName}
             aria-current={active ? "page" : undefined}
           >
-            {active ? (
-              <span className={activeDotClassName} aria-hidden="true" />
-            ) : null}
             {item.label}
           </Link>
         );
