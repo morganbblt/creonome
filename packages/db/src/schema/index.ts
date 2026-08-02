@@ -100,6 +100,66 @@ export const workspaceMembers = pgTable(
   ],
 );
 
+export const privacyPreferences = pgTable("privacy_preferences", {
+  workspaceId: uuid("workspace_id")
+    .primaryKey()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  modelTrainingOptIn: boolean("model_training_opt_in")
+    .notNull()
+    .default(false),
+  keepRushesAfterExport: boolean("keep_rushes_after_export")
+    .notNull()
+    .default(true),
+  updatedByUserId: uuid("updated_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedAt: updatedAt(),
+});
+
+export const accountDeletionRequests = pgTable(
+  "account_deletion_requests",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    requestedByUserId: uuid("requested_by_user_id").references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    status: text("status").notNull().default("scheduled"),
+    scheduledFor: timestamp("scheduled_for", {
+      mode: "date",
+      withTimezone: true,
+    }).notNull(),
+    cancelledAt: timestamp("cancelled_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    completedAt: timestamp("completed_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    requestedAt: createdAt(),
+  },
+  (table) => [
+    index("account_deletion_requests_workspace_status_idx").on(
+      table.workspaceId,
+      table.status,
+    ),
+    uniqueIndex("account_deletion_requests_one_scheduled_idx")
+      .on(table.workspaceId)
+      .where(sql`${table.status} = 'scheduled'`),
+    index("account_deletion_requests_requested_by_idx").on(
+      table.requestedByUserId,
+    ),
+    check(
+      "account_deletion_requests_status_check",
+      sql`${table.status} in ('scheduled', 'cancelled', 'completed')`,
+    ),
+  ],
+);
+
 export const creatorProfiles = pgTable(
   "creator_profiles",
   {
@@ -950,6 +1010,8 @@ export const creonomeTables = [
   users,
   workspaces,
   workspaceMembers,
+  privacyPreferences,
+  accountDeletionRequests,
   creatorProfiles,
   creatorDnaVersions,
   dnaTraits,

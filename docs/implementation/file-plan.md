@@ -27,7 +27,8 @@ apps/web/src/features/creator-dna/memory-control  explicit approval queue + deci
 apps/web/app/(app)/credits/                       live balance, capacity, ledger and CSV export
 apps/web/app/(app)/settings/billing/              mock billing page
 apps/web/app/(app)/settings/integrations/         TikTok/Instagram “Coming soon” states
-apps/web/app/(app)/settings/privacy/              privacy controls
+apps/web/app/(app)/settings/privacy/              persisted privacy, JSON export and deletion-request controls
+apps/web/app/api/creonome/privacy/                authenticated privacy/export/deletion proxies
 apps/web/app/(public)/legal/                      public legal pages
 apps/web/app/favicon.ico + icon.svg               Creonome brand icons
 
@@ -47,10 +48,11 @@ apps/api/src/modules/memory/                      Mem0 adapter, approval queue a
 apps/api/src/modules/ai/                          Vertex AI structured generation + local fallback
 apps/api/src/modules/uploads/                     private GCS signed uploads
 apps/api/src/modules/integrations/                disabled post-MVP social adapters
+apps/api/src/modules/privacy/                     audited preferences, sanitized exports and owner-only deletion requests
 
 packages/contracts/                               shared Zod API contracts
 packages/config/                                  validated server environments
-packages/db/src/schema/                           28-table Drizzle data model
+packages/db/src/schema/                           30-table Drizzle data model
 packages/db/drizzle/                              applied Neon migrations
 packages/db/src/demo/                             Nova Sainte demo data
 infra/gcp/                                        Cloud Build, Cloud Run and private media CORS config
@@ -71,6 +73,7 @@ docs/setup/environment.md                         credentials and provider statu
 - Stripe billing; the current billing experience is intentionally synthetic.
 - Lyria generation while its preview access and product flow are finalized.
 - Automated video rendering/export from a completed storyboard.
+- Automatic 30-day source retention and final account/media deletion workers; the MVP records the preferences and cancellable request but does not execute those destructive background jobs.
 
 ## Manual inputs still required
 

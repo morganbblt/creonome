@@ -135,5 +135,25 @@ export {
   type ProjectExport,
   type ProjectExportFormat,
 } from "./project-export.js";
+export {
+  AccountDeletionCancellationSchema,
+  AccountDeletionRequestInputSchema,
+  AccountDeletionRequestSchema,
+  PrivacyExportInputSchema,
+  PrivacyExportKindSchema,
+  PrivacyExportSchema,
+  PrivacyPreferencesSchema,
+  PrivacyStateSchema,
+  UpdatePrivacyPreferencesInputSchema,
+  type AccountDeletionCancellation,
+  type AccountDeletionRequest,
+  type AccountDeletionRequestInput,
+  type PrivacyExport,
+  type PrivacyExportInput,
+  type PrivacyExportKind,
+  type PrivacyPreferences,
+  type PrivacyState,
+  type UpdatePrivacyPreferencesInput,
+} from "./privacy.js";
 export { ScriptPlatformSchema, type ScriptPlatform } from "./script.js";
 export { UploadSignResponseSchema, type UploadSignResponse } from "./upload.js";

@@ -14,6 +14,7 @@ import { IntegrationsModule } from "./modules/integrations/integrations.module.j
 import { OpportunitiesModule } from "./modules/opportunities/opportunities.module.js";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module.js";
 import { ProjectsModule } from "./modules/projects/projects.module.js";
+import { PrivacyModule } from "./modules/privacy/privacy.module.js";
 import { WorkspacesModule } from "./modules/workspaces/workspaces.module.js";
 import { UploadsModule } from "./modules/uploads/uploads.module.js";
 
@@ -37,6 +38,7 @@ import { UploadsModule } from "./modules/uploads/uploads.module.js";
     OpportunitiesModule,
     OnboardingModule,
     ProjectsModule,
+    PrivacyModule,
     UploadsModule,
     HealthModule,
   ],

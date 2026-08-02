@@ -54,4 +54,23 @@ describe("health API", () => {
         expect(body.message).toBe("Authentication is required");
       });
   });
+
+  it("protects every workspace privacy operation", async () => {
+    const requestId = "0198f3a2-82dd-7000-8000-000000000090";
+    const operations = [
+      () => request(app.getHttpServer()).get("/api/v1/privacy"),
+      () => request(app.getHttpServer()).put("/api/v1/privacy/preferences"),
+      () => request(app.getHttpServer()).post("/api/v1/privacy/exports"),
+      () =>
+        request(app.getHttpServer()).post("/api/v1/privacy/account-deletion"),
+      () =>
+        request(app.getHttpServer()).delete(
+          `/api/v1/privacy/account-deletion/${requestId}`,
+        ),
+    ];
+
+    for (const operation of operations) {
+      await operation().expect(401);
+    }
+  });
 });

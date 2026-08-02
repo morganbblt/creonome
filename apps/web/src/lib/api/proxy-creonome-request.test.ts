@@ -12,6 +12,30 @@ vi.mock("./api-base-url", () => ({
 }));
 
 describe("proxyCreonomeRequest", () => {
+  it("rejects a cross-origin browser mutation before contacting the API", async () => {
+    const upstream = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", upstream);
+
+    const response = await proxyCreonomeRequest(
+      new Request("https://www.creonome.com/api/creonome/privacy/preferences", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://attacker.example",
+          "Sec-Fetch-Site": "cross-site",
+        },
+        body: JSON.stringify({
+          modelTrainingOptIn: true,
+          keepRushesAfterExport: false,
+        }),
+      }),
+      "/privacy/preferences",
+    );
+
+    expect(response.status).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
   it("does not declare JSON for an empty mutation body", async () => {
     const upstream = vi
       .fn<typeof fetch>()

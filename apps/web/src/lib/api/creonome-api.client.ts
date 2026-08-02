@@ -12,6 +12,7 @@ import {
   OpportunityRevisionSchema,
   ProjectDetailSchema,
   ProjectListSchema,
+  PrivacyStateSchema,
   UpgradeOpportunityInputSchema,
   UpgradeOpportunityResultSchema,
   type CreatorDna,
@@ -27,6 +28,7 @@ import {
   type OpportunityRevision,
   type ProjectDetail,
   type ProjectList,
+  type PrivacyState,
   type UpgradeOpportunityInput,
   type UpgradeOpportunityResult,
 } from "@creonome/contracts";
@@ -110,6 +112,10 @@ export class CreonomeApiClient {
 
   getLibrary(): Promise<Library> {
     return this.get("/assets", LibrarySchema);
+  }
+
+  getPrivacy(): Promise<PrivacyState> {
+    return this.get("/privacy", PrivacyStateSchema);
   }
 
   getProject(projectId: string): Promise<ProjectDetail> {

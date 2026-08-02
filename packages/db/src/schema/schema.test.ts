@@ -1,6 +1,7 @@
 import { getTableName } from "drizzle-orm";
 import { getTableConfig } from "drizzle-orm/pg-core";
 import {
+  accountDeletionRequests,
   creatorDnaVersions,
   creonomeTables,
   exports,
@@ -10,6 +11,7 @@ import {
   opportunityBatches,
   opportunities,
   projectVersions,
+  privacyPreferences,
   socialConnections,
   sourceAssets,
   storyboardScenes,
@@ -17,6 +19,7 @@ import {
 } from "./index.js";
 
 const expectedTables = [
+  "account_deletion_requests",
   "asset_analyses",
   "audit_events",
   "credit_accounts",
@@ -33,6 +36,7 @@ const expectedTables = [
   "opportunity_batches",
   "project_versions",
   "projects",
+  "privacy_preferences",
   "scripts",
   "social_connections",
   "source_assets",
@@ -125,6 +129,31 @@ describe("Creonome relational schema", () => {
     );
 
     expect(ownerForeignKey?.onDelete).toBe("cascade");
+  });
+
+  it("persists one privacy preference row and one scheduled deletion per workspace", () => {
+    const preferencesConfig = getTableConfig(privacyPreferences);
+    const deletionConfig = getTableConfig(accountDeletionRequests);
+
+    expect(preferencesConfig.columns.map((column) => column.name)).toEqual(
+      expect.arrayContaining([
+        "workspace_id",
+        "model_training_opt_in",
+        "keep_rushes_after_export",
+        "updated_by_user_id",
+        "updated_at",
+      ]),
+    );
+    expect(deletionConfig.checks.map((item) => item.name)).toContain(
+      "account_deletion_requests_status_check",
+    );
+    expect(deletionConfig.indexes.map((item) => item.config.name)).toEqual(
+      expect.arrayContaining([
+        "account_deletion_requests_workspace_status_idx",
+        "account_deletion_requests_one_scheduled_idx",
+        "account_deletion_requests_requested_by_idx",
+      ]),
+    );
   });
 
   it("persists the production directions required for every storyboard scene", () => {

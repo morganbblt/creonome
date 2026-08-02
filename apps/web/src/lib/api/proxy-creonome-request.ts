@@ -2,10 +2,26 @@ import "server-only";
 import { getAuth } from "@/src/lib/auth/server";
 import { resolveApiBaseUrl } from "./api-base-url";
 
+const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
+
+function isCrossOriginMutation(request: Request): boolean {
+  if (safeMethods.has(request.method.toUpperCase())) return false;
+  const expectedOrigin = new URL(request.url).origin;
+  const origin = request.headers.get("origin");
+  if (origin && origin !== expectedOrigin) return true;
+  return request.headers.get("sec-fetch-site") === "cross-site";
+}
+
 export async function proxyCreonomeRequest(
   request: Request,
   path: string,
 ): Promise<Response> {
+  if (isCrossOriginMutation(request)) {
+    return Response.json(
+      { message: "Cross-origin mutation rejected" },
+      { status: 403 },
+    );
+  }
   try {
     const { data, error } = await getAuth().token();
     if (error || !data?.token) {

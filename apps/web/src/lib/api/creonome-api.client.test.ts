@@ -2,6 +2,29 @@ import { describe, expect, it, vi } from "vitest";
 import { CreonomeApiClient } from "./creonome-api.client";
 
 describe("CreonomeApiClient", () => {
+  it("loads the persisted workspace privacy state", async () => {
+    const privacy = {
+      preferences: {
+        modelTrainingOptIn: false,
+        keepRushesAfterExport: true,
+        updatedAt: "2026-08-02T10:00:00.000Z",
+      },
+      accountDeletion: null,
+    } as const;
+    const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(privacy));
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await expect(client.getPrivacy()).resolves.toEqual(privacy);
+    expect(request).toHaveBeenCalledWith(
+      "https://api.creonome.app/api/v1/privacy",
+      expect.any(Object),
+    );
+  });
+
   it("loads the immutable workspace credit ledger", async () => {
     const ledger = { entries: [] } as const;
     const request = vi
