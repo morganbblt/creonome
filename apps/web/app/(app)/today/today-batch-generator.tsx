@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  OpportunityBatchSchema,
+  type OpportunityBatch,
+} from "@creonome/contracts";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import styles from "./today.module.css";
@@ -17,13 +21,16 @@ function batchRequestKey(): string {
 
 export function TodayBatchGenerator({
   preview = false,
+  onGenerated,
 }: {
   preview?: boolean;
+  onGenerated?: (batch: OpportunityBatch) => void;
 }) {
   const router = useRouter();
   const requestKey = useRef<string | null>(null);
-  const [direction, setDirection] =
-    useState<(typeof directions)[number]>("Closer to my DNA");
+  const [selectedDirections, setSelectedDirections] = useState<
+    Array<(typeof directions)[number]>
+  >(["Closer to my DNA"]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +45,11 @@ export function TodayBatchGenerator({
           "Content-Type": "application/json",
           "Idempotency-Key": requestKey.current,
         },
-        body: JSON.stringify({ direction }),
+        body: JSON.stringify({
+          directions: selectedDirections.length
+            ? selectedDirections
+            : undefined,
+        }),
       });
       if (!response.ok) {
         const failure = (await response.json().catch(() => null)) as {
@@ -56,7 +67,19 @@ export function TodayBatchGenerator({
         }
         return;
       }
+      const parsedBatch = OpportunityBatchSchema.safeParse(
+        await response.json().catch(() => null),
+      );
+      if (!parsedBatch.success) {
+        setError(
+          "The new batch was created, but its response could not be displayed. Reload Today to recover it.",
+        );
+        requestKey.current = null;
+        router.refresh();
+        return;
+      }
       requestKey.current = null;
+      onGenerated?.(parsedBatch.data);
       router.refresh();
     } catch {
       setError(
@@ -69,6 +92,28 @@ export function TodayBatchGenerator({
 
   return (
     <>
+      <div className={styles.batchFilters} aria-label="Opportunity filters">
+        {directions.map((item) => {
+          const selected = selectedDirections.includes(item);
+          return (
+            <button
+              type="button"
+              aria-pressed={selected}
+              className={selected ? styles.selectedDirection : undefined}
+              key={item}
+              onClick={() =>
+                setSelectedDirections((current) =>
+                  current.includes(item)
+                    ? current.filter((direction) => direction !== item)
+                    : [...current, item],
+                )
+              }
+            >
+              {item}
+            </button>
+          );
+        })}
+      </div>
       <button type="button" disabled={pending} onClick={generate}>
         {pending
           ? "Generating 3 opportunities…"
@@ -76,21 +121,6 @@ export function TodayBatchGenerator({
             ? "Try live generation · 3 credits"
             : "+ 3 new opportunities · 3 credits"}
       </button>
-      <div>
-        {directions.map((item) => (
-          <button
-            type="button"
-            aria-pressed={direction === item}
-            className={
-              direction === item ? styles.selectedDirection : undefined
-            }
-            key={item}
-            onClick={() => setDirection(item)}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
       {error ? (
         <p className={styles.batchError} role="alert">
           {error}

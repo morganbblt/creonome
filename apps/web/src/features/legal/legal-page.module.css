@@ -13,9 +13,15 @@
 }
 
 .brand {
-  font-weight: 680;
-  letter-spacing: -0.025em;
+  display: block;
+  width: 142px;
   text-decoration: none;
+}
+
+.brand img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .back {

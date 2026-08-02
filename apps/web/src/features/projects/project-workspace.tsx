@@ -1,7 +1,11 @@
+"use client";
+
 import type { ProjectDetail, ProjectLevel } from "@creonome/contracts";
 import Link from "next/link";
+import { useState } from "react";
 import styles from "./projects.module.css";
 import { ProjectExportButton } from "./project-export-button";
+import { splitScriptSegments } from "./script-segments";
 import { StoryboardUpgrade } from "./storyboard-upgrade";
 
 const maturityLevels = ["idea", "script", "storyboard", "video"] as const;
@@ -22,6 +26,9 @@ function formatDate(value: string): string {
 
 export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
   const currentIndex = maturityLevels.indexOf(project.currentLevel);
+  const [activeDeliverable, setActiveDeliverable] = useState<
+    "script" | "storyboard"
+  >(project.storyboard ? "storyboard" : "script");
 
   return (
     <main className={styles.workspace}>
@@ -77,6 +84,33 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
       <div className={styles.workspaceGrid}>
         <div className={styles.deliverables}>
           {project.script ? (
+            <div
+              className={styles.deliverableTabs}
+              role="tablist"
+              aria-label="Project deliverables"
+            >
+              {project.storyboard ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDeliverable === "storyboard"}
+                  onClick={() => setActiveDeliverable("storyboard")}
+                >
+                  Storyboard
+                </button>
+              ) : null}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeDeliverable === "script"}
+                onClick={() => setActiveDeliverable("script")}
+              >
+                Script
+              </button>
+            </div>
+          ) : null}
+
+          {project.script && activeDeliverable === "script" ? (
             <section
               className={styles.scriptSheet}
               aria-labelledby="script-title"
@@ -98,7 +132,16 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                 </div>
                 <div className={styles.bodyBlock}>
                   <span>BODY</span>
-                  <p>{project.script.body}</p>
+                  {splitScriptSegments(project.script.body).map(
+                    (segment, index) => (
+                      <p
+                        data-testid="script-segment"
+                        key={`${index}-${segment}`}
+                      >
+                        {segment}
+                      </p>
+                    ),
+                  )}
                 </div>
                 {project.script.callToAction ? (
                   <div className={styles.copyBlock}>
@@ -114,7 +157,9 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                 ) : null}
               </div>
             </section>
-          ) : (
+          ) : null}
+
+          {!project.script ? (
             <section className={styles.ideaState}>
               <span>01</span>
               <div>
@@ -128,7 +173,7 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                 </Link>
               ) : null}
             </section>
-          )}
+          ) : null}
 
           {project.script &&
           !project.storyboard &&
@@ -136,7 +181,7 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
             <StoryboardUpgrade projectId={project.id} />
           ) : null}
 
-          {project.storyboard ? (
+          {project.storyboard && activeDeliverable === "storyboard" ? (
             <section
               className={styles.storyboard}
               aria-labelledby="storyboard-title"

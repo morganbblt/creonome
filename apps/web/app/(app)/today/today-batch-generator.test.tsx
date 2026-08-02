@@ -7,7 +7,25 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
 }));
 
+import { demoOpportunities } from "../../../src/features/opportunities/demo-opportunities";
 import { TodayBatchGenerator } from "./today-batch-generator";
+
+const generatedBatch = {
+  generatedAt: "2026-08-02T10:00:00.000Z",
+  opportunities: demoOpportunities.map(
+    ({
+      badge: _badge,
+      duration: _duration,
+      hook: _hook,
+      why: _why,
+      reserve: _reserve,
+      verdict: _verdict,
+      effort: _effort,
+      channel: _channel,
+      ...opportunity
+    }) => opportunity,
+  ),
+};
 
 describe("TodayBatchGenerator", () => {
   beforeEach(() => {
@@ -15,16 +33,28 @@ describe("TodayBatchGenerator", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
-  it("generates the selected idempotent batch and refreshes Today", async () => {
-    vi.mocked(fetch).mockResolvedValue(Response.json({ opportunities: [] }));
-    render(<TodayBatchGenerator />);
+  it("combines multiple filters and returns the generated batch", async () => {
+    const onGenerated = vi.fn();
+    vi.mocked(fetch).mockResolvedValue(Response.json(generatedBatch));
+    render(<TodayBatchGenerator onGenerated={onGenerated} />);
 
     fireEvent.click(screen.getByRole("button", { name: "More experimental" }));
+    expect(
+      screen
+        .getByRole("button", { name: "Closer to my DNA" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      screen
+        .getByRole("button", { name: "More experimental" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
     fireEvent.click(
       screen.getByRole("button", { name: /3 new opportunities/i }),
     );
 
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(onGenerated).toHaveBeenCalledWith(generatedBatch);
     expect(fetch).toHaveBeenCalledWith(
       "/api/creonome/opportunities/batches",
       expect.objectContaining({
@@ -33,7 +63,9 @@ describe("TodayBatchGenerator", () => {
           "Content-Type": "application/json",
           "Idempotency-Key": expect.stringMatching(/^batch-/),
         }),
-        body: JSON.stringify({ direction: "More experimental" }),
+        body: JSON.stringify({
+          directions: ["Closer to my DNA", "More experimental"],
+        }),
       }),
     );
   });
@@ -46,7 +78,7 @@ describe("TodayBatchGenerator", () => {
           { status: 503 },
         ),
       )
-      .mockResolvedValueOnce(Response.json({ opportunities: [] }));
+      .mockResolvedValueOnce(Response.json(generatedBatch));
     render(<TodayBatchGenerator />);
 
     fireEvent.click(

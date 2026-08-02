@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BrandWordmark } from "../brand/brand-wordmark";
 import styles from "./auth-shell.module.css";
 
 export function AuthShell({ children }: Readonly<{ children: ReactNode }>) {
@@ -7,12 +8,7 @@ export function AuthShell({ children }: Readonly<{ children: ReactNode }>) {
     <main className={styles.page}>
       <section className={styles.story} aria-labelledby="auth-story-title">
         <Link href="/" className={styles.brand}>
-          <img
-            src="/brand/creonome-wordmark-black.svg"
-            alt="Creonome"
-            width="1398"
-            height="302"
-          />
+          <BrandWordmark />
         </Link>
         <div className={styles.storyContent}>
           <p className={styles.eyebrow}>Your creative operating system</p>

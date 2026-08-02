@@ -206,7 +206,7 @@ describe("OpportunityWorkspace", () => {
             projectId: "0198f3a2-82dd-7000-8000-000000000020",
             title: opportunity.title,
             hook: "Let the room breathe. Then drop the needle.",
-            body: "Hold for two seconds, lower the needle, then reveal the kick.",
+            body: "[0:00-0:08] Hold for two seconds. [0:08-0:15] Lower the needle. [0:15-0:35] Reveal the kick.",
             callToAction: "What comes after your silence?",
             caption: "The room is part of the arrangement.",
             platforms: ["tiktok", "instagram"],
@@ -240,7 +240,13 @@ describe("OpportunityWorkspace", () => {
     expect(
       await screen.findByRole("heading", { name: /your script/i }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole("tab", { name: "Script" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(screen.getByRole("tab", { name: "Idea" })).toBeTruthy();
+    expect(screen.getAllByTestId("script-segment")).toHaveLength(3);
     expect(screen.getByText(/hold for two seconds/i)).toBeTruthy();
+    expect(screen.queryByLabelText("Opportunity detail")).toBeNull();
     expect(screen.getByText(/58 credits remaining/i)).toBeTruthy();
     expect(
       screen.getByRole("link", { name: /view project/i }).getAttribute("href"),

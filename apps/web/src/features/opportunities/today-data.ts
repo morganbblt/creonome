@@ -41,6 +41,15 @@ const presentationByStrategy = Object.fromEntries(
   >
 >;
 
+export function presentOpportunity(
+  opportunity: OpportunityBatch["opportunities"][number],
+): DemoOpportunity {
+  return {
+    ...opportunity,
+    ...presentationByStrategy[opportunity.strategy],
+  };
+}
+
 export async function loadTodayOpportunities(
   client: OpportunitySource,
 ): Promise<{
@@ -53,10 +62,7 @@ export async function loadTodayOpportunities(
     return {
       source: "api",
       generatedAt: batch.generatedAt,
-      opportunities: batch.opportunities.map((opportunity) => ({
-        ...opportunity,
-        ...presentationByStrategy[opportunity.strategy],
-      })),
+      opportunities: batch.opportunities.map(presentOpportunity),
     };
   } catch {
     return { source: "demo", opportunities: demoOpportunities };

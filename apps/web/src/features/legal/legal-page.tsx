@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandWordmark } from "../brand/brand-wordmark";
 import type { LegalDocumentSlug } from "./legal-documents";
 import { legalDocuments } from "./legal-documents";
 import styles from "./legal-page.module.css";
@@ -10,7 +11,7 @@ export function LegalPage({ document }: { document: LegalDocumentSlug }) {
     <main className={styles.page}>
       <header className={styles.header}>
         <Link href="/" className={styles.brand}>
-          Creonome
+          <BrandWordmark />
         </Link>
         <Link href="/auth/sign-in" className={styles.back}>
           Back to sign in

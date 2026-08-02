@@ -10,6 +10,7 @@ import {
 } from "@creonome/contracts";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { BrandWordmark } from "../brand/brand-wordmark";
 import styles from "./onboarding.module.css";
 
 type View = "source" | "upload" | "profile";
@@ -97,7 +98,7 @@ function ProgressHeader({ view }: { view: View }) {
         : "Your creative profile";
   return (
     <header className={styles.panelHeader}>
-      <img src="/brand/creonome-wordmark-black.svg" alt="Creonome" />
+      <BrandWordmark />
       <strong>{title}</strong>
       <div className={styles.progressGroup}>
         <span className={styles.progressTrack} aria-hidden="true">

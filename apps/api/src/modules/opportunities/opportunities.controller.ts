@@ -25,7 +25,10 @@ import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import { OpportunitiesService } from "./opportunities.service.js";
 import { OpportunityGenerationService } from "./opportunity-generation.service.js";
-import { CreateOpportunityBatchDto } from "./create-opportunity-batch.dto.js";
+import {
+  CreateOpportunityBatchDto,
+  resolveOpportunityDirections,
+} from "./create-opportunity-batch.dto.js";
 import { CreateOpportunityFeedbackDto } from "./create-opportunity-feedback.dto.js";
 import { ModifyOpportunityDto } from "./modify-opportunity.dto.js";
 import { OpportunityWorkflowService } from "./opportunity-workflow.service.js";
@@ -117,7 +120,7 @@ export class OpportunitiesController {
     return this.generation.generate(
       principal,
       idempotencyKey ?? "",
-      input.direction,
+      resolveOpportunityDirections(input),
     );
   }
 }

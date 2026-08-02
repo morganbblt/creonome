@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { publishCreditBalance } from "../navigation/credit-balance";
+import { splitScriptSegments } from "../projects/script-segments";
 import styles from "./opportunity-workspace.module.css";
 
 type Panel = "modify" | "upgrade" | null;
@@ -108,6 +109,9 @@ export function OpportunityWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [script, setScript] = useState<ScriptDraft | null>(null);
+  const [activeDeliverable, setActiveDeliverable] = useState<"idea" | "script">(
+    "idea",
+  );
   const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
   const [feedbackPending, setFeedbackPending] =
     useState<OpportunityFeedbackAction | null>(null);
@@ -261,6 +265,7 @@ export function OpportunityWorkspace({
         await response.json(),
       );
       setScript(upgrade.script);
+      setActiveDeliverable("script");
       setOpportunity((current) => ({
         ...current,
         currentLevel: upgrade.project.currentLevel,
@@ -288,166 +293,199 @@ export function OpportunityWorkspace({
         ← Back to Today
       </Link>
 
-      <div className={styles.layout}>
-        <section className={styles.idea} aria-label="Opportunity detail">
-          <header className={styles.hero}>
-            <div className={styles.heroMeta}>
-              <span
-                className={`${styles.badge} ${styles[opportunity.strategy]}`}
-              >
-                <span aria-hidden="true" />
-                {badgeByStrategy[opportunity.strategy]}
-              </span>
-              <span>
-                {opportunity.estimatedDurationSeconds ?? 35}s · 9:16 ·{" "}
-                {opportunity.effort} effort
-              </span>
-            </div>
-            <h1>{opportunity.title}</h1>
-            <p>{opportunity.pitch}</p>
-          </header>
-
-          <div
-            className={styles.media}
-            role="img"
-            aria-label={`Vertical frame concept for ${opportunity.title}`}
+      {script ? (
+        <div
+          className={styles.deliverableTabs}
+          role="tablist"
+          aria-label="Deliverables"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeDeliverable === "script"}
+            onClick={() => setActiveDeliverable("script")}
           >
-            <span className={styles.mediaLabel}>CREATOR FOOTAGE · 9:16</span>
-            <span className={styles.subject} />
-            <span className={styles.play} aria-hidden="true">
-              ▶
-            </span>
-          </div>
+            Script
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeDeliverable === "idea"}
+            onClick={() => setActiveDeliverable("idea")}
+          >
+            Idea
+          </button>
+        </div>
+      ) : null}
 
-          <section className={styles.readout} aria-label="Creative reasoning">
-            <div className={styles.hook}>
-              <span>HOOK</span>
-              <p>{opportunity.hook}</p>
+      {activeDeliverable === "idea" ? (
+        <div className={styles.layout}>
+          <section className={styles.idea} aria-label="Opportunity detail">
+            <header className={styles.hero}>
+              <div className={styles.heroMeta}>
+                <span
+                  className={`${styles.badge} ${styles[opportunity.strategy]}`}
+                >
+                  <span aria-hidden="true" />
+                  {badgeByStrategy[opportunity.strategy]}
+                </span>
+                <span>
+                  {opportunity.estimatedDurationSeconds ?? 35}s · 9:16 ·{" "}
+                  {opportunity.effort} effort
+                </span>
+              </div>
+              <h1>{opportunity.title}</h1>
+              <p>{opportunity.pitch}</p>
+            </header>
+
+            <div
+              className={styles.media}
+              role="img"
+              aria-label={`Vertical frame concept for ${opportunity.title}`}
+            >
+              <span className={styles.mediaLabel}>CREATOR FOOTAGE · 9:16</span>
+              <span className={styles.subject} />
+              <span className={styles.play} aria-hidden="true">
+                ▶
+              </span>
             </div>
-            <div className={styles.score}>
-              <strong>{opportunity.score}</strong>
-              <span>/100</span>
-              <em>{verdict(opportunity.score)}</em>
-              <small>{opportunity.confidence} confidence</small>
-            </div>
-            <div className={styles.why}>
-              <span>WHY THIS FITS</span>
-              <p>{opportunity.rationale}</p>
-              <ul>
-                {opportunity.evidence.map((item) => (
-                  <li key={item}>{item}</li>
+
+            <section className={styles.readout} aria-label="Creative reasoning">
+              <div className={styles.hook}>
+                <span>HOOK</span>
+                <p>{opportunity.hook}</p>
+              </div>
+              <div className={styles.score}>
+                <strong>{opportunity.score}</strong>
+                <span>/100</span>
+                <em>{verdict(opportunity.score)}</em>
+                <small>{opportunity.confidence} confidence</small>
+              </div>
+              <div className={styles.why}>
+                <span>WHY THIS FITS</span>
+                <p>{opportunity.rationale}</p>
+                <ul>
+                  {opportunity.evidence.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+                {opportunity.reserve ? (
+                  <p className={styles.reserve}>
+                    <strong>Reserve —</strong> {opportunity.reserve}
+                  </p>
+                ) : null}
+              </div>
+            </section>
+
+            <section className={styles.feedback} aria-label="Creative feedback">
+              <div>
+                <p>Does this feel like you?</p>
+                <span>Explicit feedback improves the next three routes.</span>
+              </div>
+              <div className={styles.feedbackActions}>
+                {feedbackActions.map(({ action, label }) => (
+                  <button
+                    type="button"
+                    aria-pressed={selectedFeedback === action}
+                    disabled={feedbackPending !== null}
+                    key={action}
+                    onClick={() => void submitFeedback(action)}
+                  >
+                    {feedbackPending === action ? "Saving…" : label}
+                  </button>
                 ))}
-              </ul>
-              {opportunity.reserve ? (
-                <p className={styles.reserve}>
-                  <strong>Reserve —</strong> {opportunity.reserve}
+              </div>
+              {feedbackNotice ? (
+                <p className={styles.feedbackStatus} aria-live="polite">
+                  {feedbackNotice}{" "}
+                  {feedbackMemoryReady ? (
+                    <Link href="/creator-dna">Review memory →</Link>
+                  ) : null}
                 </p>
               ) : null}
-            </div>
-          </section>
+              {feedbackError ? (
+                <p className={styles.feedbackError} role="alert">
+                  {feedbackError}
+                </p>
+              ) : null}
+            </section>
 
-          <section className={styles.feedback} aria-label="Creative feedback">
-            <div>
-              <p>Does this feel like you?</p>
-              <span>Explicit feedback improves the next three routes.</span>
-            </div>
-            <div className={styles.feedbackActions}>
-              {feedbackActions.map(({ action, label }) => (
-                <button
-                  type="button"
-                  aria-pressed={selectedFeedback === action}
-                  disabled={feedbackPending !== null}
-                  key={action}
-                  onClick={() => void submitFeedback(action)}
-                >
-                  {feedbackPending === action ? "Saving…" : label}
+            {notice ? <p className={styles.notice}>{notice}</p> : null}
+            {error && !panel ? <p className={styles.error}>{error}</p> : null}
+
+            <div className={styles.actions}>
+              {opportunity.currentLevel === "idea" ? (
+                <button type="button" onClick={() => setPanel("upgrade")}>
+                  Move to script <span>{opportunity.creditCost} cr</span>
                 </button>
-              ))}
+              ) : (
+                <Link
+                  href={
+                    opportunity.projectId
+                      ? `/projects/${opportunity.projectId}`
+                      : "/projects"
+                  }
+                  className={styles.continueProject}
+                >
+                  Continue in Projects
+                </Link>
+              )}
+              <button type="button" onClick={() => setPanel("modify")}>
+                Modify idea
+              </button>
             </div>
-            {feedbackNotice ? (
-              <p className={styles.feedbackStatus} aria-live="polite">
-                {feedbackNotice}{" "}
-                {feedbackMemoryReady ? (
-                  <Link href="/creator-dna">Review memory →</Link>
-                ) : null}
-              </p>
-            ) : null}
-            {feedbackError ? (
-              <p className={styles.feedbackError} role="alert">
-                {feedbackError}
-              </p>
-            ) : null}
           </section>
 
-          {notice ? <p className={styles.notice}>{notice}</p> : null}
-          {error && !panel ? <p className={styles.error}>{error}</p> : null}
-
-          <div className={styles.actions}>
-            {opportunity.currentLevel === "idea" ? (
-              <button type="button" onClick={() => setPanel("upgrade")}>
-                Move to script <span>{opportunity.creditCost} cr</span>
-              </button>
-            ) : (
-              <Link
-                href={
-                  opportunity.projectId
-                    ? `/projects/${opportunity.projectId}`
-                    : "/projects"
-                }
-                className={styles.continueProject}
-              >
-                Continue in Projects
-              </Link>
-            )}
-            <button type="button" onClick={() => setPanel("modify")}>
-              Modify idea
-            </button>
-          </div>
-        </section>
-
-        <aside className={styles.progress} aria-label="Project maturity">
-          <p>PROJECT PATH</p>
-          {maturityLevels.map((level, index) => {
-            const currentIndex = maturityLevels.indexOf(
-              opportunity.currentLevel,
-            );
-            const label = level[0]!.toUpperCase() + level.slice(1);
-            return (
-              <div
-                className={
-                  index === currentIndex
-                    ? styles.activeLevel
-                    : index < currentIndex
-                      ? styles.completedLevel
-                      : styles.level
-                }
-                key={level}
-              >
-                <span>{index + 1}</span>
-                <div>
-                  <strong>{label}</strong>
-                  <small>
-                    {index === currentIndex
-                      ? "Current level"
+          <aside className={styles.progress} aria-label="Project maturity">
+            <p>PROJECT PATH</p>
+            {maturityLevels.map((level, index) => {
+              const currentIndex = maturityLevels.indexOf(
+                opportunity.currentLevel,
+              );
+              const label = level[0]!.toUpperCase() + level.slice(1);
+              return (
+                <div
+                  className={
+                    index === currentIndex
+                      ? styles.activeLevel
                       : index < currentIndex
-                        ? "Complete"
-                        : "Not generated yet"}
-                  </small>
+                        ? styles.completedLevel
+                        : styles.level
+                  }
+                  key={level}
+                >
+                  <span>{index + 1}</span>
+                  <div>
+                    <strong>{label}</strong>
+                    <small>
+                      {index === currentIndex
+                        ? "Current level"
+                        : index < currentIndex
+                          ? "Complete"
+                          : "Not generated yet"}
+                    </small>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </aside>
-      </div>
+              );
+            })}
+          </aside>
+        </div>
+      ) : null}
 
-      {script ? (
+      {script && activeDeliverable === "script" ? (
         <section className={styles.script} aria-live="polite">
           <div>
             <p>SCRIPT · VERSION 1</p>
             <h2>Your script</h2>
           </div>
           <blockquote>{script.hook}</blockquote>
-          <p>{script.body}</p>
+          <div className={styles.scriptTimeline} aria-label="Script timeline">
+            {splitScriptSegments(script.body).map((segment, index) => (
+              <p data-testid="script-segment" key={`${index}-${segment}`}>
+                {segment}
+              </p>
+            ))}
+          </div>
           {script.callToAction ? (
             <p>
               <strong>CTA</strong> {script.callToAction}

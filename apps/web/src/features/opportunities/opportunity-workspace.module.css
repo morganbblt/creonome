@@ -19,6 +19,34 @@
   align-items: start;
 }
 
+.deliverableTabs {
+  display: inline-flex;
+  gap: 5px;
+  margin-bottom: 14px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.deliverableTabs button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deliverableTabs button[aria-selected="true"] {
+  background: var(--button);
+  color: var(--button-text);
+}
+
 .idea,
 .progress,
 .script {
@@ -507,10 +535,21 @@
   line-height: 1.45;
 }
 
+.scriptTimeline p,
 .script > p {
   max-width: 760px;
   color: var(--text-2);
   line-height: 1.65;
+}
+
+.scriptTimeline {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.scriptTimeline p {
+  margin: 0;
 }
 
 .script footer {

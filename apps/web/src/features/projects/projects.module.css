@@ -403,6 +403,34 @@
   gap: 18px;
 }
 
+.deliverableTabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.deliverableTabs button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deliverableTabs button[aria-selected="true"] {
+  background: var(--button);
+  color: var(--button-text);
+}
+
 .scriptSheet,
 .storyboard,
 .ideaState,
@@ -507,6 +535,10 @@
   font-size: 15px;
   line-height: 1.75;
   white-space: pre-wrap;
+}
+
+.bodyBlock p + p {
+  margin-top: 9px;
 }
 .copyBlock {
   display: grid;

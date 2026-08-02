@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { createServerApiClient } from "../../../src/lib/api/server-client";
 import { loadTodayOpportunities } from "../../../src/features/opportunities/today-data";
-import { TodayBatchGenerator } from "./today-batch-generator";
-import { TodayOpportunityCard } from "./today-opportunity-card";
+import { TodayCarousel } from "./today-carousel";
 import styles from "./today.module.css";
 
 export const metadata: Metadata = { title: "Today" };
@@ -35,22 +34,10 @@ export default async function TodayPage() {
         </p>
       ) : null}
 
-      <section
-        className={styles.grid}
-        aria-label="This week’s creative opportunities"
-      >
-        {opportunities.map((opportunity) => (
-          <TodayOpportunityCard
-            key={opportunity.id}
-            opportunity={opportunity}
-            preview={source === "demo"}
-          />
-        ))}
-      </section>
-
-      <section className={styles.newBatch} aria-label="Generate another batch">
-        <TodayBatchGenerator preview={source === "demo"} />
-      </section>
+      <TodayCarousel
+        opportunities={opportunities}
+        preview={source === "demo"}
+      />
     </main>
   );
 }

@@ -53,11 +53,53 @@
   white-space: nowrap;
 }
 
-.grid {
+.carousel {
+  min-width: 0;
+}
+
+.carouselControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.carouselControls span {
+  margin-right: 4px;
+  color: var(--text-3);
+  font: 450 10px/1 var(--mono);
+}
+
+.carouselControls button {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 38px;
+  min-height: 38px;
+  place-items: center;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.carouselTrack {
+  display: grid;
+  grid-auto-columns: calc((100% - 40px) / 3);
+  grid-auto-flow: column;
   gap: 20px;
   align-items: start;
+  overflow-x: auto;
+  padding: 2px 2px 18px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-color: var(--line-2) transparent;
+  scrollbar-width: thin;
+}
+
+.carouselTrack > article {
+  height: 100%;
+  scroll-snap-align: start;
 }
 
 .previewNotice {
@@ -203,12 +245,17 @@
   transition:
     max-height 260ms ease,
     opacity 180ms ease;
+  transition-delay: 1.5s;
 }
 
 .card:hover .details,
 .card:focus-within .details {
   max-height: 520px;
   opacity: 1;
+}
+
+.card:focus-within .details {
+  transition-delay: 0ms;
 }
 
 .hook {
@@ -436,13 +483,13 @@
   font-weight: 550;
 }
 
-.newBatch > div {
+.batchFilters {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.newBatch > div button {
+.batchFilters button {
   padding: 8px 12px;
   border: 1px solid var(--line-2);
   border-radius: 999px;
@@ -452,7 +499,7 @@
   cursor: pointer;
 }
 
-.newBatch > div button.selectedDirection {
+.batchFilters button.selectedDirection {
   border-color: var(--text);
   background: var(--surface-2);
   color: var(--text);
@@ -469,29 +516,12 @@
 }
 
 @media (max-width: 980px) {
-  .grid {
-    grid-template-columns: 1fr;
+  .carouselTrack {
+    grid-auto-columns: calc((100% - 20px) / 2);
   }
 
   .card {
-    display: grid;
-    grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);
-  }
-
-  .cardMeta,
-  .actions {
-    grid-column: 1 / -1;
-  }
-
-  .media {
-    grid-row: 2 / span 2;
-    height: 100%;
-    min-height: 200px;
-  }
-
-  .details {
-    max-height: 520px;
-    opacity: 1;
+    display: flex;
   }
 
   .newBatch {
@@ -522,6 +552,10 @@
 
   .card {
     display: flex;
+  }
+
+  .carouselTrack {
+    grid-auto-columns: min(88vw, 360px);
   }
 
   .media {

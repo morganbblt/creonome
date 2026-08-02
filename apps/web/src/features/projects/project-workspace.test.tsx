@@ -1,5 +1,5 @@
 import type { ProjectDetail } from "@creonome/contracts";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ProjectWorkspace } from "./project-workspace";
 
@@ -21,7 +21,7 @@ const project: ProjectDetail = {
     projectId: "0198f3a2-82dd-7000-8000-000000000020",
     title: "Warehouse tape loop",
     hook: "Let the room breathe. Then drop the needle.",
-    body: "Hold for two seconds, lower the needle, then reveal the kick.",
+    body: "[0:00-0:08] Hold for two seconds. [0:08-0:15] Lower the needle. [0:15-0:35] Reveal the kick.",
     callToAction: "What comes after your silence?",
     caption: "The room is part of the arrangement.",
     platforms: ["tiktok", "instagram"],
@@ -66,14 +66,23 @@ const project: ProjectDetail = {
 };
 
 describe("ProjectWorkspace", () => {
-  it("renders the persisted script, storyboard scene and version history", () => {
+  it("opens the latest deliverable first and navigates older tabs", () => {
     render(<ProjectWorkspace project={project} />);
 
     expect(
       screen.getByRole("heading", { level: 1, name: project.title }),
     ).toBeTruthy();
-    expect(screen.getByText(project.script!.hook)).toBeTruthy();
+    expect(
+      screen
+        .getByRole("tab", { name: "Storyboard" })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(screen.queryByText(project.script!.hook)).toBeNull();
     expect(screen.getByRole("heading", { name: "01 · Silence" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Script" }));
+    expect(screen.getByText(project.script!.hook)).toBeTruthy();
+    expect(screen.getAllByTestId("script-segment")).toHaveLength(3);
+    expect(screen.queryByRole("heading", { name: "01 · Silence" })).toBeNull();
     expect(screen.getByText("Built the first visual sequence.")).toBeTruthy();
     expect(screen.getByText("Current level", { exact: false })).toBeTruthy();
     expect(
