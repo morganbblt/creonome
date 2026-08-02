@@ -3,11 +3,13 @@ import {
   creatorDnaVersions,
   type CreonomeDatabase,
   dnaTraits,
+  sourceAssets,
 } from "@creonome/db";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import type {
   CreatorDnaRecord,
+  CreatorDnaReferenceImageRecord,
   CreatorDnaRepository,
   CreatorDnaVersionRecord,
 } from "./creator-dna.repository.js";
@@ -82,6 +84,116 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
       .from(creatorDnaVersions)
       .where(eq(creatorDnaVersions.creatorProfileId, creatorProfileId))
       .orderBy(desc(creatorDnaVersions.version));
+  }
+
+  async getPeopleReferenceImage(
+    workspaceId: string,
+  ): Promise<CreatorDnaReferenceImageRecord | null> {
+    const [asset] = await this.requireDatabase()
+      .select({
+        id: sourceAssets.id,
+        fileName: sourceAssets.fileName,
+        mimeType: sourceAssets.mimeType,
+        byteSize: sourceAssets.byteSize,
+        gcsUri: sourceAssets.gcsUri,
+        createdAt: sourceAssets.createdAt,
+      })
+      .from(sourceAssets)
+      .where(
+        and(
+          eq(sourceAssets.workspaceId, workspaceId),
+          sql`${sourceAssets.metadata}->>'peopleReference' = 'true'`,
+          sql`${sourceAssets.mimeType} in ('image/jpeg', 'image/png', 'image/webp')`,
+        ),
+      )
+      .orderBy(desc(sourceAssets.createdAt))
+      .limit(1);
+    if (!asset) return null;
+    return {
+      ...asset,
+      mimeType: asset.mimeType as CreatorDnaReferenceImageRecord["mimeType"],
+    };
+  }
+
+  async setPeopleReferenceImage(
+    workspaceId: string,
+    assetId: string,
+  ): Promise<CreatorDnaReferenceImageRecord | null> {
+    const database = this.requireDatabase();
+    const [asset] = await database
+      .select({
+        id: sourceAssets.id,
+        fileName: sourceAssets.fileName,
+        mimeType: sourceAssets.mimeType,
+        byteSize: sourceAssets.byteSize,
+        gcsUri: sourceAssets.gcsUri,
+        createdAt: sourceAssets.createdAt,
+      })
+      .from(sourceAssets)
+      .where(
+        and(
+          eq(sourceAssets.workspaceId, workspaceId),
+          eq(sourceAssets.id, assetId),
+        ),
+      )
+      .limit(1);
+    if (
+      !asset ||
+      !["image/jpeg", "image/png", "image/webp"].includes(asset.mimeType) ||
+      asset.byteSize > 20 * 1024 * 1024
+    ) {
+      return null;
+    }
+
+    const now = new Date();
+    await database.batch([
+      database
+        .update(sourceAssets)
+        .set({
+          metadata: sql`jsonb_set(coalesce(${sourceAssets.metadata}, '{}'::jsonb), '{peopleReference}', 'false'::jsonb, true)`,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(sourceAssets.workspaceId, workspaceId),
+            sql`${sourceAssets.metadata}->>'peopleReference' = 'true'`,
+          ),
+        ),
+      database
+        .update(sourceAssets)
+        .set({
+          metadata: sql`jsonb_set(coalesce(${sourceAssets.metadata}, '{}'::jsonb), '{peopleReference}', 'true'::jsonb, true)`,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(sourceAssets.workspaceId, workspaceId),
+            eq(sourceAssets.id, assetId),
+          ),
+        ),
+    ]);
+
+    return {
+      ...asset,
+      mimeType: asset.mimeType as CreatorDnaReferenceImageRecord["mimeType"],
+    };
+  }
+
+  async clearPeopleReferenceImage(workspaceId: string): Promise<boolean> {
+    const updated = await this.requireDatabase()
+      .update(sourceAssets)
+      .set({
+        metadata: sql`jsonb_set(coalesce(${sourceAssets.metadata}, '{}'::jsonb), '{peopleReference}', 'false'::jsonb, true)`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(sourceAssets.workspaceId, workspaceId),
+          sql`${sourceAssets.metadata}->>'peopleReference' = 'true'`,
+        ),
+      )
+      .returning({ id: sourceAssets.id });
+    return updated.length > 0;
   }
 
   private requireDatabase(): CreonomeDatabase {

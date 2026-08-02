@@ -34,6 +34,9 @@ describe("CreatorDnaService", () => {
       }),
       confirmCurrent: vi.fn(),
       listVersions: vi.fn(),
+      getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
+      setPeopleReferenceImage: vi.fn(),
+      clearPeopleReferenceImage: vi.fn(),
     };
     const service = new CreatorDnaService(workspaces, repository);
 
@@ -41,7 +44,58 @@ describe("CreatorDnaService", () => {
       version: 2,
       summary: "Nocturnal electronic stories grounded in tactile details.",
       confirmed: true,
+      peopleReferenceImage: null,
       traits: [expect.objectContaining({ confidence: 0.95, label: "Tone" })],
     });
+  });
+
+  it("sets and clears a workspace-scoped people reference image", async () => {
+    const workspaces = {
+      resolve: vi.fn().mockResolvedValue({
+        workspaceId: "0198f3a2-82dd-7000-8000-000000000010",
+        creatorProfileId: "0198f3a2-82dd-7000-8000-000000000002",
+      }),
+    } as unknown as WorkspaceContextService;
+    const image = {
+      id: "0198f3a2-82dd-7000-8000-000000000005",
+      fileName: "portrait.png",
+      mimeType: "image/png" as const,
+      byteSize: 2_048,
+      gcsUri: "gs://private/workspaces/workspace/sources/portrait.png",
+      createdAt: new Date("2026-08-02T10:00:00.000Z"),
+    };
+    const repository: CreatorDnaRepository = {
+      getCurrent: vi.fn().mockResolvedValue({
+        id: "0198f3a2-82dd-7000-8000-000000000003",
+        version: 2,
+        summary: "Nocturnal electronic stories grounded in tactile details.",
+        confirmed: true,
+        traits: [],
+      }),
+      confirmCurrent: vi.fn(),
+      listVersions: vi.fn(),
+      getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
+      setPeopleReferenceImage: vi.fn().mockResolvedValue(image),
+      clearPeopleReferenceImage: vi.fn().mockResolvedValue(true),
+    };
+    const service = new CreatorDnaService(workspaces, repository);
+
+    await expect(
+      service.setPeopleReferenceImage(principal, image.id),
+    ).resolves.toMatchObject({
+      peopleReferenceImage: {
+        id: image.id,
+        mimeType: "image/png",
+      },
+    });
+    await expect(
+      service.clearPeopleReferenceImage(principal),
+    ).resolves.toMatchObject({
+      peopleReferenceImage: null,
+    });
+    expect(repository.setPeopleReferenceImage).toHaveBeenCalledWith(
+      "0198f3a2-82dd-7000-8000-000000000010",
+      image.id,
+    );
   });
 });

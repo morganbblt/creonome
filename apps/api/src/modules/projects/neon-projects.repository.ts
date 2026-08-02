@@ -10,11 +10,12 @@ import {
   opportunities,
   projects,
   projectVersions,
+  sourceAssets,
   scripts,
   storyboardScenes,
   storyboards,
 } from "@creonome/db";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import type {
   CreateStoryboardUpgradeInput,
@@ -653,6 +654,21 @@ export class NeonProjectsRepository implements ProjectsRepository {
           .where(eq(dnaTraits.dnaVersionId, dna.id))
           .orderBy(asc(dnaTraits.position))
       : [];
+    const [peopleReferenceImage] = await database
+      .select({
+        gcsUri: sourceAssets.gcsUri,
+        mimeType: sourceAssets.mimeType,
+      })
+      .from(sourceAssets)
+      .where(
+        and(
+          eq(sourceAssets.workspaceId, workspaceId),
+          sql`${sourceAssets.metadata}->>'peopleReference' = 'true'`,
+          sql`${sourceAssets.mimeType} in ('image/jpeg', 'image/png', 'image/webp')`,
+        ),
+      )
+      .orderBy(desc(sourceAssets.createdAt))
+      .limit(1);
     return {
       project,
       script,
@@ -667,6 +683,13 @@ export class NeonProjectsRepository implements ProjectsRepository {
         traits: traits.map(
           (trait) => `${trait.category}: ${trait.label} — ${trait.value}`,
         ),
+        peopleReferenceImage: peopleReferenceImage
+          ? {
+              gcsUri: peopleReferenceImage.gcsUri,
+              mimeType: peopleReferenceImage.mimeType as
+                "image/jpeg" | "image/png" | "image/webp",
+            }
+          : null,
       },
     };
   }

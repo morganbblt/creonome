@@ -4,6 +4,11 @@ import { GoogleGenAI } from "@google/genai";
 import { AiModule } from "../ai/ai.module.js";
 import { CreditsModule } from "../credits/credits.module.js";
 import { WorkspacesModule } from "../workspaces/workspaces.module.js";
+import {
+  PRIVATE_OBJECT_READER,
+  type PrivateObjectReader,
+} from "../uploads/private-object-store.js";
+import { UploadsModule } from "../uploads/uploads.module.js";
 import { NeonProjectsRepository } from "./neon-projects.repository.js";
 import { ProjectWorkflowService } from "./project-workflow.service.js";
 import { ProjectVideoService } from "./project-video.service.js";
@@ -27,7 +32,7 @@ import {
 import { VeoVideoProvider } from "./video/veo-video.provider.js";
 
 @Module({
-  imports: [AiModule, CreditsModule, WorkspacesModule],
+  imports: [AiModule, CreditsModule, UploadsModule, WorkspacesModule],
   controllers: [ProjectsController],
   providers: [
     ProjectsService,
@@ -53,10 +58,11 @@ import { VeoVideoProvider } from "./video/veo-video.provider.js";
     },
     {
       provide: VIDEO_PROVIDER,
-      inject: [ConfigService, VIDEO_OBJECT_STORE],
+      inject: [ConfigService, VIDEO_OBJECT_STORE, PRIVATE_OBJECT_READER],
       useFactory: (
         config: ConfigService,
         store: VideoObjectStore,
+        reader: PrivateObjectReader,
       ): VideoProvider => {
         const deterministic = new DeterministicVideoProvider();
         const project = config.get<string>("GOOGLE_CLOUD_PROJECT");
@@ -81,6 +87,7 @@ import { VeoVideoProvider } from "./video/veo-video.provider.js";
               });
               return new VeoVideoProvider({
                 store,
+                readReferenceImage: (gcsUri) => reader.readObject(gcsUri),
                 model:
                   config.get<string>("VEO_VERTEX_MODEL") ??
                   "veo-3.1-fast-generate-001",
@@ -102,6 +109,7 @@ import { VeoVideoProvider } from "./video/veo-video.provider.js";
                 return new VeoVideoProvider({
                   apiKey,
                   store,
+                  readReferenceImage: (gcsUri) => reader.readObject(gcsUri),
                   model:
                     config.get<string>("VEO_GEMINI_MODEL") ??
                     "veo-3.1-fast-generate-preview",

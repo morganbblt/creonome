@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type {
   GenerateVideosOperation,
   GenerateVideosParameters,
+  VideoGenerationReferenceType,
 } from "@google/genai";
 import type { VideoObjectStore } from "./video-object-store.js";
 import {
@@ -34,6 +35,9 @@ type VeoVideoProviderOptions = {
   timeoutMs?: number;
   now?: () => number;
   sleep?: (milliseconds: number) => Promise<void>;
+  readReferenceImage?: (
+    gcsUri: string,
+  ) => Promise<{ bytes: Buffer; mimeType: string }>;
 };
 
 function bounded(value: string | null | undefined, limit: number): string {
@@ -62,6 +66,9 @@ export function buildVeoPrompt(input: VideoGenerationInput): string {
     "Compress the longer storyboard into its strongest 8-second arc while preserving chronological intent. Favor achievable studio action over surreal spectacle. Do not introduce people other than the described adult creator.",
     `Creative identity — artist: ${bounded(identity.stageName, 120)}; bio: ${bounded(identity.bio, 240)}; audience: ${bounded(identity.audienceDescription, 240)}; genres: ${bounded(identity.genres.join(", "), 200)}; languages: ${bounded(identity.languages.join(", "), 120)}.`,
     `Creator DNA: ${bounded(identity.dnaSummary, 500)}. Traits: ${bounded(identity.traits.join("; "), 500)}.`,
+    identity.peopleReferenceImage
+      ? "A people reference image is attached to preserve the creator's appearance. Keep the same adult person consistent across shots; do not invent a different face."
+      : "No people reference image is attached; keep any creator appearance generic and consistent.",
     `Script — title: ${bounded(source.script.title, 160)}. Hook: ${bounded(source.script.hook, 300)}. Body: ${bounded(source.script.body, 1_200)}. CTA: ${bounded(source.script.callToAction, 240)}.`,
     `Storyboard (${bounded(source.storyboard.aspectRatio, 24)}, ${source.storyboard.durationSeconds ?? "unknown"} seconds):`,
     scenes,
@@ -139,23 +146,43 @@ export class VeoVideoProvider implements VideoProvider {
     let operation: GenerateVideosOperation;
 
     try {
+      const config: NonNullable<GenerateVideosParameters["config"]> = {
+        abortSignal: abort.signal,
+        numberOfVideos: 1,
+        durationSeconds: 8,
+        aspectRatio: "9:16",
+        resolution: "720p",
+        personGeneration: "allow_adult",
+        enhancePrompt: true,
+        negativePrompt:
+          "landscape, horizontal framing, letterboxing, watermark, logo, duplicated limbs, distorted hands, unreadable text, copyrighted character, unsafe content",
+      };
+      const peopleReference =
+        input.source.creativeIdentity.peopleReferenceImage;
+      if (peopleReference) {
+        const image =
+          this.provider === "google-gemini-api"
+            ? await this.loadInlineReferenceImage(peopleReference.gcsUri)
+            : {
+                gcsUri: peopleReference.gcsUri,
+                mimeType: peopleReference.mimeType,
+              };
+        config.referenceImages = [
+          {
+            image,
+            // The current REST contract uses the lowercase enum value even
+            // though the SDK declaration exposes uppercase enum members.
+            referenceType: "asset" as unknown as VideoGenerationReferenceType,
+          },
+        ];
+      }
       operation = await this.withDeadline(
         this.options.client.generateVideos({
           model: this.model,
           source: {
             prompt: buildVeoPrompt(input),
           },
-          config: {
-            abortSignal: abort.signal,
-            numberOfVideos: 1,
-            durationSeconds: 8,
-            aspectRatio: "9:16",
-            resolution: "720p",
-            personGeneration: "allow_adult",
-            enhancePrompt: true,
-            negativePrompt:
-              "landscape, horizontal framing, letterboxing, watermark, logo, duplicated limbs, distorted hands, unreadable text, copyrighted character, unsafe content",
-          },
+          config,
         }),
         deadline,
         abort,
@@ -257,6 +284,24 @@ export class VeoVideoProvider implements VideoProvider {
       model: this.model,
       simulated: false,
       fallbackReasonCode: null,
+    };
+  }
+
+  private async loadInlineReferenceImage(gcsUri: string) {
+    if (!this.options.readReferenceImage) {
+      throw new VideoProviderError("VEO_REFERENCE_IMAGE_UNAVAILABLE");
+    }
+    const image = await this.options.readReferenceImage(gcsUri);
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(image.mimeType) ||
+      image.bytes.byteLength < 1 ||
+      image.bytes.byteLength > 20 * 1024 * 1024
+    ) {
+      throw new VideoProviderError("VEO_REFERENCE_IMAGE_INVALID");
+    }
+    return {
+      imageBytes: image.bytes.toString("base64"),
+      mimeType: image.mimeType,
     };
   }
 

@@ -39,6 +39,8 @@ gcloud auth application-default login
 
 `VIDEO_PROVIDER=auto` is the production default. With `GOOGLE_CLOUD_PROJECT` configured, `VEO_BACKEND=auto` selects Vertex AI Veo through the Cloud Run service identity; `VEO_BACKEND=gemini` selects the server-only `GEMINI_API_KEY` route. The API polls the long-running operation for at most `VEO_TIMEOUT_MS`, validates the complete MP4, and then writes it to the private media bucket. Any model, quota, permission, timeout, response, download or storage failure automatically selects the committed deterministic MP4 instead. `VIDEO_PROVIDER=deterministic` is useful for local development and demos without provider spend. `VIDEO_PROVIDER=veo` still preserves the mandatory fallback; it expresses provider preference, not permission to break the workflow.
 
+Creator DNA accepts one optional private people-reference image (JPG, PNG or WebP, up to 20 MB). It is stored as a workspace-scoped source asset; Veo receives it as an asset reference and the Gemini API adapter reads it as validated inline bytes. Replacing or removing the image changes only the reference marker—the original source remains available in the private library.
+
 The Cloud Run service account needs:
 
 - `roles/storage.objectUser` on `gs://creonome-909754432431-media`;

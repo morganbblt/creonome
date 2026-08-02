@@ -35,26 +35,26 @@ flowchart LR
 
 ## What is working
 
-| Area                   | Current implementation                                                                    |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| Authentication         | Neon Auth email/password and Sign in with Google                                          |
-| Creator onboarding     | Private GCS uploads, multimodal analysis, editable evidence-backed Creator DNA            |
-| Trend intelligence     | Normalized sources, candidates, snapshots and clusters attached to opportunity reasoning  |
-| Today                  | Three explainable opportunities, multiple filters, incremental batches and card carousel  |
-| Creative direction     | Conversational idea modification with version preservation                                |
-| Production workflow    | Credited Script → Storyboard → Video project progression                                  |
-| Video                  | Verified Vertex AI Veo 3.1 rendering, private GCS delivery and deterministic MP4 fallback |
-| Memory                 | Mem0 adapter plus approval-gated memory candidate queue                                   |
-| Credits                | Idempotent reserve / commit / release ledger; no charge for unusable output               |
-| Library and export     | Tenant-scoped assets, confirmed source deletion and Markdown project package              |
-| Privacy                | Persisted consent/retention controls, sanitized export, cancellable deletion request      |
-| Themes and interaction | Responsive light/dark UI, route progress and non-blocking generation toasts               |
+| Area                   | Current implementation                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication         | Neon Auth email/password and Sign in with Google                                                                                      |
+| Creator onboarding     | Private GCS uploads, multimodal analysis, editable evidence-backed Creator DNA and an optional private people reference image for Veo |
+| Trend intelligence     | Normalized sources, candidates, snapshots and clusters attached to opportunity reasoning                                              |
+| Today                  | Three explainable opportunities, multiple filters, incremental batches and card carousel                                              |
+| Creative direction     | Conversational idea modification with version preservation                                                                            |
+| Production workflow    | Credited Script → Storyboard → Video project progression                                                                              |
+| Video                  | Verified Vertex AI Veo 3.1 rendering, private GCS delivery and deterministic MP4 fallback                                             |
+| Memory                 | Mem0 adapter plus approval-gated memory candidate queue                                                                               |
+| Credits                | Idempotent reserve / commit / release ledger; no charge for unusable output                                                           |
+| Library and export     | Tenant-scoped assets, confirmed source deletion and Markdown project package                                                          |
+| Privacy                | Persisted consent/retention controls, sanitized export, cancellable deletion request                                                  |
+| Themes and interaction | Responsive light/dark UI, route progress and non-blocking generation toasts                                                           |
 
 TikTok/Instagram connections and Stripe are intentionally marked **Coming soon**. They are outside the MVP rather than mocked as live integrations.
 
 ## Resilient video generation
 
-`VIDEO_PROVIDER=auto` uses Vertex AI to generate a real 8-second, 720p, 9:16 Veo render from the latest script, storyboard and Creator DNA. This path has been verified end to end in the deployed product: the browser loaded the authenticated 720×1280 MP4 from the project after the API persisted its provider metadata and complete object in private GCS. Veo is a long-running operation, so the API polls with a controlled deadline and never exposes an incomplete result.
+`VIDEO_PROVIDER=auto` uses Vertex AI to generate a real 8-second, 720p, 9:16 Veo render from the latest script, storyboard and Creator DNA. Creator DNA can also hold one optional private JPG, PNG or WebP people reference; Veo 3.1 receives it as an asset reference, while the Gemini API path reads it inline. This path has been verified end to end in the deployed product: the browser loaded the authenticated 720×1280 MP4 from the project after the API persisted its provider metadata and complete object in private GCS. Veo is a long-running operation, so the API polls with a controlled deadline and never exposes an incomplete result.
 
 Any quota, permission, model, timeout, safety, incomplete-response, download or storage failure atomically selects the committed deterministic MP4. The UI reports the distinction honestly:
 

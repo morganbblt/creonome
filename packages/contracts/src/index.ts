@@ -12,10 +12,14 @@ export {
   type LibraryItemKind,
 } from "./asset.js";
 export {
+  CreatorDnaReferenceImageSchema,
   CreatorDnaSchema,
   CreatorDnaTraitSchema,
+  SetCreatorDnaReferenceImageInputSchema,
+  type CreatorDnaReferenceImage,
   type CreatorDna,
   type CreatorDnaTrait,
+  type SetCreatorDnaReferenceImageInput,
 } from "./creator-dna.js";
 export {
   CreditLedgerEntrySchema,

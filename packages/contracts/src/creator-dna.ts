@@ -9,12 +9,31 @@ export const CreatorDnaTraitSchema = z.object({
   evidence: z.record(z.string(), z.unknown()),
 });
 
+export const CreatorDnaReferenceImageSchema = z.object({
+  id: z.uuid(),
+  fileName: z.string().trim().min(1).max(240),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  byteSize: z.number().int().positive(),
+  createdAt: z.iso.datetime(),
+});
+
 export const CreatorDnaSchema = z.object({
   version: z.number().int().positive(),
   summary: z.string().min(12),
   confirmed: z.boolean(),
   traits: z.array(CreatorDnaTraitSchema),
+  peopleReferenceImage: CreatorDnaReferenceImageSchema.nullable().optional(),
+});
+
+export const SetCreatorDnaReferenceImageInputSchema = z.object({
+  assetId: z.uuid(),
 });
 
 export type CreatorDna = z.infer<typeof CreatorDnaSchema>;
+export type CreatorDnaReferenceImage = z.infer<
+  typeof CreatorDnaReferenceImageSchema
+>;
 export type CreatorDnaTrait = z.infer<typeof CreatorDnaTraitSchema>;
+export type SetCreatorDnaReferenceImageInput = z.infer<
+  typeof SetCreatorDnaReferenceImageInputSchema
+>;

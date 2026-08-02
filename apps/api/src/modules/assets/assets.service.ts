@@ -19,7 +19,9 @@ import {
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import {
+  PRIVATE_OBJECT_READER,
   PRIVATE_OBJECT_STORE,
+  type PrivateObjectReader,
   type PrivateObjectStore,
 } from "../uploads/private-object-store.js";
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
@@ -39,6 +41,8 @@ export class AssetsService {
     @Inject(ConfigService) private readonly config: ConfigService,
     @Inject(PRIVATE_OBJECT_STORE)
     private readonly objectStore: PrivateObjectStore,
+    @Inject(PRIVATE_OBJECT_READER)
+    private readonly objectReader: PrivateObjectReader,
   ) {}
 
   async list(principal: AuthPrincipal): Promise<Library> {
@@ -106,6 +110,26 @@ export class AssetsService {
     );
     if (!deleted) throw new NotFoundException("Source asset was not found");
     return AssetDeletionSchema.parse({ id: assetId, deleted: true });
+  }
+
+  async readContent(
+    principal: AuthPrincipal,
+    assetId: string,
+  ): Promise<{ bytes: Buffer; mimeType: string }> {
+    const context = await this.workspaces.resolve(principal);
+    const asset = await this.repository.findSourceById(
+      context.workspaceId,
+      assetId,
+    );
+    if (!asset) throw new NotFoundException("Source asset was not found");
+    if (!asset.mimeType?.startsWith("image/")) {
+      throw new BadRequestException("Only image assets can be previewed here");
+    }
+    const content = await this.objectReader.readObject(asset.gcsUri);
+    if (!content.mimeType.startsWith("image/")) {
+      throw new BadRequestException("The stored source is not an image");
+    }
+    return content;
   }
 
   private toItem(record: LibraryAssetRecord): LibraryItem {

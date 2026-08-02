@@ -1,6 +1,6 @@
 import type { CreatorDna } from "@creonome/contracts";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CreatorDnaView } from "./creator-dna-view";
 
 const dna: CreatorDna = {
@@ -41,6 +41,8 @@ const memories = {
 };
 
 describe("CreatorDnaView", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it("renders persisted traits, evidence and confidence", () => {
     render(<CreatorDnaView dna={dna} memories={memories} />);
 
@@ -50,5 +52,64 @@ describe("CreatorDnaView", () => {
     expect(screen.getByText("representative uploads")).toBeTruthy();
     expect(screen.getByText("Confirmed · version 2")).toBeTruthy();
     expect(screen.getByText("Prefer implicit calls to action.")).toBeTruthy();
+  });
+
+  it("uploads a private people reference image and marks it for Veo", async () => {
+    const reference = {
+      id: "0198f3a2-82dd-7000-8000-000000000055",
+      fileName: "portrait.png",
+      mimeType: "image/png" as const,
+      byteSize: 2_048,
+      createdAt: "2026-08-02T10:00:00.000Z",
+    };
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          objectName: "portrait.png",
+          gcsUri: "gs://private/workspaces/demo/sources/portrait.png",
+          uploadUrl: "https://storage.googleapis.com/upload",
+          expiresAt: "2026-08-02T10:15:00.000Z",
+          headers: { "Content-Type": "image/png" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(
+        Response.json({
+          id: reference.id,
+          projectId: null,
+          name: reference.fileName,
+          kind: "image",
+          mimeType: reference.mimeType,
+          byteSize: reference.byteSize,
+          durationSeconds: null,
+          status: "uploaded",
+          source: "upload",
+          createdAt: reference.createdAt,
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ ...dna, peopleReferenceImage: reference }),
+      );
+    vi.stubGlobal("fetch", request);
+
+    const { container } = render(
+      <CreatorDnaView dna={dna} memories={memories} />,
+    );
+    const input = container.querySelector('input[type="file"]');
+    expect(input).toBeTruthy();
+    fireEvent.change(input!, {
+      target: {
+        files: [new File(["image"], "portrait.png", { type: "image/png" })],
+      },
+    });
+
+    await waitFor(() => expect(screen.getByText("portrait.png")).toBeTruthy());
+    expect(request).toHaveBeenNthCalledWith(
+      4,
+      "/api/creonome/creator-dna/reference-image",
+      expect.objectContaining({ method: "PUT" }),
+    );
+    expect(screen.getByRole("button", { name: "Replace image" })).toBeTruthy();
   });
 });

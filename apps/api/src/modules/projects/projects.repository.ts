@@ -121,6 +121,10 @@ export type VideoSourceRecord = {
     genres: string[];
     dnaSummary: string | null;
     traits: string[];
+    peopleReferenceImage?: {
+      gcsUri: string;
+      mimeType: "image/jpeg" | "image/png" | "image/webp";
+    } | null;
   };
 };
 

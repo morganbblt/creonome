@@ -6,7 +6,10 @@ import {
 import type { ConfigService } from "@nestjs/config";
 import { describe, expect, it, vi } from "vitest";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
-import type { PrivateObjectStore } from "../uploads/private-object-store.js";
+import type {
+  PrivateObjectReader,
+  PrivateObjectStore,
+} from "../uploads/private-object-store.js";
 import type { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import type { AssetsRepository } from "./assets.repository.js";
 import { AssetsService } from "./assets.service.js";
@@ -65,15 +68,28 @@ function createService(records: Array<Record<string, unknown>> = []) {
   const objectStore: PrivateObjectStore = {
     deleteObject,
   };
+  const objectReader: PrivateObjectReader = {
+    readObject: vi.fn().mockResolvedValue({
+      bytes: Buffer.from("image"),
+      mimeType: "image/jpeg",
+    }),
+  };
   const config = {
     get: vi.fn().mockReturnValue("creonome-909754432431-media"),
   } as unknown as ConfigService;
   return {
-    service: new AssetsService(workspaces, repository, config, objectStore),
+    service: new AssetsService(
+      workspaces,
+      repository,
+      config,
+      objectStore,
+      objectReader,
+    ),
     repository,
     findSourceById,
     deleteSource,
     deleteObject,
+    objectReader,
     source,
   };
 }
@@ -224,5 +240,16 @@ describe("AssetsService", () => {
       ServiceUnavailableException,
     );
     expect(deleteSource).not.toHaveBeenCalled();
+  });
+
+  it("streams an image only after resolving it inside the workspace", async () => {
+    const { service, source, objectReader } = createService();
+    source.mimeType = "image/png";
+
+    await expect(service.readContent(principal, source.id)).resolves.toEqual({
+      bytes: Buffer.from("image"),
+      mimeType: "image/jpeg",
+    });
+    expect(objectReader.readObject).toHaveBeenCalledWith(source.gcsUri);
   });
 });

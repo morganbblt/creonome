@@ -1,11 +1,17 @@
 import { Storage } from "@google-cloud/storage";
 import { BadRequestException } from "@nestjs/common";
-import type { PrivateObjectStore } from "./private-object-store.js";
+import type {
+  PrivateObjectRead,
+  PrivateObjectReader,
+  PrivateObjectStore,
+} from "./private-object-store.js";
 import type { SignWriteInput, UploadSigner } from "./upload-signer.js";
 
 const SIGNED_URL_TTL_MS = 15 * 60 * 1_000;
 
-export class GcsUploadSigner implements UploadSigner, PrivateObjectStore {
+export class GcsUploadSigner
+  implements UploadSigner, PrivateObjectStore, PrivateObjectReader
+{
   private readonly storage: Storage;
 
   constructor(
@@ -43,5 +49,20 @@ export class GcsUploadSigner implements UploadSigner, PrivateObjectStore {
       .bucket(this.bucketName)
       .file(objectName)
       .delete({ ignoreNotFound: true });
+  }
+
+  async readObject(gcsUri: string): Promise<PrivateObjectRead> {
+    const prefix = `gs://${this.bucketName}/workspaces/`;
+    if (!gcsUri.startsWith(prefix) || gcsUri.includes("..")) {
+      throw new BadRequestException(
+        "Private object is outside the configured media bucket",
+      );
+    }
+    const objectName = gcsUri.slice(`gs://${this.bucketName}/`.length);
+    const file = this.storage.bucket(this.bucketName).file(objectName);
+    const [metadata] = await file.getMetadata();
+    const mimeType = metadata.contentType ?? "application/octet-stream";
+    const bytes = await file.download();
+    return { bytes: bytes[0], mimeType };
   }
 }

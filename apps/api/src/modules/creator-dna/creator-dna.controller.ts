@@ -1,4 +1,12 @@
-import { Controller, Get, Inject, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Post,
+  Put,
+} from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -9,6 +17,7 @@ import type { CreatorDna } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import { CreatorDnaService } from "./creator-dna.service.js";
+import { SetCreatorDnaReferenceImageDto } from "./set-reference-image.dto.js";
 
 @ApiTags("creator DNA")
 @ApiBearerAuth()
@@ -30,6 +39,23 @@ export class CreatorDnaController {
   @ApiOperation({ summary: "Confirm the current Creator DNA" })
   confirm(@CurrentUser() principal: AuthPrincipal): Promise<CreatorDna> {
     return this.creatorDna.confirm(principal);
+  }
+
+  @Put("reference-image")
+  @ApiOperation({ summary: "Set the people reference image for Veo" })
+  setReferenceImage(
+    @CurrentUser() principal: AuthPrincipal,
+    @Body() input: SetCreatorDnaReferenceImageDto,
+  ): Promise<CreatorDna> {
+    return this.creatorDna.setPeopleReferenceImage(principal, input.assetId);
+  }
+
+  @Delete("reference-image")
+  @ApiOperation({ summary: "Remove the people reference image for Veo" })
+  clearReferenceImage(
+    @CurrentUser() principal: AuthPrincipal,
+  ): Promise<CreatorDna> {
+    return this.creatorDna.clearPeopleReferenceImage(principal);
   }
 
   @Get("versions")

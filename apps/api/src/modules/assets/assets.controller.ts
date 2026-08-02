@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  StreamableFile,
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -42,6 +43,19 @@ export class AssetsController {
     @Param("id", new ParseUUIDPipe()) assetId: string,
   ): Promise<LibraryItem> {
     return this.assets.get(principal, assetId);
+  }
+
+  @Get(":id/content")
+  @ApiOperation({ summary: "Stream one private image source" })
+  async content(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("id", new ParseUUIDPipe()) assetId: string,
+  ): Promise<StreamableFile> {
+    const content = await this.assets.readContent(principal, assetId);
+    return new StreamableFile(content.bytes, {
+      type: content.mimeType,
+      length: content.bytes.byteLength,
+    });
   }
 
   @Post()

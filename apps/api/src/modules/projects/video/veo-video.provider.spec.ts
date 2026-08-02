@@ -76,12 +76,12 @@ function mp4(): Buffer {
   return bytes;
 }
 
-function input() {
+function input(sourceOverride: VideoSourceRecord = source) {
   return {
     workspaceId: "0198f3a2-82dd-7000-8000-000000000011",
     projectId: source.project.id,
     idempotencyKey: "video-generation-0198f3a2",
-    source,
+    source: sourceOverride,
   };
 }
 
@@ -93,6 +93,9 @@ function setup(options?: {
   apiKey?: string;
   model?: string;
   provider?: "google-gemini-api" | "google-vertex-ai";
+  readReferenceImage?: (
+    gcsUri: string,
+  ) => Promise<{ bytes: Buffer; mimeType: string }>;
 }) {
   const initial =
     options?.initial ??
@@ -146,6 +149,7 @@ function setup(options?: {
     sleep: async (milliseconds) => {
       now += milliseconds;
     },
+    readReferenceImage: options?.readReferenceImage,
   });
   return { provider, client, store, download };
 }
@@ -247,6 +251,43 @@ describe("VeoVideoProvider", () => {
         metadata: expect.objectContaining({
           provider: "google-vertex-ai",
           model: "veo-3.1-fast-generate-001",
+        }),
+      }),
+    );
+  });
+
+  it("passes the Creator DNA people reference to Veo as an asset image", async () => {
+    const sourceWithReference: VideoSourceRecord = {
+      ...source,
+      creativeIdentity: {
+        ...source.creativeIdentity,
+        peopleReferenceImage: {
+          gcsUri:
+            "gs://creonome-media/workspaces/workspace/sources/portrait.png",
+          mimeType: "image/png",
+        },
+      },
+    };
+    const { provider, client } = setup({
+      provider: "google-vertex-ai",
+      model: "veo-3.1-fast-generate-001",
+    });
+
+    await provider.generate(input(sourceWithReference));
+
+    expect(client.generateVideos).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          referenceImages: [
+            expect.objectContaining({
+              referenceType: "asset",
+              image: expect.objectContaining({
+                gcsUri:
+                  "gs://creonome-media/workspaces/workspace/sources/portrait.png",
+                mimeType: "image/png",
+              }),
+            }),
+          ],
         }),
       }),
     );

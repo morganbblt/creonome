@@ -23,7 +23,7 @@ flowchart LR
 
 ## Providers
 
-- `VeoVideoProvider` builds a bounded prompt from the latest script, storyboard scenes, shot directions, scene timing, audio/edit notes and Creator DNA. In `auto`, Cloud Run uses Vertex AI with its service identity; Gemini API remains available as an explicit backend. The provider polls the long-running operation, rejects incomplete results, verifies the MP4 signature/MIME/size, and uploads the complete object to GCS.
+- `VeoVideoProvider` builds a bounded prompt from the latest script, storyboard scenes, shot directions, scene timing, audio/edit notes and Creator DNA. Creator DNA may add one workspace-private JPG, PNG or WebP people reference image; Vertex passes its GCS URI as a Veo 3.1 asset reference and the Gemini API path sends validated inline bytes. In `auto`, Cloud Run uses Vertex AI with its service identity; Gemini API remains available as an explicit backend. The provider polls the long-running operation, rejects incomplete results, verifies the MP4 signature/MIME/size, and uploads the complete object to GCS.
 - `DeterministicVideoProvider` returns the committed 9:16 demo MP4. It is deliberately permanent: it makes the full product loop demonstrable during quota, preview-model, permission, network or billing failures.
 - `ResilientVideoProvider` owns provider selection and records only a stable error code such as `VEO_QUOTA`; raw provider responses, credentials and signed URLs never enter the API response.
 
