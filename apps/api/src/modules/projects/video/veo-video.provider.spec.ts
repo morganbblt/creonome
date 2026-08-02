@@ -164,7 +164,9 @@ describe("VeoVideoProvider", () => {
     expect(client.generateVideos).toHaveBeenCalledWith(
       expect.objectContaining({
         model: "veo-3.1-fast-generate-preview",
-        prompt: expect.stringMatching(/Nova Sainte[\s\S]*Hold the room/),
+        source: {
+          prompt: expect.stringMatching(/Nova Sainte[\s\S]*Hold the room/),
+        },
         config: expect.objectContaining({
           aspectRatio: "9:16",
           durationSeconds: 8,
@@ -172,6 +174,9 @@ describe("VeoVideoProvider", () => {
           resolution: "720p",
         }),
       }),
+    );
+    expect(client.generateVideos).not.toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: expect.any(String) }),
     );
     expect(download).toHaveBeenCalledWith(
       expect.stringMatching(/^https:\/\/generativelanguage\.googleapis\.com/),

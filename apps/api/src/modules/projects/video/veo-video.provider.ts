@@ -139,7 +139,9 @@ export class VeoVideoProvider implements VideoProvider {
       operation = await this.withDeadline(
         this.options.client.generateVideos({
           model: this.model,
-          prompt: buildVeoPrompt(input),
+          source: {
+            prompt: buildVeoPrompt(input),
+          },
           config: {
             abortSignal: abort.signal,
             numberOfVideos: 1,
