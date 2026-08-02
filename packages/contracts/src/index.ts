@@ -105,5 +105,13 @@ export {
   type UpgradeProjectInput,
   type UpgradeProjectResult,
 } from "./project.js";
+export {
+  CreateProjectExportInputSchema,
+  ProjectExportFormatSchema,
+  ProjectExportSchema,
+  type CreateProjectExportInput,
+  type ProjectExport,
+  type ProjectExportFormat,
+} from "./project-export.js";
 export { ScriptPlatformSchema, type ScriptPlatform } from "./script.js";
 export { UploadSignResponseSchema, type UploadSignResponse } from "./upload.js";

@@ -73,6 +73,7 @@ export class AssetsService {
   }
 
   private kind(record: LibraryAssetRecord): LibraryItemKind {
+    if (record.source === "export") return "export";
     if (record.source === "generated") return "export";
     if (record.source === "script") return "script";
     if (record.mimeType?.startsWith("video/")) return "video";
@@ -82,6 +83,7 @@ export class AssetsService {
   }
 
   private status(record: LibraryAssetRecord): LibraryItem["status"] {
+    if (record.source === "export") return "ready";
     if (record.source === "script") return "ready";
     if (record.status === "succeeded") return "ready";
     if (record.status === "failed") return "failed";

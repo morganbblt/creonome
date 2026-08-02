@@ -9,7 +9,7 @@ export type LibraryAssetRecord = {
   byteSize: number | null;
   durationSeconds: number | null;
   status: string;
-  source: "upload" | "generated" | "script";
+  source: "upload" | "generated" | "script" | "export";
   createdAt: Date;
 };
 

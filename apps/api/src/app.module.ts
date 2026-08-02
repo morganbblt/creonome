@@ -7,6 +7,7 @@ import { AssetsModule } from "./modules/assets/assets.module.js";
 import { CreatorDnaModule } from "./modules/creator-dna/creator-dna.module.js";
 import { CreditsModule } from "./modules/credits/credits.module.js";
 import { DatabaseModule } from "./modules/database/database.module.js";
+import { ExportsModule } from "./modules/exports/exports.module.js";
 import { JobsModule } from "./modules/jobs/jobs.module.js";
 import { MemoryModule } from "./modules/memory/memory.module.js";
 import { IntegrationsModule } from "./modules/integrations/integrations.module.js";
@@ -28,6 +29,7 @@ import { UploadsModule } from "./modules/uploads/uploads.module.js";
     CreatorDnaModule,
     CreditsModule,
     DatabaseModule,
+    ExportsModule,
     JobsModule,
     MemoryModule,
     IntegrationsModule,

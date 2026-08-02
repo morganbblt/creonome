@@ -20,5 +20,6 @@ import { ProjectsService } from "./projects.service.js";
       useExisting: NeonProjectsRepository,
     },
   ],
+  exports: [ProjectsService],
 })
 export class ProjectsModule {}

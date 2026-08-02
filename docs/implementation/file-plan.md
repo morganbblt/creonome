@@ -15,6 +15,7 @@ apps/web/app/(app)/today/                         authenticated daily opportunit
 apps/web/app/api/creonome/opportunities/batches/  idempotent Vertex opportunity generation proxy
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
 apps/web/app/api/creonome/projects/[id]/upgrade/  authenticated storyboard generation proxy
+apps/web/app/api/creonome/projects/[id]/exports/  authenticated Markdown export proxy
 apps/web/app/(app)/library/                       live private media/script/export library
 apps/web/app/(app)/creator-dna/                   live evidence-backed creator profile
 apps/web/app/(app)/settings/billing/              mock billing page
@@ -30,6 +31,7 @@ apps/api/src/modules/workspaces/                  tenant resolution and demo cla
 apps/api/src/modules/onboarding/                  private GCS analysis + editable DNA persistence
 apps/api/src/modules/opportunities/               daily cards, generation, save to project
 apps/api/src/modules/projects/                    project read model + credited script→storyboard workflow
+apps/api/src/modules/exports/                     recorded, downloadable project Markdown packages
 apps/api/src/modules/assets/                      private asset registry and mixed library read model
 apps/api/src/modules/creator-dna/                 creator profile read model
 apps/api/src/modules/credits/                     reserve/commit/release ledger

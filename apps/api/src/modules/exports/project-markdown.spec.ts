@@ -1,7 +1,9 @@
 import type { ProjectDetail } from "@creonome/contracts";
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ProjectWorkspace } from "./project-workspace";
+import {
+  buildProjectMarkdown,
+  projectExportFileName,
+} from "./project-markdown.js";
 
 const project: ProjectDetail = {
   id: "0198f3a2-82dd-7000-8000-000000000020",
@@ -43,41 +45,35 @@ const project: ProjectDetail = {
         voiceover: null,
         onScreenText: "Wait for it.",
         bRoll: null,
-        transition: null,
-        requiredAsset: null,
-        sound: null,
-        editingNote: null,
+        transition: "hard cut",
+        requiredAsset: "needle macro",
+        sound: "room tone",
+        editingNote: "hold the first frame",
         referenceFrameUrl: null,
         durationSeconds: 7,
       },
     ],
   },
-  versions: [
-    {
-      version: 3,
-      level: "storyboard",
-      changeSource: "ai",
-      changeSummary: "Built the first visual sequence.",
-      lockedFields: ["duration"],
-      createdAt: "2026-08-02T12:03:00.000Z",
-    },
-  ],
+  versions: [],
   latestJob: null,
 };
 
-describe("ProjectWorkspace", () => {
-  it("renders the persisted script, storyboard scene and version history", () => {
-    render(<ProjectWorkspace project={project} />);
+describe("project Markdown export", () => {
+  it("serializes the latest script and every shootable scene detail", () => {
+    const markdown = buildProjectMarkdown(project);
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: project.title }),
-    ).toBeTruthy();
-    expect(screen.getByText(project.script!.hook)).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "01 · Silence" })).toBeTruthy();
-    expect(screen.getByText("Built the first visual sequence.")).toBeTruthy();
-    expect(screen.getByText("Current level", { exact: false })).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Download Markdown" }),
-    ).toBeTruthy();
+    expect(markdown).toContain("# Warehouse tape loop");
+    expect(markdown).toContain("## Script");
+    expect(markdown).toContain(project.script!.hook);
+    expect(markdown).toContain("## Storyboard");
+    expect(markdown).toContain("### 01 · Silence (00:00–00:07)");
+    expect(markdown).toContain("**Required asset:** needle macro");
+    expect(markdown).toContain("**Editing note:** hold the first frame");
+  });
+
+  it("builds a portable lowercase file name", () => {
+    expect(projectExportFileName("Été / Warehouse: Tape Loop")).toBe(
+      "ete-warehouse-tape-loop.md",
+    );
   });
 });

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
 import {
   type CreonomeDatabase,
+  exports as projectExports,
   generatedAssets,
   generationJobs,
   projects,
@@ -28,51 +29,65 @@ export class NeonAssetsRepository implements AssetsRepository {
 
   async list(workspaceId: string): Promise<LibraryAssetRecord[]> {
     const database = this.requireDatabase();
-    const [uploads, generated, projectScripts] = await Promise.all([
-      database
-        .select({
-          id: sourceAssets.id,
-          fileName: sourceAssets.fileName,
-          mimeType: sourceAssets.mimeType,
-          byteSize: sourceAssets.byteSize,
-          status: sourceAssets.status,
-          createdAt: sourceAssets.createdAt,
-        })
-        .from(sourceAssets)
-        .where(eq(sourceAssets.workspaceId, workspaceId))
-        .orderBy(desc(sourceAssets.createdAt)),
-      database
-        .select({
-          id: generatedAssets.id,
-          projectId: generatedAssets.projectId,
-          kind: generatedAssets.kind,
-          gcsUri: generatedAssets.gcsUri,
-          mimeType: generatedAssets.mimeType,
-          byteSize: generatedAssets.byteSize,
-          durationSeconds: generatedAssets.durationSeconds,
-          status: generationJobs.status,
-          createdAt: generatedAssets.createdAt,
-        })
-        .from(generatedAssets)
-        .innerJoin(
-          generationJobs,
-          eq(generatedAssets.generationJobId, generationJobs.id),
-        )
-        .where(eq(generatedAssets.workspaceId, workspaceId))
-        .orderBy(desc(generatedAssets.createdAt)),
-      database
-        .select({
-          id: scripts.id,
-          projectId: scripts.projectId,
-          title: scripts.title,
-          durationSeconds: scripts.durationSeconds,
-          createdAt: scripts.updatedAt,
-        })
-        .from(scripts)
-        .innerJoin(projects, eq(scripts.projectId, projects.id))
-        .where(eq(projects.workspaceId, workspaceId))
-        .orderBy(desc(scripts.updatedAt)),
-    ]);
+    const [uploads, generated, projectScripts, completedExports] =
+      await Promise.all([
+        database
+          .select({
+            id: sourceAssets.id,
+            fileName: sourceAssets.fileName,
+            mimeType: sourceAssets.mimeType,
+            byteSize: sourceAssets.byteSize,
+            status: sourceAssets.status,
+            createdAt: sourceAssets.createdAt,
+          })
+          .from(sourceAssets)
+          .where(eq(sourceAssets.workspaceId, workspaceId))
+          .orderBy(desc(sourceAssets.createdAt)),
+        database
+          .select({
+            id: generatedAssets.id,
+            projectId: generatedAssets.projectId,
+            kind: generatedAssets.kind,
+            gcsUri: generatedAssets.gcsUri,
+            mimeType: generatedAssets.mimeType,
+            byteSize: generatedAssets.byteSize,
+            durationSeconds: generatedAssets.durationSeconds,
+            status: generationJobs.status,
+            createdAt: generatedAssets.createdAt,
+          })
+          .from(generatedAssets)
+          .innerJoin(
+            generationJobs,
+            eq(generatedAssets.generationJobId, generationJobs.id),
+          )
+          .where(eq(generatedAssets.workspaceId, workspaceId))
+          .orderBy(desc(generatedAssets.createdAt)),
+        database
+          .select({
+            id: scripts.id,
+            projectId: scripts.projectId,
+            title: scripts.title,
+            durationSeconds: scripts.durationSeconds,
+            createdAt: scripts.updatedAt,
+          })
+          .from(scripts)
+          .innerJoin(projects, eq(scripts.projectId, projects.id))
+          .where(eq(projects.workspaceId, workspaceId))
+          .orderBy(desc(scripts.updatedAt)),
+        database
+          .select({
+            id: projectExports.id,
+            projectId: projectExports.projectId,
+            title: projects.title,
+            format: projectExports.format,
+            status: projectExports.status,
+            createdAt: projectExports.createdAt,
+          })
+          .from(projectExports)
+          .innerJoin(projects, eq(projectExports.projectId, projects.id))
+          .where(eq(projectExports.workspaceId, workspaceId))
+          .orderBy(desc(projectExports.createdAt)),
+      ]);
 
     return [
       ...uploads.map((asset) => ({
@@ -110,6 +125,21 @@ export class NeonAssetsRepository implements AssetsRepository {
         status: "ready",
         source: "script" as const,
         createdAt: script.createdAt,
+      })),
+      ...completedExports.map((projectExport) => ({
+        id: projectExport.id,
+        projectId: projectExport.projectId,
+        name: `${projectExport.title}.${projectExport.format === "markdown" ? "md" : projectExport.format}`,
+        kind: "export",
+        mimeType:
+          projectExport.format === "markdown"
+            ? "text/markdown;charset=utf-8"
+            : "application/octet-stream",
+        byteSize: null,
+        durationSeconds: null,
+        status: projectExport.status,
+        source: "export" as const,
+        createdAt: projectExport.createdAt,
       })),
     ].sort(
       (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),

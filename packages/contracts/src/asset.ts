@@ -18,7 +18,7 @@ export const LibraryItemSchema = z.object({
   byteSize: z.number().int().nonnegative().nullable(),
   durationSeconds: z.number().int().positive().max(86_400).nullable(),
   status: z.enum(["uploaded", "analyzing", "ready", "failed"]),
-  source: z.enum(["upload", "generated", "script"]),
+  source: z.enum(["upload", "generated", "script", "export"]),
   createdAt: z.iso.datetime(),
 });
 

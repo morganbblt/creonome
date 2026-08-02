@@ -1,6 +1,7 @@
 import type { ProjectDetail, ProjectLevel } from "@creonome/contracts";
 import Link from "next/link";
 import styles from "./projects.module.css";
+import { ProjectExportButton } from "./project-export-button";
 import { StoryboardUpgrade } from "./storyboard-upgrade";
 
 const maturityLevels = ["idea", "script", "storyboard", "video"] as const;
@@ -217,6 +218,13 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
         </div>
 
         <aside className={styles.projectAside}>
+          <section className={styles.exportPanel}>
+            <p className={styles.asideLabel}>EXPORT</p>
+            <strong>Latest project package</strong>
+            <p>Script, storyboard and shoot notes in one portable file.</p>
+            <ProjectExportButton projectId={project.id} />
+          </section>
+
           <section>
             <p className={styles.asideLabel}>VERSION HISTORY</p>
             <div className={styles.versions}>

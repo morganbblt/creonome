@@ -68,6 +68,18 @@ describe("AssetsService", () => {
         source: "script",
         createdAt: new Date("2026-08-02T09:00:00.000Z"),
       },
+      {
+        id: "0198f3a2-82dd-7000-8000-000000000042",
+        projectId: "0198f3a2-82dd-7000-8000-000000000020",
+        name: "warehouse-tape-loop.md",
+        kind: "export",
+        mimeType: "text/markdown;charset=utf-8",
+        byteSize: null,
+        durationSeconds: null,
+        status: "ready",
+        source: "export",
+        createdAt: new Date("2026-08-02T11:00:00.000Z"),
+      },
     ]);
 
     await expect(service.list(principal)).resolves.toMatchObject({
@@ -75,6 +87,11 @@ describe("AssetsService", () => {
       items: [
         { name: "warehouse-tapes-v1.mp4", kind: "export", status: "ready" },
         { name: "Warehouse tape loop", kind: "script", status: "ready" },
+        {
+          name: "warehouse-tape-loop.md",
+          kind: "export",
+          status: "ready",
+        },
       ],
     });
   });
