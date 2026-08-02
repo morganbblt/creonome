@@ -69,6 +69,21 @@ The research handoff is integrated through the canonical Neon model rather than 
 
 The API response follows the handoff's degradation contract: keys never disappear, `status` drives the UI, unavailable evidence is explained instead of becoming a silent zero, and synthetic/authorized demo data is visibly labeled as sample data. Collection can evolve independently behind this boundary without changing the Today or opportunity-detail contracts.
 
+## Roadmap
+
+Creonome is being built in layers: each step makes the creative loop more useful while keeping the creator in control of the source material, memory and final edit.
+
+| Stage                          | Focus                                            | What becomes available                                                                                                                                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Now · MVP**                  | Make the idea-to-video loop tangible             | Neon Auth, upload-led onboarding, editable Creator DNA, normalized sample signals, three explainable opportunities, conversational modifications, approval-gated memory, credits, Script → Storyboard → Video, Veo with deterministic resilience, private playback and Markdown export. |
+| **Next · Alpha**               | Connect the product to a creator’s real workflow | TikTok and Instagram OAuth, consented synchronization, live trend ingestion, stronger project/version history, product analytics and richer exports.                                                                                                                                    |
+| **Then · Assisted production** | Turn a plan into a publishable cut               | Rush management, FFmpeg assembly, subtitles, licensed music, consented voice-over, reusable templates, comments and assisted publishing.                                                                                                                                                |
+| **Performance loop**           | Learn from what actually happened                | Post-publish insights, prediction-versus-reality comparisons, calibrated scoring, personalized recommendations and an editorial calendar.                                                                                                                                               |
+| **Teams**                      | Support shared creative operations               | Workspaces, roles, approvals, budgets, brand constraints, multi-creator programs and an auditable activity trail.                                                                                                                                                                       |
+| **Generative media**           | Extend the same direction across formats         | Generated shots, visual continuity, translation, platform-specific variations and multichannel delivery.                                                                                                                                                                                |
+
+The order is deliberate: evidence and creator control come before automation, and a usable artifact comes before scale. Social publishing, billing and advanced media remain explicit feature boundaries until their permissions, costs and quality can be verified.
+
 ## Architecture
 
 ```mermaid

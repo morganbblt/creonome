@@ -107,6 +107,9 @@ describe("ProjectWorkspace", () => {
     ).toBe("true");
     expect(screen.queryByText(project.script!.hook)).toBeNull();
     expect(screen.getByRole("heading", { name: "01 · Silence" })).toBeTruthy();
+    expect(
+      screen.getAllByRole("heading", { name: "Visual sequence" }),
+    ).toHaveLength(1);
     fireEvent.click(screen.getByRole("tab", { name: "Script" }));
     expect(screen.getByText(project.script!.hook)).toBeTruthy();
     expect(screen.getAllByTestId("script-segment")).toHaveLength(3);

@@ -16,5 +16,7 @@ describe("database migrations", () => {
     expect(migrationSql).toMatch(
       /REFERENCES\s+"neon_auth"\."user"\("id"\)\s+ON DELETE cascade/,
     );
+    expect(migrationSql).toMatch(/trend_cluster_id/);
+    expect(migrationSql).toMatch(/01989f00-0000-7000-8000-000000000002/);
   });
 });
