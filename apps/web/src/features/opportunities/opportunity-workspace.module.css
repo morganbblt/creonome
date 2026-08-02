@@ -121,15 +121,31 @@
   line-height: 1.55;
 }
 
+.mediaStage {
+  position: relative;
+  display: grid;
+  min-height: 560px;
+  place-items: center;
+  overflow: hidden;
+  padding: 32px;
+  background:
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 50% 50% / 72px 72px,
+    linear-gradient(var(--line) 1px, transparent 1px) 50% 50% / 72px 72px,
+    var(--surface-2);
+}
+
 .media {
   position: relative;
-  height: min(52vw, 480px);
-  min-height: 300px;
+  width: min(100%, 286px);
+  aspect-ratio: 9 / 16;
   overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 24px;
   background:
     linear-gradient(180deg, transparent 48%, rgb(10 13 17 / 50%)),
     radial-gradient(circle at 66% 38%, #c6cdd5 0 11%, transparent 12%),
     linear-gradient(130deg, #313841 0 28%, #818b96 28% 52%, #252b32 52% 100%);
+  box-shadow: 0 28px 70px rgb(13 18 26 / 28%);
 }
 
 .media::before,
@@ -280,6 +296,54 @@
   margin: 8px 0 0;
   color: var(--text-2);
   line-height: 1.55;
+}
+
+.trendSignal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 18px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.trendSignal > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.trendSignal > div:first-child span,
+.trendMomentum span {
+  color: var(--text-3);
+  font: 450 9.5px/1.3 var(--mono);
+  letter-spacing: 0.06em;
+}
+
+.trendSignal > div:first-child strong {
+  font-size: 13px;
+}
+
+.trendSignal > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-3);
+  font: 450 10.5px/1.45 var(--mono);
+}
+
+.trendSignal[data-status="partial"] {
+  border-style: dashed;
+}
+
+.trendMomentum {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.trendMomentum strong {
+  font: 600 19px/1 var(--mono);
 }
 
 .why ul {

@@ -22,6 +22,16 @@ const opportunity: OpportunityDetail = {
   platform: "tiktok",
   estimatedDurationSeconds: 35,
   evidence: ["DNA fit 96/100", "Momentum 88/100"],
+  trendSignal: {
+    status: "ok",
+    title: "Quiet process, loud reveal",
+    lifecycle: "emerging",
+    momentumScore: 88,
+    observedAt: "2026-08-02T11:00:00.000Z",
+    evidenceCount: 8,
+    source: "trend_radar",
+    reason: null,
+  },
 };
 
 afterEach(() => vi.unstubAllGlobals());

@@ -13,6 +13,13 @@ const opportunityStyles = readFileSync(
   ),
   "utf8",
 );
+const opportunityWorkspace = readFileSync(
+  resolve(
+    process.cwd(),
+    "src/features/opportunities/opportunity-workspace.tsx",
+  ),
+  "utf8",
+);
 
 describe("requested interaction styles", () => {
   it("reveals Today details through the explicit accessible toggle", () => {
@@ -29,5 +36,13 @@ describe("requested interaction styles", () => {
     expect(overlay).toMatch(/backdrop-filter:\s*none/);
     expect(sheet).toMatch(/background:\s*color-mix/);
     expect(sheet).toMatch(/backdrop-filter:\s*blur\(18px\)/);
+  });
+
+  it("presents the opportunity placeholder in a genuine 9:16 frame", () => {
+    const media = opportunityStyles.match(/\.media\s*\{([^}]+)\}/)?.[1];
+
+    expect(media).toMatch(/aspect-ratio:\s*9\s*\/\s*16/);
+    expect(opportunityWorkspace).toContain("VERTICAL PREVIEW · 9:16");
+    expect(opportunityWorkspace).not.toContain("CREATOR FOOTAGE · 9:16");
   });
 });

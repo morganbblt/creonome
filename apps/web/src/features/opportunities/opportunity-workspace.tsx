@@ -347,16 +347,20 @@ export function OpportunityWorkspace({
               <p>{opportunity.pitch}</p>
             </header>
 
-            <div
-              className={styles.media}
-              role="img"
-              aria-label={`Vertical frame concept for ${opportunity.title}`}
-            >
-              <span className={styles.mediaLabel}>CREATOR FOOTAGE · 9:16</span>
-              <span className={styles.subject} />
-              <span className={styles.play} aria-hidden="true">
-                ▶
-              </span>
+            <div className={styles.mediaStage}>
+              <div
+                className={styles.media}
+                role="img"
+                aria-label={`Vertical 9:16 preview for ${opportunity.title}`}
+              >
+                <span className={styles.mediaLabel}>
+                  VERTICAL PREVIEW · 9:16
+                </span>
+                <span className={styles.subject} />
+                <span className={styles.play} aria-hidden="true">
+                  ▶
+                </span>
+              </div>
             </div>
 
             <section className={styles.readout} aria-label="Creative reasoning">
@@ -372,6 +376,32 @@ export function OpportunityWorkspace({
               </div>
               <div className={styles.why}>
                 <span>WHY THIS FITS</span>
+                <div
+                  className={styles.trendSignal}
+                  data-status={opportunity.trendSignal.status}
+                >
+                  <div>
+                    <span>TREND SIGNAL</span>
+                    <strong>
+                      {opportunity.trendSignal.title ?? "Signal unavailable"}
+                    </strong>
+                  </div>
+                  {opportunity.trendSignal.momentumScore !== null ? (
+                    <div className={styles.trendMomentum}>
+                      <strong>{opportunity.trendSignal.momentumScore}</strong>
+                      <span>/100 momentum</span>
+                    </div>
+                  ) : null}
+                  <p>
+                    {opportunity.trendSignal.status === "unavailable"
+                      ? opportunity.trendSignal.reason
+                      : `${opportunity.trendSignal.lifecycle} · ${opportunity.trendSignal.evidenceCount} normalized references${
+                          opportunity.trendSignal.source === "sample"
+                            ? " · sample data"
+                            : ""
+                        }`}
+                  </p>
+                </div>
                 <p>{opportunity.rationale}</p>
                 <ul>
                   {opportunity.evidence.map((item) => (
