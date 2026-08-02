@@ -43,6 +43,23 @@ describe("Creonome hackathon dataset", () => {
     expect(demo.generatedAsset.mimeType).toBe("video/mp4");
   });
 
+  it("loads the complete labeled sample corpus used by the MVP", () => {
+    const demo = buildDemoDataset();
+
+    expect(demo.sourceAssets).toHaveLength(8);
+    expect(demo.assetAnalyses).toHaveLength(8);
+    expect(demo.trendClusters).toHaveLength(3);
+    expect(demo.trendCandidates).toHaveLength(24);
+    expect(demo.trendSnapshots).toHaveLength(24);
+    expect(
+      demo.trendCandidates.every(
+        (candidate) =>
+          (candidate.metrics as { sampleData?: boolean } | undefined)
+            ?.sampleData === true,
+      ),
+    ).toBe(true);
+  });
+
   it("orders idempotent inserts by foreign-key dependency", () => {
     expect(buildDemoSeedPlan().map((item) => item.tableName)).toEqual([
       "users",
@@ -51,6 +68,12 @@ describe("Creonome hackathon dataset", () => {
       "creator_profiles",
       "creator_dna_versions",
       "dna_traits",
+      "source_assets",
+      "asset_analyses",
+      "trend_sources",
+      "trend_clusters",
+      "trend_candidates",
+      "trend_snapshots",
       "opportunity_batches",
       "opportunities",
       "projects",
@@ -83,7 +106,9 @@ describe("Creonome hackathon dataset", () => {
     const repository = createDrizzleDemoSeedRepository(fakeDatabase);
     const result = await seedDemoDatabase(repository);
 
-    expect(insertedTables).toEqual(buildDemoSeedPlan().map((item) => item.tableName));
+    expect(insertedTables).toEqual(
+      buildDemoSeedPlan().map((item) => item.tableName),
+    );
     expect(result.insertedRows).toBeGreaterThan(20);
   });
 });
