@@ -87,12 +87,12 @@ describe("Today page", () => {
     ).toBeTruthy();
     expect(
       within(menu).getByRole("menuitem", {
-        name: /generate storyboard.*6 cr/i,
+        name: /generate storyboard.*4 cr/i,
       }),
     ).toHaveProperty("disabled", true);
     expect(
       within(menu).getByRole("menuitem", {
-        name: /generate full video.*17 cr/i,
+        name: /generate full video.*12 cr/i,
       }),
     ).toHaveProperty("disabled", true);
     expect(

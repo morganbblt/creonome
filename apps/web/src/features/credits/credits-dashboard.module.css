@@ -124,6 +124,12 @@
   text-align: center;
 }
 
+.billingPlaceholder {
+  border: 1px dashed var(--line-2);
+  border-radius: var(--radius-control);
+  padding: 10px 16px;
+}
+
 .ledger {
   padding: 23px 28px 28px;
 }

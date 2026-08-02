@@ -1,7 +1,6 @@
 "use client";
 
 import type { CreditLedgerEntry } from "@creonome/contracts";
-import Link from "next/link";
 import { UnavailableState } from "@/src/features/management/unavailable-state";
 import type { CreditOverview } from "./credits-data";
 import { creditLedgerCsv, creditMovement } from "./credit-ledger-export";
@@ -11,6 +10,7 @@ const productionCosts = [
   { label: "scripts", cost: 2 },
   { label: "storyboards", cost: 4 },
   { label: "new batches", cost: 3 },
+  { label: "full videos", cost: 12 },
 ] as const;
 
 const kindLabels: Record<CreditLedgerEntry["kind"], string> = {
@@ -90,9 +90,6 @@ export function CreditsDashboard({
                   </span>
                 );
               })}
-              <span className={styles.unaffordable}>
-                Full video · coming later
-              </span>
             </div>
             <p>Changes made in the chat never cost credits.</p>
           </div>
@@ -105,7 +102,9 @@ export function CreditsDashboard({
             >
               Buy credits
             </button>
-            <Link href="/settings/billing">View demo plans</Link>
+            <span className={styles.billingPlaceholder}>
+              Plans coming later
+            </span>
             <span>Studio · mock billing</span>
           </div>
         </header>

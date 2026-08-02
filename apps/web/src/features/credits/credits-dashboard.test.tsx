@@ -38,16 +38,13 @@ describe("CreditsDashboard", () => {
     expect(screen.getByText(/2 held on running work/i)).toBeTruthy();
     expect(screen.getByText("29 scripts")).toBeTruthy();
     expect(screen.getByText("14 storyboards")).toBeTruthy();
-    expect(screen.getByText("Full video · coming later")).toBeTruthy();
-    expect(screen.queryByText("4 full videos")).toBeNull();
+    expect(screen.getByText("4 full videos")).toBeTruthy();
+    expect(screen.queryByText("Full video · coming later")).toBeNull();
     expect(screen.getByText("Refunded")).toBeTruthy();
     expect(screen.getByText(/failed storyboard generation/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Export CSV" })).toBeTruthy();
-    expect(
-      screen
-        .getByRole("link", { name: "View demo plans" })
-        .getAttribute("href"),
-    ).toBe("/settings/billing");
+    expect(screen.getByText("Plans coming later")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /demo plans/i })).toBeNull();
   });
 
   it("keeps billing actions disabled while Stripe is outside the MVP", () => {

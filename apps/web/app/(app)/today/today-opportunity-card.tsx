@@ -7,6 +7,8 @@ import { ChevronDownIcon } from "@/src/features/icons/icons";
 import type { DemoOpportunity } from "../../../src/features/opportunities/demo-opportunities";
 import styles from "./today.module.css";
 
+const DETAILS_DISCLOSURE_DELAY_MS = 750;
+
 const freshnessLabels = {
   new: "New signal",
   fresh: "Fresh this week",
@@ -32,12 +34,33 @@ export function TodayOpportunityCard({
 }) {
   const [open, setOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [hoverDetailsOpen, setHoverDetailsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedHref, setSavedHref] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const menuId = useId();
   const detailsId = useId();
   const cardRef = useRef<HTMLElement>(null);
+  const detailsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearDetailsTimer() {
+    if (detailsTimer.current) {
+      clearTimeout(detailsTimer.current);
+      detailsTimer.current = null;
+    }
+  }
+
+  function scheduleHoverDisclosure(visible: boolean) {
+    clearDetailsTimer();
+    detailsTimer.current = setTimeout(() => {
+      setHoverDetailsOpen(visible);
+      detailsTimer.current = null;
+    }, DETAILS_DISCLOSURE_DELAY_MS);
+  }
+
+  useEffect(() => {
+    return () => clearDetailsTimer();
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -86,7 +109,19 @@ export function TodayOpportunityCard({
   }
 
   return (
-    <article className={styles.card} ref={cardRef} tabIndex={0}>
+    <article
+      className={styles.card}
+      ref={cardRef}
+      tabIndex={0}
+      onMouseEnter={() => scheduleHoverDisclosure(true)}
+      onMouseLeave={() => scheduleHoverDisclosure(false)}
+      onFocus={() => scheduleHoverDisclosure(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          scheduleHoverDisclosure(false);
+        }
+      }}
+    >
       <div className={styles.cardMeta}>
         <span className={`${styles.badge} ${styles[opportunity.strategy]}`}>
           <span aria-hidden="true" />
@@ -120,9 +155,13 @@ export function TodayOpportunityCard({
       <button
         type="button"
         className={styles.detailsToggle}
-        aria-expanded={detailsOpen}
+        aria-expanded={detailsOpen || hoverDetailsOpen}
         aria-controls={detailsId}
-        onClick={() => setDetailsOpen((current) => !current)}
+        onClick={() => {
+          clearDetailsTimer();
+          setHoverDetailsOpen(false);
+          setDetailsOpen((current) => !current);
+        }}
       >
         <span>{detailsOpen ? "Hide details" : "Show details"}</span>
         <ChevronDownIcon
@@ -135,7 +174,7 @@ export function TodayOpportunityCard({
       <div
         className={styles.details}
         id={detailsId}
-        data-open={detailsOpen || undefined}
+        data-open={detailsOpen || hoverDetailsOpen || undefined}
       >
         <div className={styles.hook}>
           <span>HOOK</span>
@@ -178,16 +217,16 @@ export function TodayOpportunityCard({
             title="Generate a script first"
           >
             <span>Generate storyboard</span>
-            <span>6 cr</span>
+            <span>4 cr</span>
           </button>
           <button
             type="button"
             role="menuitem"
             disabled
-            title="Video generation is coming soon"
+            title="Generate a storyboard first"
           >
             <span>Generate full video</span>
-            <span>17 cr</span>
+            <span>12 cr</span>
           </button>
           <span className={styles.menuDivider} aria-hidden="true" />
           {savedHref ? (
