@@ -1,0 +1,7 @@
+{
+  "extends": "@creonome/tsconfig/nest.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

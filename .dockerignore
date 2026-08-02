@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+.git
+.next
+**/.next
+**/dist
+**/node_modules
+node_modules
+Screen catalog for music creator tool
+logo
+docs
+*.log

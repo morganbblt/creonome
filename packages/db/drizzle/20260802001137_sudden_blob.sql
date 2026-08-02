@@ -1,0 +1,2 @@
+ALTER TABLE "opportunity_batches" ADD COLUMN "idempotency_key" text;--> statement-breakpoint
+ALTER TABLE "opportunity_batches" ADD CONSTRAINT "opportunity_batches_workspace_idempotency_unique" UNIQUE("workspace_id","idempotency_key");

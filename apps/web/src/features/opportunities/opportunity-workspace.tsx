@@ -1,0 +1,454 @@
+"use client";
+
+import {
+  OpportunityRevisionSchema,
+  UpgradeOpportunityResultSchema,
+  type OpportunityDetail,
+  type OpportunityMemoryScope,
+  type ScriptDraft,
+} from "@creonome/contracts";
+import Link from "next/link";
+import { useState } from "react";
+import { publishCreditBalance } from "../navigation/credit-balance";
+import styles from "./opportunity-workspace.module.css";
+
+type Panel = "modify" | "upgrade" | null;
+
+const quickPrompts = [
+  "Make the opening quieter",
+  "Keep it to one take",
+  "Make it easier to shoot",
+] as const;
+
+const badgeByStrategy = {
+  signature: "Natural fit",
+  stretch: "Emerging",
+  repeatable: "Cross-sector",
+} as const;
+
+const maturityLevels = ["idea", "script", "storyboard", "video"] as const;
+
+function verdict(score: number): string {
+  if (score >= 85) return "Strong";
+  if (score >= 78) return "Worth a bet";
+  return "Experiment";
+}
+
+function idempotencyKey(opportunityId: string): string {
+  const suffix = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`;
+  return `script-${opportunityId}-${suffix}`;
+}
+
+function scriptErrorMessage(status: number): string {
+  if (status === 404) {
+    return "This opportunity is no longer available. Return to Today and choose a current idea. No credits were charged.";
+  }
+  if (status === 401 || status === 403) {
+    return "Your session expired. Sign in again before generating the script. No credits were charged.";
+  }
+  if (status === 402 || status === 409) {
+    return "There are not enough available credits for this script. No credits were charged.";
+  }
+  if (status === 429) {
+    return "Script generation is busy right now. Try again in a moment. No credits were charged.";
+  }
+  return "The script could not be generated. Any reserved credits were released automatically.";
+}
+
+function modificationErrorMessage(status: number): string {
+  if (status === 404) {
+    return "This opportunity is no longer available. Return to Today and choose a current idea.";
+  }
+  if (status === 401 || status === 403) {
+    return "Your session expired. Sign in again before applying this change.";
+  }
+  if (status === 400 || status === 422) {
+    return "That change could not be validated. Rephrase it with one clear instruction.";
+  }
+  if (status === 409) {
+    return "This idea changed in another session. Reload it before applying a new change.";
+  }
+  if (status === 429 || status === 503) {
+    return "Creative revision is temporarily unavailable. Your original idea is intact; try again in a moment.";
+  }
+  return "The change could not be applied. Your original idea is intact; try again.";
+}
+
+export function OpportunityWorkspace({
+  opportunity: initialOpportunity,
+  initialPanel = null,
+}: {
+  opportunity: OpportunityDetail;
+  initialPanel?: Panel;
+}) {
+  const [opportunity, setOpportunity] = useState(initialOpportunity);
+  const [panel, setPanel] = useState<Panel>(initialPanel);
+  const [instruction, setInstruction] = useState("");
+  const [memoryScope, setMemoryScope] =
+    useState<OpportunityMemoryScope>("idea");
+  const [keepDuration, setKeepDuration] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [script, setScript] = useState<ScriptDraft | null>(null);
+  const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
+
+  async function applyChange() {
+    if (instruction.trim().length < 3) {
+      setError("Describe the change in a few words first.");
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/creonome/opportunities/${opportunity.id}/modify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instruction,
+            memoryScope,
+            lockedFields: keepDuration ? ["duration"] : [],
+          }),
+        },
+      );
+      if (!response.ok) {
+        setError(modificationErrorMessage(response.status));
+        return;
+      }
+      const revision = OpportunityRevisionSchema.parse(await response.json());
+      setOpportunity((current) => ({
+        ...current,
+        title: revision.title,
+        pitch: revision.pitch,
+        hook: revision.hook,
+        currentLevel: revision.project.currentLevel,
+        projectId: revision.project.id,
+      }));
+      setNotice(
+        revision.memoryCandidate
+          ? "Change applied. A memory suggestion awaits approval."
+          : `Change applied as version ${revision.version}.`,
+      );
+      setPanel(null);
+    } catch {
+      setError(
+        "The revision response was invalid. Your original idea is intact; reload and try again.",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function generateScript() {
+    setPending(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/creonome/opportunities/${opportunity.id}/upgrade`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey(opportunity.id),
+          },
+          body: JSON.stringify({
+            targetLevel: "script",
+            confirmedCreditCost: true,
+          }),
+        },
+      );
+      if (!response.ok) {
+        setError(scriptErrorMessage(response.status));
+        return;
+      }
+      const upgrade = UpgradeOpportunityResultSchema.parse(
+        await response.json(),
+      );
+      setScript(upgrade.script);
+      setOpportunity((current) => ({
+        ...current,
+        currentLevel: upgrade.project.currentLevel,
+        projectId: upgrade.project.id,
+      }));
+      setRemainingCredits(upgrade.credits.available);
+      publishCreditBalance(upgrade.credits.available);
+      setNotice(
+        "Script generated. The idea remains available in version history.",
+      );
+      setPanel(null);
+    } catch {
+      setError(
+        "The script response was invalid. Any reserved credits were released automatically.",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <main className={styles.page}>
+      <Link href="/today" className={styles.back}>
+        ← Back to Today
+      </Link>
+
+      <div className={styles.layout}>
+        <section className={styles.idea} aria-label="Opportunity detail">
+          <header className={styles.hero}>
+            <div className={styles.heroMeta}>
+              <span
+                className={`${styles.badge} ${styles[opportunity.strategy]}`}
+              >
+                <span aria-hidden="true" />
+                {badgeByStrategy[opportunity.strategy]}
+              </span>
+              <span>
+                {opportunity.estimatedDurationSeconds ?? 35}s · 9:16 ·{" "}
+                {opportunity.effort} effort
+              </span>
+            </div>
+            <h1>{opportunity.title}</h1>
+            <p>{opportunity.pitch}</p>
+          </header>
+
+          <div
+            className={styles.media}
+            role="img"
+            aria-label={`Vertical frame concept for ${opportunity.title}`}
+          >
+            <span className={styles.mediaLabel}>CREATOR FOOTAGE · 9:16</span>
+            <span className={styles.subject} />
+            <span className={styles.play} aria-hidden="true">
+              ▶
+            </span>
+          </div>
+
+          <section className={styles.readout} aria-label="Creative reasoning">
+            <div className={styles.hook}>
+              <span>HOOK</span>
+              <p>{opportunity.hook}</p>
+            </div>
+            <div className={styles.score}>
+              <strong>{opportunity.score}</strong>
+              <span>/100</span>
+              <em>{verdict(opportunity.score)}</em>
+              <small>{opportunity.confidence} confidence</small>
+            </div>
+            <div className={styles.why}>
+              <span>WHY THIS FITS</span>
+              <p>{opportunity.rationale}</p>
+              <ul>
+                {opportunity.evidence.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              {opportunity.reserve ? (
+                <p className={styles.reserve}>
+                  <strong>Reserve —</strong> {opportunity.reserve}
+                </p>
+              ) : null}
+            </div>
+          </section>
+
+          {notice ? <p className={styles.notice}>{notice}</p> : null}
+          {error && !panel ? <p className={styles.error}>{error}</p> : null}
+
+          <div className={styles.actions}>
+            {opportunity.currentLevel === "idea" ? (
+              <button type="button" onClick={() => setPanel("upgrade")}>
+                Move to script <span>{opportunity.creditCost} cr</span>
+              </button>
+            ) : (
+              <Link href="/projects" className={styles.continueProject}>
+                Continue in Projects
+              </Link>
+            )}
+            <button type="button" onClick={() => setPanel("modify")}>
+              Modify idea
+            </button>
+          </div>
+        </section>
+
+        <aside className={styles.progress} aria-label="Project maturity">
+          <p>PROJECT PATH</p>
+          {maturityLevels.map((level, index) => {
+            const currentIndex = maturityLevels.indexOf(
+              opportunity.currentLevel,
+            );
+            const label = level[0]!.toUpperCase() + level.slice(1);
+            return (
+              <div
+                className={
+                  index === currentIndex
+                    ? styles.activeLevel
+                    : index < currentIndex
+                      ? styles.completedLevel
+                      : styles.level
+                }
+                key={level}
+              >
+                <span>{index + 1}</span>
+                <div>
+                  <strong>{label}</strong>
+                  <small>
+                    {index === currentIndex
+                      ? "Current level"
+                      : index < currentIndex
+                        ? "Complete"
+                        : "Not generated yet"}
+                  </small>
+                </div>
+              </div>
+            );
+          })}
+        </aside>
+      </div>
+
+      {script ? (
+        <section className={styles.script} aria-live="polite">
+          <div>
+            <p>SCRIPT · VERSION 1</p>
+            <h2>Your script</h2>
+          </div>
+          <blockquote>{script.hook}</blockquote>
+          <p>{script.body}</p>
+          {script.callToAction ? (
+            <p>
+              <strong>CTA</strong> {script.callToAction}
+            </p>
+          ) : null}
+          <footer>
+            <span>{remainingCredits} credits remaining</span>
+            <Link href="/projects">View project →</Link>
+          </footer>
+        </section>
+      ) : null}
+
+      {panel === "modify" ? (
+        <div className={styles.overlay}>
+          <aside
+            className={styles.sheet}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modify-title"
+          >
+            <header>
+              <div>
+                <p>CREATIVE CHAT</p>
+                <h2 id="modify-title">Modify this idea</h2>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setPanel(null)}
+              >
+                ×
+              </button>
+            </header>
+            <p>
+              Describe one change. The current idea stays in version history.
+            </p>
+            <div className={styles.prompts}>
+              {quickPrompts.map((prompt) => (
+                <button
+                  type="button"
+                  key={prompt}
+                  onClick={() => setInstruction(prompt)}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+            <label className={styles.textareaLabel}>
+              Describe the change
+              <textarea
+                value={instruction}
+                onChange={(event) => setInstruction(event.target.value)}
+                placeholder="Make the hook quieter, but keep it one take…"
+              />
+            </label>
+            <fieldset className={styles.scope}>
+              <legend>Remember this preference</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="memory-scope"
+                  checked={memoryScope === "idea"}
+                  onChange={() => setMemoryScope("idea")}
+                />
+                Only for this idea
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="memory-scope"
+                  checked={memoryScope === "project"}
+                  onChange={() => setMemoryScope("project")}
+                />
+                Remember for this project
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="memory-scope"
+                  checked={memoryScope === "creator"}
+                  onChange={() => setMemoryScope("creator")}
+                />
+                Suggest for Creator DNA
+              </label>
+            </fieldset>
+            <label className={styles.lock}>
+              <input
+                type="checkbox"
+                checked={keepDuration}
+                onChange={(event) => setKeepDuration(event.target.checked)}
+              />
+              Lock the current duration
+            </label>
+            {error ? <p className={styles.error}>{error}</p> : null}
+            <button
+              className={styles.submit}
+              type="button"
+              disabled={pending}
+              onClick={applyChange}
+            >
+              {pending ? "Applying…" : "Apply change"}
+            </button>
+          </aside>
+        </div>
+      ) : null}
+
+      {panel === "upgrade" ? (
+        <div className={styles.overlay}>
+          <section
+            className={styles.confirm}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upgrade-title"
+          >
+            <span className={styles.cost}>{opportunity.creditCost} cr</span>
+            <p>NEXT LEVEL</p>
+            <h2 id="upgrade-title">Generate the script?</h2>
+            <p>
+              Creonome will turn this idea into a shootable script. This costs{" "}
+              <strong>{opportunity.creditCost} credits</strong>. Failed
+              generations are refunded automatically.
+            </p>
+            {error ? <p className={styles.error}>{error}</p> : null}
+            <div>
+              <button type="button" onClick={() => setPanel(null)}>
+                Not now
+              </button>
+              <button type="button" disabled={pending} onClick={generateScript}>
+                {pending
+                  ? "Generating…"
+                  : `Generate script · ${opportunity.creditCost} credits`}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </main>
+  );
+}

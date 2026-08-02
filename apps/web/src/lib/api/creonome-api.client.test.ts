@@ -1,0 +1,125 @@
+import { describe, expect, it, vi } from "vitest";
+import { CreonomeApiClient } from "./creonome-api.client";
+
+describe("CreonomeApiClient", () => {
+  it("forwards the Neon access token and validates API responses", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({ balance: 60, reserved: 2, available: 58 }),
+    );
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await expect(client.getCredits()).resolves.toEqual({
+      balance: 60,
+      reserved: 2,
+      available: 58,
+    });
+    expect(request).toHaveBeenCalledWith(
+      "https://api.creonome.app/api/v1/credits",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: "Bearer neon-jwt" }),
+      }),
+    );
+  });
+
+  it("fails closed when an upstream payload breaks the shared contract", async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json({ balance: 60 }));
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await expect(client.getCredits()).rejects.toThrow();
+  });
+
+  it("posts validated chat revisions and idempotent script upgrades", async () => {
+    const project = {
+      id: "0198f3a2-82dd-7000-8000-000000000020",
+      opportunityId: "7af6fdcc-8881-48c2-ae5d-3f45df1bd0a2",
+      title: "The silence before the drop",
+      status: "active",
+      currentLevel: "idea",
+      currentVersion: 2,
+      updatedAt: "2026-08-02T12:03:00.000Z",
+    } as const;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          project,
+          version: 2,
+          title: project.title,
+          pitch: "Hold the room still, then let the first kick arrive alone.",
+          hook: "Let the room breathe. Then drop the needle.",
+          changeSummary: "Quietened the opening.",
+          memoryCandidate: null,
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          project: { ...project, currentLevel: "script" },
+          script: {
+            id: "0198f3a2-82dd-7000-8000-000000000022",
+            projectId: project.id,
+            title: project.title,
+            hook: "Let the room breathe. Then drop the needle.",
+            body: "Hold for two seconds, lower the needle, then reveal the kick.",
+            callToAction: "What comes after your silence?",
+            caption: "The room is part of the arrangement.",
+            platforms: ["tiktok", "instagram"],
+            durationSeconds: 35,
+          },
+          job: {
+            id: "0198f3a2-82dd-7000-8000-000000000023",
+            kind: "script",
+            provider: "gemini",
+            model: "gemini-3.6-flash",
+            status: "succeeded",
+            progress: 100,
+            createdAt: "2026-08-02T12:03:00.000Z",
+            updatedAt: "2026-08-02T12:04:00.000Z",
+            completedAt: "2026-08-02T12:04:00.000Z",
+          },
+          credits: { balance: 58, reserved: 0, available: 58 },
+        }),
+      );
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await client.modifyOpportunity(project.opportunityId, {
+      instruction: "Make the opening quieter.",
+      memoryScope: "idea",
+      lockedFields: [],
+    });
+    await client.upgradeOpportunity(
+      project.opportunityId,
+      { targetLevel: "script", confirmedCreditCost: true },
+      "upgrade-script-client-1",
+    );
+
+    expect(request).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/\/opportunities\/.+\/modify$/),
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(request).toHaveBeenNthCalledWith(
+      2,
+      expect.stringMatching(/\/opportunities\/.+\/upgrade$/),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Idempotency-Key": "upgrade-script-client-1",
+        }),
+      }),
+    );
+  });
+});

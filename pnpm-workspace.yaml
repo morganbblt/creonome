@@ -1,0 +1,41 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+catalog:
+  "@google-cloud/storage": 7.21.0
+  "@neondatabase/auth": 0.4.2-beta
+  "@neondatabase/auth-ui": 0.2.1-beta
+  "@neondatabase/serverless": 1.1.0
+  "@fastify/static": 9.3.0
+  "@nestjs/common": 11.1.28
+  "@nestjs/config": 4.0.4
+  "@nestjs/core": 11.1.28
+  "@nestjs/platform-fastify": 11.1.28
+  "@nestjs/swagger": 11.4.6
+  "@nestjs/terminus": 11.1.1
+  "@nestjs/testing": 11.1.28
+  "@testing-library/jest-dom": 7.0.0
+  "@testing-library/react": 16.3.2
+  "@types/node": 26.1.2
+  "@types/react": 19.2.18
+  "@types/react-dom": 19.2.4
+  "@types/supertest": 7.2.1
+  "@vitejs/plugin-react": 6.0.5
+  class-transformer: 0.5.1
+  class-validator: 0.15.1
+  drizzle-kit: 0.31.10
+  drizzle-orm: 0.45.2
+  fastify: 5.11.0
+  jsdom: 30.0.1
+  jose: 6.2.7
+  next: 16.2.12
+  react: 19.2.8
+  react-dom: 19.2.8
+  reflect-metadata: 0.2.2
+  rxjs: 7.8.2
+  supertest: 7.2.2
+  tsx: 4.23.1
+  typescript: 7.0.2
+  vitest: 4.1.10
+  zod: 4.4.3

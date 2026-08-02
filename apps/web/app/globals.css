@@ -1,0 +1,63 @@
+:root {
+  color-scheme: light;
+  --ui:
+    "Geist", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --mono: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  --bg: #f2f4f6;
+  --bg-2: #e8ebef;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --text: #12161c;
+  --text-2: #5b6470;
+  --text-3: #8a939f;
+  --line: #e3e7eb;
+  --line-2: #d2d8df;
+  --accent: #6d94ab;
+  --accent-soft: #e7eff4;
+  --accent-text: #2b4757;
+  --signal: #c9db63;
+  --signal-soft: #f2f6dd;
+  --signal-text: #3e4a12;
+  --button: #12161c;
+  --button-text: #ffffff;
+  --shadow: 0 1px 2px rgb(16 20 28 / 4%), 0 10px 28px -14px rgb(16 20 28 / 12%);
+  --shadow-large:
+    0 1px 2px rgb(16 20 28 / 5%), 0 24px 60px -24px rgb(16 20 28 / 22%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+button {
+  min-height: 44px;
+}
+
+a {
+  color: inherit;
+}

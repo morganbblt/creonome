@@ -1,0 +1,45 @@
+{
+  "name": "@creonome/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/main.ts",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "catalog:",
+    "@creonome/config": "workspace:*",
+    "@creonome/contracts": "workspace:*",
+    "@creonome/db": "workspace:*",
+    "@fastify/static": "catalog:",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-fastify": "catalog:",
+    "@nestjs/swagger": "catalog:",
+    "@nestjs/terminus": "catalog:",
+    "class-transformer": "catalog:",
+    "class-validator": "catalog:",
+    "drizzle-orm": "catalog:",
+    "fastify": "catalog:",
+    "jose": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@creonome/tsconfig": "workspace:*",
+    "@nestjs/testing": "catalog:",
+    "@types/node": "catalog:",
+    "@types/supertest": "catalog:",
+    "supertest": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "3.2.7"
+  }
+}

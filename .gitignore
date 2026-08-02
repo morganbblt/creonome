@@ -69,6 +69,7 @@ web_modules/
 .env
 .env.*
 !.env.example
+!**/.env.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -141,3 +142,29 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Creonome local tooling and generated audits
+.DS_Store
+Thumbs.db
+.turbo/
+.vercel/
+.playwright-cli/
+output/
+
+# Local Claude Design reference uploads may contain personal/copyrighted source
+# material. The already-reviewed handoff HTML remains tracked.
+Screen catalog for music creator tool/uploads/
+
+# Generated JavaScript emitted next to TypeScript tool configuration.
+packages/db/drizzle.config.js
+packages/db/drizzle.config.js.map
+packages/db/drizzle.config.d.ts
+packages/db/vitest.config.js
+packages/db/vitest.config.js.map
+packages/db/vitest.config.d.ts
+
+# Local certificates and service-account exports
+*.pem
+*.key
+*-service-account.json
+service-account*.json

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "projects_opportunity_unique" ON "projects" USING btree ("opportunity_id") WHERE "projects"."opportunity_id" is not null;

@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1785626896570,
+      "tag": "20260801232816_initial_creonome_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785626958987,
+      "tag": "20260801232918_add_secondary_fk_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785627140432,
+      "tag": "20260801233220_cascade_owned_workspace",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785627145153,
+      "tag": "20260801233225_link_neon_auth_user",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785629497562,
+      "tag": "20260802001137_sudden_blob",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785630594429,
+      "tag": "20260802002954_aspiring_swordsman",
+      "breakpoints": true
+    }
+  ]
+}

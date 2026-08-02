@@ -1,0 +1,46 @@
+{
+  "name": "creonome",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.25.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "node --env-file-if-exists=.env --run build:workspace",
+    "build:workspace": "turbo run build --env-mode=loose",
+    "dev": "node --env-file-if-exists=.env --run dev:workspace",
+    "dev:workspace": "pnpm --filter @creonome/contracts build && pnpm --filter @creonome/config build && turbo run dev --env-mode=loose",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "node --env-file-if-exists=.env --run lint:workspace",
+    "lint:workspace": "turbo run lint --env-mode=loose",
+    "test": "node --env-file-if-exists=.env --run test:workspace",
+    "test:workspace": "turbo run test --env-mode=loose",
+    "typecheck": "node --env-file-if-exists=.env --run typecheck:workspace",
+    "typecheck:workspace": "turbo run typecheck --env-mode=loose"
+  },
+  "dependencies": {
+    "next": "catalog:"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6",
+    "turbo": "2.10.8",
+    "typescript": "7.0.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ],
+    "overrides": {
+      "@better-fetch/fetch": "1.1.21"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@better-fetch/fetch": ">=1.1.21 <2",
+        "typescript": ">=5 <8"
+      }
+    }
+  }
+}

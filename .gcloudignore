@@ -1,0 +1,15 @@
+.git
+.gitignore
+.gcloudignore
+.next
+.turbo
+.vercel
+.playwright-cli
+node_modules
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+output
+Screen catalog for music creator tool
+*.log
