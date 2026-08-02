@@ -123,6 +123,28 @@ describe("OpportunityWorkspace", () => {
     expect(screen.queryByText(/original idea is intact/i)).toBeNull();
   });
 
+  it("does not invite a duplicate revision after the API accepted the change", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(Response.json({ accepted: true }, { status: 201 })),
+    );
+    render(<OpportunityWorkspace opportunity={opportunity} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /modify idea/i }));
+    fireEvent.change(screen.getByLabelText(/describe the change/i), {
+      target: { value: "Make the opening quieter." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /apply change/i }));
+
+    expect(await screen.findByText(/change was saved.*reload/i)).toBeTruthy();
+    expect(
+      screen.queryByRole("dialog", { name: /modify this idea/i }),
+    ).toBeNull();
+    expect(screen.queryByText(/original idea is intact/i)).toBeNull();
+  });
+
   it("shows the exact cost before generating and then renders the script", async () => {
     vi.stubGlobal(
       "fetch",

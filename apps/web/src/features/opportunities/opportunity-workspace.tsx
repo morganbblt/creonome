@@ -101,6 +101,7 @@ export function OpportunityWorkspace({
     }
     setPending(true);
     setError(null);
+    setNotice(null);
     try {
       const response = await fetch(
         `/api/creonome/opportunities/${opportunity.id}/modify`,
@@ -118,7 +119,16 @@ export function OpportunityWorkspace({
         setError(modificationErrorMessage(response.status));
         return;
       }
-      const revision = OpportunityRevisionSchema.parse(await response.json());
+      const payload = await response.json().catch(() => null);
+      const parsedRevision = OpportunityRevisionSchema.safeParse(payload);
+      if (!parsedRevision.success) {
+        setNotice(
+          "The change was saved, but this page could not refresh it. Reload to see the latest version.",
+        );
+        setPanel(null);
+        return;
+      }
+      const revision = parsedRevision.data;
       setOpportunity((current) => ({
         ...current,
         title: revision.title,
@@ -135,7 +145,7 @@ export function OpportunityWorkspace({
       setPanel(null);
     } catch {
       setError(
-        "The revision response was invalid. Your original idea is intact; reload and try again.",
+        "The change could not be confirmed. Reload before retrying so you do not create a duplicate revision.",
       );
     } finally {
       setPending(false);
