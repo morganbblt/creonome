@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  OpportunityFeedbackResultSchema,
   OpportunityRevisionSchema,
   UpgradeOpportunityResultSchema,
   type OpportunityDetail,
+  type OpportunityFeedbackAction,
   type OpportunityMemoryScope,
   type ScriptDraft,
 } from "@creonome/contracts";
@@ -27,6 +29,21 @@ const badgeByStrategy = {
 } as const;
 
 const maturityLevels = ["idea", "script", "storyboard", "video"] as const;
+
+const feedbackActions: Array<{
+  action: OpportunityFeedbackAction;
+  label: string;
+}> = [
+  { action: "this_is_me", label: "That’s me" },
+  { action: "almost", label: "Almost" },
+  { action: "not_my_style", label: "Not my style" },
+  {
+    action: "good_idea_bad_wording",
+    label: "Good idea, wrong wording",
+  },
+  { action: "never_use", label: "Never use" },
+  { action: "always_do", label: "Always do" },
+];
 
 function verdict(score: number): string {
   if (score >= 85) return "Strong";
@@ -92,7 +109,62 @@ export function OpportunityWorkspace({
   const [notice, setNotice] = useState<string | null>(null);
   const [script, setScript] = useState<ScriptDraft | null>(null);
   const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
+  const [feedbackPending, setFeedbackPending] =
+    useState<OpportunityFeedbackAction | null>(null);
+  const [selectedFeedback, setSelectedFeedback] =
+    useState<OpportunityFeedbackAction | null>(null);
+  const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackMemoryReady, setFeedbackMemoryReady] = useState(false);
   const scriptRequestKey = useRef<string | null>(null);
+
+  async function submitFeedback(action: OpportunityFeedbackAction) {
+    setFeedbackPending(action);
+    setFeedbackError(null);
+    setFeedbackNotice(null);
+    setFeedbackMemoryReady(false);
+    try {
+      const response = await fetch(
+        `/api/creonome/opportunities/${opportunity.id}/feedback`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        },
+      );
+      if (!response.ok) {
+        setFeedbackError(
+          response.status === 401 || response.status === 403
+            ? "Your session expired. Sign in again before saving feedback."
+            : "Feedback could not be saved. Nothing was changed.",
+        );
+        return;
+      }
+
+      const payload = await response.json().catch(() => null);
+      const parsedFeedback = OpportunityFeedbackResultSchema.safeParse(payload);
+      setSelectedFeedback(action);
+      if (!parsedFeedback.success) {
+        setFeedbackNotice(
+          "Feedback saved. Reload to confirm how it was added to your profile.",
+        );
+        return;
+      }
+      const hasMemoryCandidate = parsedFeedback.data.memoryCandidate !== null;
+      setFeedbackMemoryReady(hasMemoryCandidate);
+      setFeedbackNotice(
+        hasMemoryCandidate
+          ? "Feedback saved. A Creator DNA memory suggestion is ready for review."
+          : "Feedback saved. This signal will tune future opportunities.",
+      );
+    } catch {
+      setFeedbackError(
+        "Feedback could not be confirmed. Reload before sending it again.",
+      );
+    } finally {
+      setFeedbackPending(null);
+    }
+  }
 
   async function applyChange() {
     if (instruction.trim().length < 3) {
@@ -272,6 +344,39 @@ export function OpportunityWorkspace({
                 </p>
               ) : null}
             </div>
+          </section>
+
+          <section className={styles.feedback} aria-label="Creative feedback">
+            <div>
+              <p>Does this feel like you?</p>
+              <span>Explicit feedback improves the next three routes.</span>
+            </div>
+            <div className={styles.feedbackActions}>
+              {feedbackActions.map(({ action, label }) => (
+                <button
+                  type="button"
+                  aria-pressed={selectedFeedback === action}
+                  disabled={feedbackPending !== null}
+                  key={action}
+                  onClick={() => void submitFeedback(action)}
+                >
+                  {feedbackPending === action ? "Saving…" : label}
+                </button>
+              ))}
+            </div>
+            {feedbackNotice ? (
+              <p className={styles.feedbackStatus} aria-live="polite">
+                {feedbackNotice}{" "}
+                {feedbackMemoryReady ? (
+                  <Link href="/creator-dna">Review memory →</Link>
+                ) : null}
+              </p>
+            ) : null}
+            {feedbackError ? (
+              <p className={styles.feedbackError} role="alert">
+                {feedbackError}
+              </p>
+            ) : null}
           </section>
 
           {notice ? <p className={styles.notice}>{notice}</p> : null}

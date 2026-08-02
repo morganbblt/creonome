@@ -1,8 +1,22 @@
-import { Body, Controller, Get, Headers, Inject, Param, Post } from "@nestjs/common";
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Inject,
+  Param,
+  Post,
+} from "@nestjs/common";
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from "@nestjs/swagger";
 import type {
   OpportunityBatch,
   OpportunityDetail,
+  OpportunityFeedbackResult,
   OpportunityRevision,
   Project,
   UpgradeOpportunityResult,
@@ -12,6 +26,7 @@ import { CurrentUser } from "../auth/current-user.decorator.js";
 import { OpportunitiesService } from "./opportunities.service.js";
 import { OpportunityGenerationService } from "./opportunity-generation.service.js";
 import { CreateOpportunityBatchDto } from "./create-opportunity-batch.dto.js";
+import { CreateOpportunityFeedbackDto } from "./create-opportunity-feedback.dto.js";
 import { ModifyOpportunityDto } from "./modify-opportunity.dto.js";
 import { OpportunityWorkflowService } from "./opportunity-workflow.service.js";
 import { UpgradeOpportunityDto } from "./upgrade-opportunity.dto.js";
@@ -32,7 +47,9 @@ export class OpportunitiesController {
   @Get()
   @ApiOperation({ summary: "Get the current three-opportunity creative batch" })
   @ApiOkResponse({ description: "Exactly three differentiated opportunities" })
-  getCurrent(@CurrentUser() principal: AuthPrincipal): Promise<OpportunityBatch> {
+  getCurrent(
+    @CurrentUser() principal: AuthPrincipal,
+  ): Promise<OpportunityBatch> {
     return this.opportunities.getCurrent(principal);
   }
 
@@ -53,6 +70,16 @@ export class OpportunitiesController {
     @Body() input: ModifyOpportunityDto,
   ): Promise<OpportunityRevision> {
     return this.workflow.modify(principal, opportunityId, input);
+  }
+
+  @Post(":id/feedback")
+  @ApiOperation({ summary: "Record an explicit creative feedback signal" })
+  feedback(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("id") opportunityId: string,
+    @Body() input: CreateOpportunityFeedbackDto,
+  ): Promise<OpportunityFeedbackResult> {
+    return this.opportunities.feedback(principal, opportunityId, input);
   }
 
   @Post(":id/upgrade")
@@ -87,6 +114,10 @@ export class OpportunitiesController {
     @Headers("idempotency-key") idempotencyKey: string,
     @Body() input: CreateOpportunityBatchDto,
   ): Promise<OpportunityBatch> {
-    return this.generation.generate(principal, idempotencyKey ?? "", input.direction);
+    return this.generation.generate(
+      principal,
+      idempotencyKey ?? "",
+      input.direction,
+    );
   }
 }

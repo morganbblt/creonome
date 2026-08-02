@@ -8,10 +8,14 @@ import {
   OpportunitySchema,
   OpportunityDetailSchema,
   OpportunityBatchSchema,
+  OpportunityFeedbackResultSchema,
   ProjectSchema,
   type Opportunity,
   type OpportunityBatch,
   type OpportunityDetail,
+  type OpportunityFeedbackAction,
+  type OpportunityFeedbackInput,
+  type OpportunityFeedbackResult,
   type OpportunityStrategy,
   type Project,
 } from "@creonome/contracts";
@@ -26,6 +30,15 @@ const strategyByPosition: Record<number, OpportunityStrategy> = {
   1: "signature",
   2: "stretch",
   3: "repeatable",
+};
+
+const ratingByFeedbackAction: Record<OpportunityFeedbackAction, number> = {
+  this_is_me: 5,
+  almost: 4,
+  not_my_style: 1,
+  good_idea_bad_wording: 3,
+  never_use: 1,
+  always_do: 5,
 };
 
 @Injectable()
@@ -120,6 +133,42 @@ export class OpportunitiesService {
     return ProjectSchema.parse({
       ...project,
       updatedAt: project.updatedAt.toISOString(),
+    });
+  }
+
+  async feedback(
+    principal: AuthPrincipal,
+    opportunityId: string,
+    input: OpportunityFeedbackInput,
+  ): Promise<OpportunityFeedbackResult> {
+    const context = await this.workspaces.resolve(principal);
+    const opportunity = await this.repository.findById(
+      context.workspaceId,
+      opportunityId,
+    );
+    if (!opportunity) {
+      throw new NotFoundException("Opportunity was not found");
+    }
+
+    const memoryContent =
+      input.action === "never_use"
+        ? `Avoid creative directions similar to “${opportunity.title}”.`
+        : input.action === "always_do"
+          ? `Prefer creative directions similar to “${opportunity.title}”.`
+          : null;
+    const record = await this.repository.recordFeedback({
+      ...context,
+      opportunityId,
+      projectId: opportunity.projectId,
+      action: input.action,
+      rating: ratingByFeedbackAction[input.action],
+      comment: input.comment ?? null,
+      memoryContent,
+    });
+
+    return OpportunityFeedbackResultSchema.parse({
+      ...record,
+      createdAt: record.createdAt.toISOString(),
     });
   }
 

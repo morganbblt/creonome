@@ -74,6 +74,28 @@ export const OpportunityRevisionSchema = z.object({
   memoryCandidate: MemoryCandidateSchema.nullable(),
 });
 
+export const OpportunityFeedbackActionSchema = z.enum([
+  "this_is_me",
+  "almost",
+  "not_my_style",
+  "good_idea_bad_wording",
+  "never_use",
+  "always_do",
+]);
+
+export const OpportunityFeedbackInputSchema = z.object({
+  action: OpportunityFeedbackActionSchema,
+  comment: z.string().trim().min(3).max(500).optional(),
+});
+
+export const OpportunityFeedbackResultSchema = z.object({
+  id: z.uuid(),
+  opportunityId: z.uuid(),
+  action: OpportunityFeedbackActionSchema,
+  memoryCandidate: MemoryCandidateSchema.nullable(),
+  createdAt: z.iso.datetime(),
+});
+
 export const UpgradeOpportunityInputSchema = z.object({
   targetLevel: z.literal("script"),
   confirmedCreditCost: z.literal(true),
@@ -97,6 +119,15 @@ export type ModifyOpportunityInput = z.infer<
 >;
 export type MemoryCandidate = z.infer<typeof MemoryCandidateSchema>;
 export type OpportunityRevision = z.infer<typeof OpportunityRevisionSchema>;
+export type OpportunityFeedbackAction = z.infer<
+  typeof OpportunityFeedbackActionSchema
+>;
+export type OpportunityFeedbackInput = z.infer<
+  typeof OpportunityFeedbackInputSchema
+>;
+export type OpportunityFeedbackResult = z.infer<
+  typeof OpportunityFeedbackResultSchema
+>;
 export type UpgradeOpportunityInput = z.infer<
   typeof UpgradeOpportunityInputSchema
 >;

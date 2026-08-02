@@ -33,7 +33,7 @@ const records: OpportunityRecord[] = [1, 2, 3].map((position) => ({
   availableAt: new Date("2026-08-02T09:00:00.000Z"),
 }));
 
-function serviceWith(rows: OpportunityRecord[]) {
+function setupService(rows: OpportunityRecord[]) {
   const workspaces = {
     resolve: vi.fn().mockResolvedValue({
       userId: "0198f3a2-82dd-7000-8000-000000000010",
@@ -41,7 +41,7 @@ function serviceWith(rows: OpportunityRecord[]) {
       creatorProfileId: "0198f3a2-82dd-7000-8000-000000000012",
     }),
   } as unknown as WorkspaceContextService;
-  const repository: OpportunitiesRepository = {
+  const repository = {
     listCurrent: vi.fn().mockResolvedValue(rows),
     findById: vi.fn().mockResolvedValue(rows[0] ?? null),
     saveAsProject: vi.fn().mockResolvedValue({
@@ -59,8 +59,29 @@ function serviceWith(rows: OpportunityRecord[]) {
     findScriptUpgradeByIdempotency: vi.fn(),
     findExistingScriptUpgrade: vi.fn(),
     createScriptUpgrade: vi.fn(),
+    recordFeedback: vi.fn().mockResolvedValue({
+      id: "0198f3a2-82dd-7000-8000-000000000024",
+      opportunityId: rows[0]?.id,
+      action: "never_use",
+      memoryCandidate: {
+        id: "0198f3a2-82dd-7000-8000-000000000025",
+        status: "pending",
+        scope: "creator",
+        content: "Avoid creative directions similar to “Concept 1”.",
+      },
+      createdAt: new Date("2026-08-02T12:05:00.000Z"),
+    }),
+  } as unknown as OpportunitiesRepository & {
+    recordFeedback: ReturnType<typeof vi.fn>;
   };
-  return new OpportunitiesService(workspaces, repository);
+  return {
+    service: new OpportunitiesService(workspaces, repository),
+    repository,
+  };
+}
+
+function serviceWith(rows: OpportunityRecord[]) {
+  return setupService(rows).service;
 }
 
 describe("OpportunitiesService", () => {
@@ -121,6 +142,33 @@ describe("OpportunitiesService", () => {
       opportunityId: records[0]!.id,
       currentVersion: 1,
     });
+  });
+
+  it("records explicit feedback and proposes strong preferences for review", async () => {
+    const { service, repository } = setupService(records);
+    const feedback = (service as unknown as Record<string, unknown>).feedback;
+
+    expect(feedback).toBeTypeOf("function");
+    if (typeof feedback !== "function") return;
+
+    await expect(
+      feedback.call(service, principal, records[0]!.id, {
+        action: "never_use",
+      }),
+    ).resolves.toMatchObject({
+      action: "never_use",
+      memoryCandidate: { scope: "creator", status: "pending" },
+    });
+    expect(repository.recordFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: "0198f3a2-82dd-7000-8000-000000000011",
+        userId: "0198f3a2-82dd-7000-8000-000000000010",
+        opportunityId: records[0]!.id,
+        action: "never_use",
+        rating: 1,
+        memoryContent: expect.stringMatching(/avoid.*Concept 1/i),
+      }),
+    );
   });
 
   it("does not reveal an opportunity outside the workspace", async () => {

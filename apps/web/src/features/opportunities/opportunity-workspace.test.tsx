@@ -97,6 +97,48 @@ describe("OpportunityWorkspace", () => {
     );
   });
 
+  it("records explicit creative feedback without leaving the opportunity", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        id: "0198f3a2-82dd-7000-8000-000000000024",
+        opportunityId: opportunity.id,
+        action: "this_is_me",
+        memoryCandidate: null,
+        createdAt: "2026-08-02T12:05:00.000Z",
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+    render(<OpportunityWorkspace opportunity={opportunity} />);
+
+    expect(screen.getByText("Does this feel like you?")).toBeTruthy();
+    for (const label of [
+      "That’s me",
+      "Almost",
+      "Not my style",
+      "Good idea, wrong wording",
+      "Never use",
+      "Always do",
+    ]) {
+      expect(screen.getByRole("button", { name: label })).toBeTruthy();
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "That’s me" }));
+
+    expect(await screen.findByText(/feedback saved/i)).toBeTruthy();
+    expect(request).toHaveBeenCalledWith(
+      `/api/creonome/opportunities/${opportunity.id}/feedback`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ action: "this_is_me" }),
+      }),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "That’s me" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
   it("explains a stale modification without hiding it behind a generic error", async () => {
     vi.stubGlobal(
       "fetch",

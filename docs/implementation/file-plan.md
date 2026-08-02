@@ -13,6 +13,8 @@ apps/web/app/(onboarding)/onboarding/             private multimodal Creator DNA
 apps/web/src/features/onboarding/                 upload queue, evidence review and editable profile
 apps/web/app/(app)/today/                         authenticated daily opportunities
 apps/web/app/api/creonome/opportunities/batches/  idempotent Vertex opportunity generation proxy
+apps/web/app/api/creonome/opportunities/[id]/feedback/ authenticated explicit-feedback proxy
+apps/web/src/features/opportunities/              six-signal feedback UI + memory review handoff
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
 apps/web/app/api/creonome/projects/[id]/upgrade/  authenticated storyboard generation proxy
 apps/web/app/api/creonome/projects/[id]/exports/  authenticated Markdown export proxy
@@ -32,7 +34,7 @@ apps/api/src/health/                              liveness and readiness
 apps/api/src/modules/auth/                        Neon JWT verification
 apps/api/src/modules/workspaces/                  tenant resolution and demo claim
 apps/api/src/modules/onboarding/                  private GCS analysis + editable DNA persistence
-apps/api/src/modules/opportunities/               daily cards, generation, save to project
+apps/api/src/modules/opportunities/               daily cards, generation, save, revision and explicit feedback
 apps/api/src/modules/projects/                    project read model + credited script→storyboard workflow
 apps/api/src/modules/exports/                     recorded, downloadable project Markdown packages
 apps/api/src/modules/assets/                      private asset registry and mixed library read model

@@ -1,3 +1,5 @@
+import type { OpportunityFeedbackAction } from "@creonome/contracts";
+
 export type OpportunityRecord = {
   id: string;
   position: number;
@@ -33,6 +35,9 @@ export interface OpportunitiesRepository {
     idempotencyKey: string,
   ): Promise<OpportunityRecord[]>;
   createBatch(input: CreateOpportunityBatchInput): Promise<OpportunityRecord[]>;
+  recordFeedback(
+    input: RecordOpportunityFeedbackInput,
+  ): Promise<OpportunityFeedbackRecord>;
   createRevision(
     input: CreateOpportunityRevisionInput,
   ): Promise<OpportunityRevisionRecord | null>;
@@ -48,6 +53,26 @@ export interface OpportunitiesRepository {
     input: CreateScriptUpgradeInput,
   ): Promise<ScriptUpgradeRecord | null>;
 }
+
+export type RecordOpportunityFeedbackInput = {
+  workspaceId: string;
+  creatorProfileId: string;
+  userId: string;
+  opportunityId: string;
+  projectId: string | null;
+  action: OpportunityFeedbackAction;
+  rating: number;
+  comment: string | null;
+  memoryContent: string | null;
+};
+
+export type OpportunityFeedbackRecord = {
+  id: string;
+  opportunityId: string;
+  action: RecordOpportunityFeedbackInput["action"];
+  memoryCandidate: MemoryCandidateRecord | null;
+  createdAt: Date;
+};
 
 export type ProjectRecord = {
   id: string;

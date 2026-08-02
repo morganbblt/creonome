@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
 import {
   type CreonomeDatabase,
+  feedbackEvents,
   generationJobs,
   memoryCandidates,
   opportunities,
@@ -14,13 +15,15 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import { currentOpportunityStatuses } from "./opportunities.repository.js";
 import type {
-  OpportunityRecord,
   CreateOpportunityBatchInput,
   CreateOpportunityRevisionInput,
   CreateScriptUpgradeInput,
+  OpportunityFeedbackRecord,
+  OpportunityRecord,
   OpportunitiesRepository,
   OpportunityRevisionRecord,
   ProjectRecord,
+  RecordOpportunityFeedbackInput,
   SaveOpportunityInput,
   ScriptUpgradeRecord,
 } from "./opportunities.repository.js";
@@ -382,6 +385,70 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
             content: input.generated.memoryContent,
           }
         : null,
+    };
+  }
+
+  async recordFeedback(
+    input: RecordOpportunityFeedbackInput,
+  ): Promise<OpportunityFeedbackRecord> {
+    const database = this.requireDatabase();
+    const id = randomUUID();
+    const memoryCandidateId = input.memoryContent ? randomUUID() : null;
+    const createdAt = new Date();
+    const feedbackWrite = database.insert(feedbackEvents).values({
+      id,
+      workspaceId: input.workspaceId,
+      userId: input.userId,
+      opportunityId: input.opportunityId,
+      projectId: input.projectId,
+      action: input.action,
+      rating: input.rating,
+      comment: input.comment,
+      metadata: {
+        source: "opportunity_detail",
+        memoryCandidateId,
+      },
+      createdAt,
+    });
+
+    if (memoryCandidateId && input.memoryContent) {
+      await database.batch([
+        feedbackWrite,
+        database.insert(memoryCandidates).values({
+          id: memoryCandidateId,
+          workspaceId: input.workspaceId,
+          creatorProfileId: input.creatorProfileId,
+          provider: "creonome",
+          kind: "creator",
+          content: input.memoryContent,
+          evidence: {
+            source: "explicit_feedback",
+            action: input.action,
+            opportunityId: input.opportunityId,
+            projectId: input.projectId,
+          },
+          status: "pending",
+          createdAt,
+        }),
+      ] as const);
+    } else {
+      await database.batch([feedbackWrite] as const);
+    }
+
+    return {
+      id,
+      opportunityId: input.opportunityId,
+      action: input.action,
+      memoryCandidate:
+        memoryCandidateId && input.memoryContent
+          ? {
+              id: memoryCandidateId,
+              status: "pending",
+              scope: "creator",
+              content: input.memoryContent,
+            }
+          : null,
+      createdAt,
     };
   }
 

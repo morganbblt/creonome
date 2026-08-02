@@ -425,6 +425,43 @@ describe("shared API contracts", () => {
     expect(revision.project.currentVersion).toBe(2);
   });
 
+  it("validates explicit opportunity feedback and its memory receipt", () => {
+    const feedbackInputSchema = (contracts as Record<string, unknown>)
+      .OpportunityFeedbackInputSchema as
+      { parse: (value: unknown) => { action: string } } | undefined;
+    const feedbackResultSchema = (contracts as Record<string, unknown>)
+      .OpportunityFeedbackResultSchema as
+      | {
+          parse: (value: unknown) => {
+            action: string;
+            memoryCandidate: { scope: string } | null;
+          };
+        }
+      | undefined;
+
+    expect(feedbackInputSchema).toBeDefined();
+    expect(feedbackResultSchema).toBeDefined();
+    if (!feedbackInputSchema || !feedbackResultSchema) return;
+
+    expect(feedbackInputSchema.parse({ action: "never_use" }).action).toBe(
+      "never_use",
+    );
+    expect(
+      feedbackResultSchema.parse({
+        id: "0198f3a2-82dd-7000-8000-000000000024",
+        opportunityId: opportunity.id,
+        action: "never_use",
+        memoryCandidate: {
+          id: "0198f3a2-82dd-7000-8000-000000000025",
+          status: "pending",
+          scope: "creator",
+          content: "Avoid this kind of creative direction.",
+        },
+        createdAt: "2026-08-02T12:05:00.000Z",
+      }).memoryCandidate?.scope,
+    ).toBe("creator");
+  });
+
   it("requires explicit credit confirmation for a script upgrade", () => {
     expect(
       UpgradeOpportunityInputSchema.safeParse({

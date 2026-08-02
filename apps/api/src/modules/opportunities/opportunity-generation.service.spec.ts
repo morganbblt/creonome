@@ -51,6 +51,7 @@ function setup(existing: OpportunityRecord[] = []) {
     saveAsProject: vi.fn(),
     findByIdempotency: vi.fn().mockResolvedValue(existing),
     createBatch: vi.fn().mockResolvedValue(generatedRecords),
+    recordFeedback: vi.fn(),
     createRevision: vi.fn(),
     findScriptUpgradeByIdempotency: vi.fn(),
     findExistingScriptUpgrade: vi.fn(),
