@@ -22,7 +22,8 @@ export const metadata: Metadata = {
     default: "Creonome",
     template: "%s · Creonome",
   },
-  description: "A creative operating system for music artists.",
+  description:
+    "A creative operating system for artists and creators building a high-volume stream of on-DNA vertical content.",
 };
 
 const themeBootstrap = `(()=>{try{const saved=localStorage.getItem("creonome-theme");const system=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=saved==="dark"||saved==="light"?saved:system}catch{document.documentElement.dataset.theme="light"}})()`;

@@ -9,11 +9,11 @@
 
 ## 0. Résumé exécutif
 
-Creonome est une web app responsive qui transforme des signaux de tendances issus des vidéos verticales — TikTok, Instagram Reels et, à terme, YouTube Shorts — en contenus immédiatement exploitables et cohérents avec l’ADN d’un créateur.
+Creonome est une web app responsive qui transforme des signaux de tendances issus des vidéos verticales — TikTok, Instagram Reels et, à terme, YouTube Shorts — en contenus immédiatement exploitables et cohérents avec l’ADN d’un artiste ou d’un créateur.
 
 En plus de « trouver tout ce qui est viral », la promesse utile et crédible est :
 
-> **Présenter trois opportunités créatives bien choisies, expliquer pourquoi elles sont pertinentes pour ce créateur, puis les faire évoluer de l’idée jusqu’au contenu prêt à publier.**
+> **Présenter trois opportunités créatives bien choisies, expliquer pourquoi elles correspondent à cette identité, puis les faire évoluer de l’idée jusqu’au contenu prêt à publier.**
 
 Le produit repose sur quatre moteurs :
 
@@ -98,7 +98,7 @@ Les corrections conversationnelles purement textuelles au même niveau doivent r
 
 ## 2.1 Vision
 
-Permettre à chaque créateur de capter les bons signaux culturels sans perdre sa singularité.
+Permettre à chaque artiste ou créateur de capter les bons signaux culturels, de publier régulièrement et de gagner du temps sans perdre sa singularité.
 
 ## 2.2 Proposition de valeur
 
@@ -143,14 +143,14 @@ La métrique n’est pas le nombre de générations. Une génération abandonné
 
 # 3. Utilisateurs cibles et besoins
 
-## 3.1 Persona principal — créateur indépendant
+## 3.1 Persona principal — artiste ou créateur à forte cadence
 
 Profil :
 
-- publie régulièrement sur TikTok ou Instagram ;
+- publie ou souhaite publier régulièrement sur TikTok, Instagram ou d’autres formats verticaux ;
 - possède déjà quelques vidéos représentatives ;
 - manque de temps pour surveiller les tendances ;
-- veut accélérer sa production sans devenir générique ;
+- veut produire beaucoup plus de contenus cohérents avec son ADN sans investir autant de temps dans la veille et la préparation ;
 - accepte l’assistance de l’IA, mais souhaite garder la validation finale.
 
 Jobs to be done :

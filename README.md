@@ -4,7 +4,7 @@
 
 [Live product](https://www.creonome.com) · [API contract](https://creonome-api-909754432431.europe-west9.run.app/api/openapi.json) · [Product & technical bible](creonome_bible_produit_ux_ui_technique.md)
 
-Creonome helps an independent music creator answer a deceptively hard question: **what should I make next, and how do I make it feel like me?** It combines live creative signals with a creator-controlled memory, explains why each opportunity fits, and turns the selected idea into a script, storyboard and playable vertical video.
+Creonome helps artists and creators answer a deceptively hard question: **what should I make next, and how can I publish a lot of content that still feels like me?** It combines creative signals with a creator-controlled memory, explains why each opportunity fits, and turns the selected idea into a script, storyboard and vertical-video preview without demanding a full production day for every post.
 
 This public repository is the end-to-end hackathon build: a production-deployed Next.js application, a NestJS/Fastify API on Cloud Run, Neon Postgres/Auth, Mem0, Gemini/Vertex structured generation and a resilient Veo video pipeline.
 
@@ -35,26 +35,30 @@ flowchart LR
 
 ## What is working
 
-| Area                   | Current implementation                                                                                                                          |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Authentication         | Neon Auth email/password and Sign in with Google                                                                                                |
-| Creator onboarding     | Private GCS uploads, multimodal analysis, editable/versioned evidence-backed Creator DNA and an optional private people reference image for Veo |
-| Trend intelligence     | Normalized sources, candidates, snapshots and clusters attached to opportunity reasoning                                                        |
-| Today                  | Three explainable opportunities, multiple filters, incremental batches and card carousel                                                        |
-| Creative direction     | Conversational idea modification with version preservation                                                                                      |
-| Production workflow    | Credited Script → Storyboard → Video project progression                                                                                        |
-| Video                  | Verified Vertex AI Veo 3.1 rendering, private GCS delivery and deterministic MP4 fallback                                                       |
-| Memory                 | Mem0 adapter plus approval-gated memory candidate queue                                                                                         |
-| Credits                | Idempotent reserve / commit / release ledger; no charge for unusable output                                                                     |
-| Library and export     | Tenant-scoped assets, confirmed source deletion and Markdown project package                                                                    |
-| Privacy                | Persisted consent/retention controls, sanitized export, cancellable deletion request                                                            |
-| Themes and interaction | Responsive light/dark UI, route progress and non-blocking generation toasts                                                                     |
+| Area                   | Current implementation                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication         | Neon Auth email/password and Sign in with Google                                                                                                                    |
+| Creator onboarding     | Private GCS uploads, multimodal analysis, editable/versioned evidence-backed Creator DNA and an optional private people reference image for Veo                     |
+| Trend intelligence     | Normalized sources, candidates, snapshots and clusters attached to opportunity reasoning                                                                            |
+| Today                  | Three explainable opportunities, multiple filters, incremental batches and card carousel                                                                            |
+| Creative direction     | Conversational idea modification with version preservation                                                                                                          |
+| Production workflow    | Credited Script → Storyboard → Video project progression                                                                                                            |
+| Video                  | Veo/Vertex provider path implemented with private GCS delivery and a deterministic MP4 fallback; real-provider availability remains quota- and permission-dependent |
+| Memory                 | Mem0 adapter plus approval-gated memory candidate queue                                                                                                             |
+| Credits                | Idempotent reserve / commit / release ledger; no charge for unusable output                                                                                         |
+| Library and export     | Tenant-scoped assets, confirmed source deletion and Markdown project package                                                                                        |
+| Privacy                | Persisted consent/retention controls, sanitized export, cancellable deletion request                                                                                |
+| Themes and interaction | Responsive light/dark UI, route progress and non-blocking generation toasts                                                                                         |
 
 TikTok/Instagram connections and Stripe are intentionally marked **Coming soon**. They are outside the MVP rather than mocked as live integrations.
 
+### Verification boundary
+
+The repository distinguishes code that is covered by automated tests from provider access that depends on the deployment. Script, storyboard, deterministic video fallback, uploads, Creator DNA, credits and private asset access are the MVP baseline. Veo is wired behind `VIDEO_PROVIDER=auto` and has a resilient fallback, but a successful Veo render must be re-checked in the target GCP project whenever credentials, quota, model availability or permissions change; the fallback is the honest default when that check is not available.
+
 ## Resilient video generation
 
-`VIDEO_PROVIDER=auto` uses Vertex AI to generate a real 8-second, 720p, 9:16 Veo render from the latest script, storyboard and Creator DNA. Creator DNA can also hold one optional private JPG, PNG or WebP people reference; Veo 3.1 receives it as an asset reference, while the Gemini API path reads it inline. This path has been verified end to end in the deployed product: the browser loaded the authenticated 720×1280 MP4 from the project after the API persisted its provider metadata and complete object in private GCS. Veo is a long-running operation, so the API polls with a controlled deadline and never exposes an incomplete result.
+`VIDEO_PROVIDER=auto` attempts Vertex AI to generate a real 8-second, 720p, 9:16 Veo render from the latest script, storyboard and Creator DNA. Creator DNA can also hold one optional private JPG, PNG or WebP people reference; Veo 3.1 receives it as an asset reference, while the Gemini API path reads it inline. The provider path is implemented and covered by failure-mode tests, but live Veo access is deployment-dependent and must be verified against the target GCP project before treating it as available. Veo is a long-running operation, so the API polls with a controlled deadline and never exposes an incomplete result.
 
 Any quota, permission, model, timeout, safety, incomplete-response, download or storage failure atomically selects the committed deterministic MP4. The UI reports the distinction honestly:
 
@@ -73,14 +77,14 @@ The API response follows the handoff's degradation contract: keys never disappea
 
 Creonome is being built in layers: each step makes the creative loop more useful while keeping the creator in control of the source material, memory and final edit.
 
-| Stage                          | Focus                                            | What becomes available                                                                                                                                                                                                                                                                  |
-| ------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Now · MVP**                  | Make the idea-to-video loop tangible             | Neon Auth, upload-led onboarding, editable Creator DNA, normalized sample signals, three explainable opportunities, conversational modifications, approval-gated memory, credits, Script → Storyboard → Video, Veo with deterministic resilience, private playback and Markdown export. |
-| **Next · Alpha**               | Connect the product to a creator’s real workflow | TikTok and Instagram OAuth, consented synchronization, live trend ingestion, stronger project/version history, product analytics and richer exports.                                                                                                                                    |
-| **Then · Assisted production** | Turn a plan into a publishable cut               | Rush management, FFmpeg assembly, subtitles, licensed music, consented voice-over, reusable templates, comments and assisted publishing.                                                                                                                                                |
-| **Performance loop**           | Learn from what actually happened                | Post-publish insights, prediction-versus-reality comparisons, calibrated scoring, personalized recommendations and an editorial calendar.                                                                                                                                               |
-| **Teams**                      | Support shared creative operations               | Workspaces, roles, approvals, budgets, brand constraints, multi-creator programs and an auditable activity trail.                                                                                                                                                                       |
-| **Generative media**           | Extend the same direction across formats         | Generated shots, visual continuity, translation, platform-specific variations and multichannel delivery.                                                                                                                                                                                |
+| Stage                          | Focus                                            | What becomes available                                                                                                                                                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Now · MVP**                  | Make the idea-to-video loop tangible             | Neon Auth, upload-led onboarding, editable Creator DNA, normalized sample signals, three explainable opportunities, conversational modifications, approval-gated memory, credits, Script → Storyboard → Video, provider-gated Veo with deterministic resilience, private playback and Markdown export. |
+| **Next · Alpha**               | Connect the product to a creator’s real workflow | TikTok and Instagram OAuth, consented synchronization, live trend ingestion, stronger project/version history, product analytics and richer exports.                                                                                                                                                   |
+| **Then · Assisted production** | Turn a plan into a publishable cut               | Rush management, FFmpeg assembly, subtitles, licensed music, consented voice-over, reusable templates, comments and assisted publishing.                                                                                                                                                               |
+| **Performance loop**           | Learn from what actually happened                | Post-publish insights, prediction-versus-reality comparisons, calibrated scoring, personalized recommendations and an editorial calendar.                                                                                                                                                              |
+| **Teams**                      | Support shared creative operations               | Workspaces, roles, approvals, budgets, brand constraints, multi-creator programs and an auditable activity trail.                                                                                                                                                                                      |
+| **Generative media**           | Extend the same direction across formats         | Generated shots, visual continuity, translation, platform-specific variations and multichannel delivery.                                                                                                                                                                                               |
 
 The order is deliberate: evidence and creator control come before automation, and a usable artifact comes before scale. Social publishing, billing and advanced media remain explicit feature boundaries until their permissions, costs and quality can be verified.
 
@@ -180,4 +184,4 @@ Deployment configuration is documented in [the environment guide](docs/setup/env
 
 The implementation follows the repository's [product, UX/UI and technical bible](creonome_bible_produit_ux_ui_technique.md): explainability before automation, creator control before silent memory, progressive disclosure before dashboard density, and an exploitable artifact before credit capture.
 
-Creonome is built to create a lot of vertical video content—without making the creator feel replaceable.
+Creonome is built for artists and creators who want to create a lot of vertical video content that stays on-DNA—without spending all their time planning, scripting and formatting it.
