@@ -8,7 +8,7 @@ catalog:
   "@neondatabase/auth": 0.4.2-beta
   "@neondatabase/auth-ui": 0.2.1-beta
   "@neondatabase/serverless": 1.1.0
-  "@fastify/static": 9.3.0
+  "@fastify/static": 10.1.2
   "@nestjs/common": 11.1.28
   "@nestjs/config": 4.0.4
   "@nestjs/core": 11.1.28

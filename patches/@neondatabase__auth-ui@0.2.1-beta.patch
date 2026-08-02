@@ -1,0 +1,9 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 88aa02c..1f60b1c 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -23 +23 @@
+-import { anonymousClient, apiKeyClient, emailOTPClient, genericOAuthClient, magicLinkClient, multiSessionClient, oneTapClient, organizationClient, twoFactorClient, usernameClient } from "better-auth/client/plugins";
++import { anonymousClient, emailOTPClient, genericOAuthClient, magicLinkClient, multiSessionClient, oneTapClient, organizationClient, twoFactorClient, usernameClient } from "better-auth/client/plugins";
+@@ -8270 +8269,0 @@
+-	apiKeyClient(),

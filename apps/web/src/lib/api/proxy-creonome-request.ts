@@ -1,5 +1,5 @@
 import "server-only";
-import { getAuth } from "@/src/lib/auth/server";
+import { getNeonAccessToken } from "@/src/lib/auth/access-token";
 import { resolveApiBaseUrl } from "./api-base-url";
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -23,8 +23,8 @@ export async function proxyCreonomeRequest(
     );
   }
   try {
-    const { data, error } = await getAuth().token();
-    if (error || !data?.token) {
+    const token = await getNeonAccessToken();
+    if (!token) {
       return Response.json(
         { message: "Authentication required" },
         { status: 401 },
@@ -40,7 +40,7 @@ export async function proxyCreonomeRequest(
       cache: "no-store",
       headers: {
         Accept: "application/json",
-        Authorization: `Bearer ${data.token}`,
+        Authorization: `Bearer ${token}`,
         ...(body
           ? {
               "Content-Type":
