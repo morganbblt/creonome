@@ -3,6 +3,7 @@
 import { ProjectSchema } from "@creonome/contracts";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDownIcon } from "@/src/features/icons/icons";
 import type { DemoOpportunity } from "../../../src/features/opportunities/demo-opportunities";
 import styles from "./today.module.css";
 
@@ -30,10 +31,12 @@ export function TodayOpportunityCard({
   preview?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedHref, setSavedHref] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const menuId = useId();
+  const detailsId = useId();
   const cardRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -114,7 +117,26 @@ export function TodayOpportunityCard({
         <p>{opportunity.pitch}</p>
       </div>
 
-      <div className={styles.details}>
+      <button
+        type="button"
+        className={styles.detailsToggle}
+        aria-expanded={detailsOpen}
+        aria-controls={detailsId}
+        onClick={() => setDetailsOpen((current) => !current)}
+      >
+        <span>{detailsOpen ? "Hide details" : "Show details"}</span>
+        <ChevronDownIcon
+          width={14}
+          height={14}
+          className={detailsOpen ? styles.detailsToggleIconOpen : undefined}
+        />
+      </button>
+
+      <div
+        className={styles.details}
+        id={detailsId}
+        data-open={detailsOpen || undefined}
+      >
         <div className={styles.hook}>
           <span>HOOK</span>
           <p>{opportunity.hook}</p>

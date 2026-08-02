@@ -262,6 +262,35 @@
   line-height: 1.5;
 }
 
+.detailsToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--text-2);
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.detailsToggle:hover {
+  color: var(--text);
+}
+
+.detailsToggle svg {
+  transition: transform 180ms ease;
+}
+
+.detailsToggleIconOpen {
+  transform: rotate(180deg);
+}
+
 .details {
   display: flex;
   max-height: 0;
@@ -272,17 +301,11 @@
   transition:
     max-height 260ms ease,
     opacity 180ms ease;
-  transition-delay: 0.75s;
 }
 
-.card:hover .details,
-.card:focus-within .details {
+.details[data-open] {
   max-height: 520px;
   opacity: 1;
-}
-
-.card:focus-within .details {
-  transition-delay: 0ms;
 }
 
 .hook {

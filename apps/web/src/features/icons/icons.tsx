@@ -57,3 +57,11 @@ export function MoonIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 7.5 10 12.5 15 7.5" />
+    </svg>
+  );
+}
