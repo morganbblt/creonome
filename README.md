@@ -71,7 +71,7 @@ flowchart TB
   A --> N["Neon Postgres\nprojects · versions · credits · jobs"]
   A --> AU["Neon Auth"]
   A --> AI["Gemini / Vertex AI\nstructured generation"]
-  A --> VE["Gemini API Veo\nlong-running video operation"]
+  A --> VE["Vertex AI Veo\nGemini API optional"]
   A --> ME["Mem0\napproval-gated memory"]
   A --> G["Private GCS\ncreator media · Veo MP4"]
   A --> SM["GCP Secret Manager"]

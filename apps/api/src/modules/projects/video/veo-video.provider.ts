@@ -24,11 +24,12 @@ export interface VeoGenerationClient {
 }
 
 type VeoVideoProviderOptions = {
-  apiKey: string;
+  apiKey?: string;
   client: VeoGenerationClient;
   store: VideoObjectStore;
   fetch?: typeof fetch;
   model?: string;
+  provider?: "google-gemini-api" | "google-vertex-ai";
   pollIntervalMs?: number;
   timeoutMs?: number;
   now?: () => number;
@@ -113,6 +114,7 @@ function assertMp4(bytes: Buffer, contentType: string | null): void {
 export class VeoVideoProvider implements VideoProvider {
   private readonly fetch: typeof fetch;
   private readonly model: string;
+  private readonly provider: "google-gemini-api" | "google-vertex-ai";
   private readonly pollIntervalMs: number;
   private readonly timeoutMs: number;
   private readonly now: () => number;
@@ -121,6 +123,7 @@ export class VeoVideoProvider implements VideoProvider {
   constructor(private readonly options: VeoVideoProviderOptions) {
     this.fetch = options.fetch ?? globalThis.fetch;
     this.model = options.model ?? "veo-3.1-fast-generate-preview";
+    this.provider = options.provider ?? "google-gemini-api";
     this.pollIntervalMs = options.pollIntervalMs ?? 10_000;
     this.timeoutMs = options.timeoutMs ?? 240_000;
     this.now = options.now ?? Date.now;
@@ -221,7 +224,7 @@ export class VeoVideoProvider implements VideoProvider {
           objectName: `generated-videos/${input.workspaceId}/${input.projectId}/${digest}.mp4`,
           bytes,
           metadata: {
-            provider: "google-gemini-api",
+            provider: this.provider,
             model: this.model,
             projectId: input.projectId,
             aspectRatio: "9:16",
@@ -250,7 +253,7 @@ export class VeoVideoProvider implements VideoProvider {
       width: 720,
       height: 1280,
       byteSize: stored.byteSize,
-      provider: "google-gemini-api",
+      provider: this.provider,
       model: this.model,
       simulated: false,
       fallbackReasonCode: null,
@@ -273,6 +276,9 @@ export class VeoVideoProvider implements VideoProvider {
       url.hostname !== "generativelanguage.googleapis.com"
     ) {
       throw new VideoProviderError("VEO_UNTRUSTED_DOWNLOAD_URI");
+    }
+    if (!this.options.apiKey) {
+      throw new VideoProviderError("VEO_DOWNLOAD_AUTH_UNAVAILABLE");
     }
     if (this.now() >= deadline) {
       throw new VideoProviderError("VEO_TIMEOUT");

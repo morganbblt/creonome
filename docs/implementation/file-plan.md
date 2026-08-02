@@ -79,7 +79,7 @@ docs/setup/environment.md                         credentials and provider statu
 
 ## Manual inputs still required
 
-- Confirm Gemini API Veo quota/billing if real renders should run instead of the automatic deterministic fallback.
+- Monitor Vertex AI Veo quota/cost and keep Gemini API as an explicitly selectable secondary backend.
 - Verify a Resend sending domain and choose the production `RESEND_FROM_EMAIL`.
 - Authorize the Vercel GitHub App for `morganbblt/creonome` if automatic Git deployments are wanted. Manual production deployment already works.
 - Choose a branded API domain only if the current Cloud Run URL should be replaced.

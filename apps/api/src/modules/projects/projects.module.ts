@@ -59,16 +59,32 @@ import { VeoVideoProvider } from "./video/veo-video.provider.js";
         store: VideoObjectStore,
       ): VideoProvider => {
         const deterministic = new DeterministicVideoProvider();
+        const project = config.get<string>("GOOGLE_CLOUD_PROJECT");
         const apiKey = config.get<string>("GEMINI_API_KEY");
-        const veo: VideoProvider = apiKey
+        const backend = config.get<string>("VEO_BACKEND") ?? "auto";
+        const useVertex =
+          backend === "vertex" || (backend === "auto" && Boolean(project));
+        const veo: VideoProvider = useVertex
           ? (() => {
-              const client = new GoogleGenAI({ apiKey });
+              if (!project) {
+                return {
+                  async generate() {
+                    throw new VideoProviderError("VEO_VERTEX_NOT_CONFIGURED");
+                  },
+                };
+              }
+              const client = new GoogleGenAI({
+                vertexai: true,
+                project,
+                location:
+                  config.get<string>("VEO_VERTEX_LOCATION") ?? "us-central1",
+              });
               return new VeoVideoProvider({
-                apiKey,
                 store,
                 model:
-                  config.get<string>("VEO_MODEL") ??
-                  "veo-3.1-fast-generate-preview",
+                  config.get<string>("VEO_VERTEX_MODEL") ??
+                  "veo-3.1-fast-generate-001",
+                provider: "google-vertex-ai",
                 pollIntervalMs:
                   config.get<number>("VEO_POLL_INTERVAL_MS") ?? 10_000,
                 timeoutMs: config.get<number>("VEO_TIMEOUT_MS") ?? 240_000,
@@ -80,11 +96,32 @@ import { VeoVideoProvider } from "./video/veo-video.provider.js";
                 },
               });
             })()
-          : {
-              async generate() {
-                throw new VideoProviderError("VEO_NOT_CONFIGURED");
-              },
-            };
+          : apiKey
+            ? (() => {
+                const client = new GoogleGenAI({ apiKey });
+                return new VeoVideoProvider({
+                  apiKey,
+                  store,
+                  model:
+                    config.get<string>("VEO_GEMINI_MODEL") ??
+                    "veo-3.1-fast-generate-preview",
+                  provider: "google-gemini-api",
+                  pollIntervalMs:
+                    config.get<number>("VEO_POLL_INTERVAL_MS") ?? 10_000,
+                  timeoutMs: config.get<number>("VEO_TIMEOUT_MS") ?? 240_000,
+                  client: {
+                    generateVideos: (parameters) =>
+                      client.models.generateVideos(parameters),
+                    getVideosOperation: (operation) =>
+                      client.operations.getVideosOperation({ operation }),
+                  },
+                });
+              })()
+            : {
+                async generate() {
+                  throw new VideoProviderError("VEO_GEMINI_NOT_CONFIGURED");
+                },
+              };
         return new ResilientVideoProvider(
           (config.get<string>("VIDEO_PROVIDER") ?? "auto") as VideoProviderMode,
           veo,

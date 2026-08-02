@@ -90,6 +90,9 @@ function setup(options?: {
   polls?: GenerateVideosOperation[];
   download?: Response;
   timeoutMs?: number;
+  apiKey?: string;
+  model?: string;
+  provider?: "google-gemini-api" | "google-vertex-ai";
 }) {
   const initial =
     options?.initial ??
@@ -131,11 +134,12 @@ function setup(options?: {
   );
   let now = 0;
   const provider = new VeoVideoProvider({
-    apiKey: "test-only-key",
+    apiKey: options?.apiKey ?? "test-only-key",
     client,
     store,
     fetch: download,
-    model: "veo-3.1-fast-generate-preview",
+    model: options?.model ?? "veo-3.1-fast-generate-preview",
+    provider: options?.provider,
     pollIntervalMs: 10,
     timeoutMs: options?.timeoutMs ?? 100,
     now: () => now,
@@ -209,6 +213,43 @@ describe("VeoVideoProvider", () => {
       code: "VEO_TIMEOUT",
     });
     expect(store.put).not.toHaveBeenCalled();
+  });
+
+  it("accepts an inline Vertex AI MP4 without requiring an API key", async () => {
+    const bytes = mp4();
+    const { provider, store } = setup({
+      apiKey: "",
+      model: "veo-3.1-fast-generate-001",
+      provider: "google-vertex-ai",
+      initial: {
+        name: "operations/vertex-veo-1",
+        done: true,
+        response: {
+          generatedVideos: [
+            {
+              video: {
+                videoBytes: bytes.toString("base64"),
+                mimeType: "video/mp4",
+              },
+            },
+          ],
+        },
+      } as GenerateVideosOperation,
+    });
+
+    await expect(provider.generate(input())).resolves.toMatchObject({
+      provider: "google-vertex-ai",
+      model: "veo-3.1-fast-generate-001",
+      simulated: false,
+    });
+    expect(store.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          provider: "google-vertex-ai",
+          model: "veo-3.1-fast-generate-001",
+        }),
+      }),
+    );
   });
 
   it("classifies quota refusal without leaking the provider response", async () => {

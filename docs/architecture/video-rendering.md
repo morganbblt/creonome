@@ -21,7 +21,7 @@ flowchart LR
 
 ## Providers
 
-- `VeoVideoProvider` builds a bounded prompt from the latest script, storyboard scenes, shot directions, scene timing, audio/edit notes and Creator DNA. It starts a Gemini API Veo operation, polls it, rejects incomplete results, downloads from the trusted Google API host, verifies the MP4 signature/MIME/size, and uploads the complete object to GCS.
+- `VeoVideoProvider` builds a bounded prompt from the latest script, storyboard scenes, shot directions, scene timing, audio/edit notes and Creator DNA. In `auto`, Cloud Run uses Vertex AI with its service identity; Gemini API remains available as an explicit backend. The provider polls the long-running operation, rejects incomplete results, verifies the MP4 signature/MIME/size, and uploads the complete object to GCS.
 - `DeterministicVideoProvider` returns the committed 9:16 demo MP4. It is deliberately permanent: it makes the full product loop demonstrable during quota, preview-model, permission, network or billing failures.
 - `ResilientVideoProvider` owns provider selection and records only a stable error code such as `VEO_QUOTA`; raw provider responses, credentials and signed URLs never enter the API response.
 
@@ -49,7 +49,10 @@ Retries first inspect the persisted idempotency key, preventing a second render 
 | Variable               | Default                                | Purpose                                      |
 | ---------------------- | -------------------------------------- | -------------------------------------------- |
 | `VIDEO_PROVIDER`       | `auto`                                 | `auto`, `veo`, or `deterministic` preference |
-| `VEO_MODEL`            | `veo-3.1-fast-generate-preview`        | Gemini API video model                       |
+| `VEO_BACKEND`          | `auto`                                 | `auto`, `vertex`, or `gemini`                |
+| `VEO_VERTEX_LOCATION`  | `us-central1`                          | Vertex AI Veo location                       |
+| `VEO_VERTEX_MODEL`     | `veo-3.1-fast-generate-001`            | Vertex AI video model                        |
+| `VEO_GEMINI_MODEL`     | `veo-3.1-fast-generate-preview`        | Optional Gemini API video model              |
 | `VEO_POLL_INTERVAL_MS` | `10000`                                | Controlled operation polling interval        |
 | `VEO_TIMEOUT_MS`       | `240000`                               | End-to-end provider deadline                 |
 | `GEMINI_API_KEY`       | no default                             | Secret Manager-backed Gemini credential      |

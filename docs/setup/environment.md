@@ -8,7 +8,7 @@ Creonome uses one committed template, [`.env.example`](../../.env.example), and 
 | ------------------------------------------- | ------------------------- | -------------- | ------------------------------------------------------------------------ |
 | `GOOGLE_CLOUD_PROJECT` / `VERTEX_AI_MODEL`  | Creonome/GCP              | No             | Cloud Run identity; primary structured and multimodal generation         |
 | `GEMINI_API_KEY`                            | Creonome/GCP              | No             | Secret Manager; optional Google AI Studio fallback for local development |
-| `VIDEO_PROVIDER` / `VEO_MODEL`              | Creonome                  | No             | Cloud Run env; Veo-first with a mandatory deterministic fallback         |
+| `VIDEO_PROVIDER` / `VEO_BACKEND`            | Creonome                  | No             | Cloud Run env; Veo-first with a mandatory deterministic fallback         |
 | `MEM0_API_KEY`                              | Creonome                  | No             | Secret Manager; live read smoke test passed                              |
 | `RESEND_API_KEY`                            | Creonome                  | No             | Secret Manager; verified sender/domain still required                    |
 | `DATABASE_URL`                              | Neon                      | No             | Secret Manager, pooled endpoint                                          |
@@ -26,7 +26,7 @@ TikTok and Meta environment names remain in `.env.example` only as post-MVP plac
 - Private bucket `gs://creonome-909754432431-media` with uniform access and public-access prevention.
 - Cloud Tasks queue `creonome-generation` in `europe-west1` because Paris is unavailable.
 - Runtime service accounts `creonome-api`, `creonome-worker`, and `creonome-gemini`.
-- Vertex AI enabled; `creonome-api` has only `roles/aiplatform.user` plus `roles/storage.objectUser` for private upload registration and confirmed source deletion.
+- Vertex AI enabled; `creonome-api` has `roles/aiplatform.user` plus bucket-scoped `roles/storage.objectUser`. The Vertex AI service agent also has bucket-scoped `roles/storage.objectUser` for provider-managed output.
 - Secret Manager entries for Gemini, Mem0, Resend, Neon database/auth, reserved social credentials and social-token encryption.
 
 For local Google client libraries, use Application Default Credentials instead of a downloaded service-account key:
@@ -37,12 +37,12 @@ gcloud auth application-default login
 
 ## Veo and resilient video rendering
 
-`VIDEO_PROVIDER=auto` is the production default. The API attempts Gemini API Veo with the server-only `GEMINI_API_KEY`, polls the long-running operation for at most `VEO_TIMEOUT_MS`, validates the complete MP4, and then writes it to the private media bucket. Any model, quota, permission, timeout, response, download or storage failure automatically selects the committed deterministic MP4 instead. `VIDEO_PROVIDER=deterministic` is useful for local development and demos without provider spend. `VIDEO_PROVIDER=veo` still preserves the mandatory fallback; it expresses provider preference, not permission to break the workflow.
+`VIDEO_PROVIDER=auto` is the production default. With `GOOGLE_CLOUD_PROJECT` configured, `VEO_BACKEND=auto` selects Vertex AI Veo through the Cloud Run service identity; `VEO_BACKEND=gemini` selects the server-only `GEMINI_API_KEY` route. The API polls the long-running operation for at most `VEO_TIMEOUT_MS`, validates the complete MP4, and then writes it to the private media bucket. Any model, quota, permission, timeout, response, download or storage failure automatically selects the committed deterministic MP4 instead. `VIDEO_PROVIDER=deterministic` is useful for local development and demos without provider spend. `VIDEO_PROVIDER=veo` still preserves the mandatory fallback; it expresses provider preference, not permission to break the workflow.
 
 The Cloud Run service account needs:
 
 - `roles/storage.objectUser` on `gs://creonome-909754432431-media`;
-- `roles/aiplatform.user` only when Vertex-based generation is enabled elsewhere;
+- `roles/aiplatform.user` for Vertex Veo generation;
 - `roles/secretmanager.secretAccessor` on the explicitly mounted secrets.
 
 No downloaded service-account JSON is used. See [`../architecture/video-rendering.md`](../architecture/video-rendering.md) for failure and credit semantics.

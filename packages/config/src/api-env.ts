@@ -68,7 +68,10 @@ const ApiEnvSchema = z.object({
   GOOGLE_CLOUD_LOCATION: z.string().min(1).default("global"),
   VERTEX_AI_MODEL: z.string().min(1).default("gemini-3.5-flash"),
   VIDEO_PROVIDER: z.enum(["auto", "veo", "deterministic"]).default("auto"),
-  VEO_MODEL: z.string().min(1).default("veo-3.1-fast-generate-preview"),
+  VEO_BACKEND: z.enum(["auto", "vertex", "gemini"]).default("auto"),
+  VEO_VERTEX_LOCATION: z.string().min(1).default("us-central1"),
+  VEO_VERTEX_MODEL: z.string().min(1).default("veo-3.1-fast-generate-001"),
+  VEO_GEMINI_MODEL: z.string().min(1).default("veo-3.1-fast-generate-preview"),
   VEO_POLL_INTERVAL_MS: z.coerce
     .number()
     .int()

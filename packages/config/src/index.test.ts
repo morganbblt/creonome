@@ -35,7 +35,10 @@ describe("API environment", () => {
     expect(env.GOOGLE_CLOUD_LOCATION).toBe("global");
     expect(env.VERTEX_AI_MODEL).toBe("gemini-3.5-flash");
     expect(env.VIDEO_PROVIDER).toBe("auto");
-    expect(env.VEO_MODEL).toBe("veo-3.1-fast-generate-preview");
+    expect(env.VEO_BACKEND).toBe("auto");
+    expect(env.VEO_VERTEX_LOCATION).toBe("us-central1");
+    expect(env.VEO_VERTEX_MODEL).toBe("veo-3.1-fast-generate-001");
+    expect(env.VEO_GEMINI_MODEL).toBe("veo-3.1-fast-generate-preview");
     expect(env.VEO_POLL_INTERVAL_MS).toBe(10_000);
     expect(env.VEO_TIMEOUT_MS).toBe(240_000);
     expect(env.MEM0_BASE_URL).toBe("https://api.mem0.ai");
