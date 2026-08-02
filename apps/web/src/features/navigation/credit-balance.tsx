@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export const creditBalanceChangedEvent = "creonome:credit-balance-changed";
 
@@ -35,8 +36,12 @@ export function CreditBalance({
   }, []);
 
   return (
-    <span className={className} aria-label="Available credits">
+    <Link
+      aria-label={`Available credits: ${available ?? "unavailable"}`}
+      className={className}
+      href="/credits"
+    >
       {available ?? "—"} cr
-    </span>
+    </Link>
   );
 }

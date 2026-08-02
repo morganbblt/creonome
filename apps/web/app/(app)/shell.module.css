@@ -97,8 +97,10 @@
 
 .credits {
   padding: 0 12px;
+  color: var(--text);
   font: 520 12px/1 var(--mono);
   font-variant-numeric: tabular-nums;
+  text-decoration: none;
 }
 
 .settings {

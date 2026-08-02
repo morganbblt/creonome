@@ -1,5 +1,6 @@
 import {
   CreatorDnaSchema,
+  CreditLedgerSchema,
   CreditsResponseSchema,
   IntegrationsResponseSchema,
   LibrarySchema,
@@ -14,6 +15,7 @@ import {
   UpgradeOpportunityInputSchema,
   UpgradeOpportunityResultSchema,
   type CreatorDna,
+  type CreditLedger,
   type CreditsResponse,
   type IntegrationsResponse,
   type Library,
@@ -92,6 +94,10 @@ export class CreonomeApiClient {
 
   getCredits(): Promise<CreditsResponse> {
     return this.get("/credits", CreditsResponseSchema);
+  }
+
+  getCreditLedger(): Promise<CreditLedger> {
+    return this.get("/credits/ledger", CreditLedgerSchema);
   }
 
   getIntegrations(): Promise<IntegrationsResponse> {

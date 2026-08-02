@@ -2,6 +2,24 @@ import { describe, expect, it, vi } from "vitest";
 import { CreonomeApiClient } from "./creonome-api.client";
 
 describe("CreonomeApiClient", () => {
+  it("loads the immutable workspace credit ledger", async () => {
+    const ledger = { entries: [] } as const;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json(ledger));
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await expect(client.getCreditLedger()).resolves.toEqual(ledger);
+    expect(request).toHaveBeenCalledWith(
+      "https://api.creonome.app/api/v1/credits/ledger",
+      expect.any(Object),
+    );
+  });
+
   it("loads the workspace memory review queue", async () => {
     const memories = { pendingCount: 0, pending: [], history: [] } as const;
     const request = vi

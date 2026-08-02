@@ -20,6 +20,7 @@ apps/web/app/(app)/library/                       live private media/script/expo
 apps/web/app/(app)/creator-dna/                   live evidence-backed creator profile
 apps/web/app/api/creonome/memory-candidates/      authenticated memory review proxies
 apps/web/src/features/creator-dna/memory-control  explicit approval queue + decision history
+apps/web/app/(app)/credits/                       live balance, capacity, ledger and CSV export
 apps/web/app/(app)/settings/billing/              mock billing page
 apps/web/app/(app)/settings/integrations/         TikTok/Instagram “Coming soon” states
 apps/web/app/(app)/settings/privacy/              privacy controls

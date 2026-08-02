@@ -3,6 +3,16 @@ import { describe, expect, it } from "vitest";
 import { CreditBalance, creditBalanceChangedEvent } from "./credit-balance";
 
 describe("CreditBalance", () => {
+  it("opens the detailed credit ledger", () => {
+    render(<CreditBalance initialAvailable={60} />);
+
+    expect(
+      screen
+        .getByRole("link", { name: "Available credits: 60" })
+        .getAttribute("href"),
+    ).toBe("/credits");
+  });
+
   it("updates immediately when a paid generation commits credits", () => {
     render(<CreditBalance initialAvailable={60} />);
 
