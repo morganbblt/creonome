@@ -12,7 +12,7 @@ apps/web/src/features/auth/                       Creonome auth shell + Google s
 apps/web/app/(app)/today/                         authenticated daily opportunities
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
 apps/web/app/(app)/library/                       live private media/script/export library
-apps/web/app/(app)/creator-dna/                   14-dimension creator profile
+apps/web/app/(app)/creator-dna/                   live evidence-backed creator profile
 apps/web/app/(app)/settings/billing/              mock billing page
 apps/web/app/(app)/settings/integrations/         TikTok/Instagram “Coming soon” states
 apps/web/app/(app)/settings/privacy/              privacy controls
