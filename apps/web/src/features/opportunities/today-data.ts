@@ -44,7 +44,7 @@ const presentationByStrategy = Object.fromEntries(
 export async function loadTodayOpportunities(
   client: OpportunitySource,
 ): Promise<{
-  source: "api" | "unavailable";
+  source: "api" | "demo";
   generatedAt?: string;
   opportunities: DemoOpportunity[];
 }> {
@@ -59,6 +59,6 @@ export async function loadTodayOpportunities(
       })),
     };
   } catch {
-    return { source: "unavailable", opportunities: [] };
+    return { source: "demo", opportunities: demoOpportunities };
   }
 }

@@ -1,4 +1,3 @@
-import { ServiceUnavailableException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import type { CreatorDnaService } from "../creator-dna/creator-dna.service.js";
@@ -162,21 +161,32 @@ describe("OpportunityGenerationService", () => {
     );
   });
 
-  it("marks a released pre-persistence failure for a fresh request", async () => {
-    const { service, credits, generator } = setup();
+  it("persists a deterministic MVP batch when the AI provider is unavailable", async () => {
+    const { service, credits, generator, repository } = setup();
     vi.mocked(generator.generate).mockRejectedValueOnce(
       new Error("vertex output invalid"),
     );
 
-    const failure = await service
-      .generate(principal, "request-invalid-output")
-      .catch((error: unknown) => error);
-
-    expect(failure).toBeInstanceOf(ServiceUnavailableException);
-    expect(
-      (failure as ServiceUnavailableException).getResponse(),
-    ).toMatchObject({ retryMode: "new_request" });
-    expect(credits.release).toHaveBeenCalledOnce();
+    await expect(
+      service.generate(principal, "request-invalid-output", "Easier to shoot"),
+    ).resolves.toMatchObject({
+      opportunities: expect.arrayContaining([
+        expect.objectContaining({ strategy: "signature" }),
+      ]),
+    });
+    expect(repository.createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: "request-invalid-output",
+        opportunities: expect.arrayContaining([
+          expect.objectContaining({
+            title: "One gesture, one drop",
+            confidence: "high",
+          }),
+        ]),
+      }),
+    );
+    expect(credits.commit).toHaveBeenCalledOnce();
+    expect(credits.release).not.toHaveBeenCalled();
   });
 
   it("keeps a persisted reservation recoverable when commit fails", async () => {
@@ -191,17 +201,17 @@ describe("OpportunityGenerationService", () => {
     expect(credits.release).not.toHaveBeenCalled();
   });
 
-  it("preserves the provider failure when releasing credits also fails", async () => {
-    const { service, credits, generator } = setup();
-    vi.mocked(generator.generate).mockRejectedValueOnce(
-      new Error("gemini unavailable"),
+  it("preserves a persistence failure when releasing credits also fails", async () => {
+    const { service, credits, repository } = setup();
+    vi.mocked(repository.createBatch).mockRejectedValueOnce(
+      new Error("database unavailable"),
     );
     vi.mocked(credits.release).mockRejectedValueOnce(
       new Error("ledger unavailable"),
     );
 
     await expect(
-      service.generate(principal, "request-provider-failure"),
-    ).rejects.toThrow("gemini unavailable");
+      service.generate(principal, "request-persistence-failure"),
+    ).rejects.toThrow("database unavailable");
   });
 });

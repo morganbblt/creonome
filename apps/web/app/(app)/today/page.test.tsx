@@ -41,24 +41,22 @@ beforeEach(() => {
 });
 
 describe("Today page", () => {
-  it("does not expose paid actions for fallback records that do not exist", async () => {
+  it("shows three non-actionable previews while the live batch is unavailable", async () => {
     render(await TodayPage());
 
-    expect(screen.getByRole("status").textContent).toMatch(
-      /couldn.t load this week.s opportunities/i,
-    );
-    expect(screen.queryAllByRole("article")).toHaveLength(0);
+    expect(screen.getByRole("status").textContent).toMatch(/mvp demo/i);
+    expect(screen.queryAllByRole("article")).toHaveLength(3);
     expect(
       screen.queryAllByRole("link", { name: /move to script/i }),
     ).toHaveLength(0);
   });
 
-  it("shows the cost before requesting a new batch", async () => {
+  it("offers a real live-generation retry with its cost", async () => {
     render(await TodayPage());
 
     expect(
-      screen.queryByRole("button", { name: /3 new opportunities/i }),
-    ).toBeNull();
+      screen.getByRole("button", { name: /try live generation.*3 credits/i }),
+    ).toBeTruthy();
   });
 
   it("links every primary and modify action to the opportunity workspace", async () => {

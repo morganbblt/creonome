@@ -15,7 +15,11 @@ function batchRequestKey(): string {
   return `batch-${suffix}`;
 }
 
-export function TodayBatchGenerator() {
+export function TodayBatchGenerator({
+  preview = false,
+}: {
+  preview?: boolean;
+}) {
   const router = useRouter();
   const requestKey = useRef<string | null>(null);
   const [direction, setDirection] =
@@ -68,7 +72,9 @@ export function TodayBatchGenerator() {
       <button type="button" disabled={pending} onClick={generate}>
         {pending
           ? "Generating 3 opportunities…"
-          : "+ 3 new opportunities · 3 credits"}
+          : preview
+            ? "Try live generation · 3 credits"
+            : "+ 3 new opportunities · 3 credits"}
       </button>
       <div>
         {directions.map((item) => (

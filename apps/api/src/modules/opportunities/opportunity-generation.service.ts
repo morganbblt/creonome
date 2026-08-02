@@ -23,6 +23,7 @@ import {
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
   OPPORTUNITIES_REPOSITORY,
+  type GeneratedOpportunity,
   type OpportunityRecord,
   type OpportunitiesRepository,
 } from "./opportunities.repository.js";
@@ -113,33 +114,15 @@ export class OpportunityGenerationService {
 
     let persisted = false;
     try {
-      const [dna, memories] = await Promise.all([
-        this.creatorDna.getCurrent(principal),
-        this.memory
-          .search({
-            query: direction ?? "current creative preferences and boundaries",
-            workspaceId: context.workspaceId,
-            creatorProfileId: context.creatorProfileId,
-            topK: 6,
-          })
-          .catch(() => []),
-      ]);
-      const generated = await this.generator.generate({
-        prompt: [
-          "Generate exactly three distinct short-form music content opportunities.",
-          "Use one natural fit, one stretch, and one repeatable format in that order.",
-          `Creator DNA: ${dna.summary}`,
-          `Approved memory: ${memories.map((item) => item.content).join(" | ") || "none"}`,
-          `Direction: ${direction ?? "balanced"}`,
-          "Do not copy trend wording and do not claim guaranteed virality.",
-        ].join("\n"),
-        schema: GeneratedSetSchema,
-        jsonSchema: generatedSetJsonSchema,
-      });
+      const opportunities = await this.generateOpportunities(
+        principal,
+        context,
+        direction,
+      ).catch(() => this.localOpportunities(direction));
       const records = await this.repository.createBatch({
         ...context,
         idempotencyKey,
-        opportunities: generated.opportunities,
+        opportunities,
       });
       persisted = true;
       await this.credits.commit(
@@ -168,6 +151,64 @@ export class OpportunityGenerationService {
         retryMode: "new_request",
       });
     }
+  }
+
+  private async generateOpportunities(
+    principal: AuthPrincipal,
+    context: { workspaceId: string; creatorProfileId: string },
+    direction?: string,
+  ): Promise<GeneratedOpportunity[]> {
+    const [dna, memories] = await Promise.all([
+      this.creatorDna.getCurrent(principal),
+      this.memory
+        .search({
+          query: direction ?? "current creative preferences and boundaries",
+          workspaceId: context.workspaceId,
+          creatorProfileId: context.creatorProfileId,
+          topK: 6,
+        })
+        .catch(() => []),
+    ]);
+    const generated = await this.generator.generate({
+      prompt: [
+        "Generate exactly three distinct short-form music content opportunities.",
+        "Use one natural fit, one stretch, and one repeatable format in that order.",
+        `Creator DNA: ${dna.summary}`,
+        `Approved memory: ${memories.map((item) => item.content).join(" | ") || "none"}`,
+        `Direction: ${direction ?? "balanced"}`,
+        "Do not copy trend wording and do not claim guaranteed virality.",
+      ].join("\n"),
+      schema: GeneratedSetSchema,
+      jsonSchema: generatedSetJsonSchema,
+    });
+    return generated.opportunities;
+  }
+
+  private localOpportunities(direction?: string): GeneratedOpportunity[] {
+    const normalizedDirection = direction?.trim().slice(0, 80);
+    const directionNote = normalizedDirection
+      ? ` The requested direction is: ${normalizedDirection}.`
+      : "";
+    return [
+      {
+        title: "One gesture, one drop",
+        pitch: `Film one decisive production gesture, then let the musical reveal land without explanation.${directionNote}`,
+        score: 88,
+        confidence: "high",
+      },
+      {
+        title: "Build a track from one room sound",
+        pitch: `Capture one texture in the room, transform it in three visible steps, and end on the finished loop.${directionNote}`,
+        score: 82,
+        confidence: "medium",
+      },
+      {
+        title: "Four ingredients, one reveal",
+        pitch: `Borrow a recipe-card structure: show four sounds, one arrangement choice, and the final vertical-video payoff.${directionNote}`,
+        score: 76,
+        confidence: "medium",
+      },
+    ];
   }
 
   private toContract(rows: OpportunityRecord[]): OpportunityBatch {

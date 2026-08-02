@@ -18,8 +18,10 @@ function saveErrorMessage(status: number): string {
 
 export function TodayOpportunityCard({
   opportunity,
+  preview = false,
 }: {
   opportunity: DemoOpportunity;
+  preview?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -122,7 +124,7 @@ export function TodayOpportunityCard({
         </div>
       </div>
 
-      {open ? (
+      {open && !preview ? (
         <div
           className={styles.cardMenu}
           id={menuId}
@@ -178,28 +180,34 @@ export function TodayOpportunityCard({
       ) : null}
 
       <div className={styles.actions}>
-        <div className={styles.splitButton}>
-          <Link href={`/opportunities/${opportunity.id}`}>
-            Move to script <span>{opportunity.creditCost} cr</span>
-          </Link>
-          <button
-            type="button"
-            aria-controls={menuId}
-            aria-expanded={open}
-            aria-haspopup="menu"
-            aria-label={`More actions for ${opportunity.title}`}
-            onClick={() => setOpen((current) => !current)}
-          >
-            ⌄
-          </button>
-        </div>
-        <Link
-          href={`/opportunities/${opportunity.id}?panel=modify`}
-          className={styles.modify}
-          aria-label={`Modify ${opportunity.title}`}
-        >
-          ✎
-        </Link>
+        {preview ? (
+          <span className={styles.previewAction}>Demo preview</span>
+        ) : (
+          <>
+            <div className={styles.splitButton}>
+              <Link href={`/opportunities/${opportunity.id}`}>
+                Move to script <span>{opportunity.creditCost} cr</span>
+              </Link>
+              <button
+                type="button"
+                aria-controls={menuId}
+                aria-expanded={open}
+                aria-haspopup="menu"
+                aria-label={`More actions for ${opportunity.title}`}
+                onClick={() => setOpen((current) => !current)}
+              >
+                ⌄
+              </button>
+            </div>
+            <Link
+              href={`/opportunities/${opportunity.id}?panel=modify`}
+              className={styles.modify}
+              aria-label={`Modify ${opportunity.title}`}
+            >
+              ✎
+            </Link>
+          </>
+        )}
       </div>
     </article>
   );

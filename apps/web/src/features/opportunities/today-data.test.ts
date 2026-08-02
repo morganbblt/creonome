@@ -6,7 +6,17 @@ import { loadTodayOpportunities } from "./today-data";
 const batch: OpportunityBatch = {
   generatedAt: "2026-08-02T00:00:00.000Z",
   opportunities: demoOpportunities.map(
-    ({ badge: _badge, duration: _duration, hook: _hook, why: _why, reserve: _reserve, verdict: _verdict, effort: _effort, channel: _channel, ...opportunity }) => opportunity,
+    ({
+      badge: _badge,
+      duration: _duration,
+      hook: _hook,
+      why: _why,
+      reserve: _reserve,
+      verdict: _verdict,
+      effort: _effort,
+      channel: _channel,
+      ...opportunity
+    }) => opportunity,
   ) as OpportunityBatch["opportunities"],
 };
 
@@ -20,12 +30,12 @@ describe("loadTodayOpportunities", () => {
     expect(result.opportunities[0]?.badge).toBe("Natural fit");
   });
 
-  it("never exposes actionable phantom opportunities when the backend is unavailable", async () => {
+  it("shows the non-actionable MVP preview when the backend is unavailable", async () => {
     const result = await loadTodayOpportunities({
       getCurrentOpportunities: vi.fn().mockRejectedValue(new Error("offline")),
     });
 
-    expect(result.source).toBe("unavailable");
-    expect(result.opportunities).toEqual([]);
+    expect(result.source).toBe("demo");
+    expect(result.opportunities).toEqual(demoOpportunities);
   });
 });

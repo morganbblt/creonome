@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { createServerApiClient } from "../../../src/lib/api/server-client";
 import { loadTodayOpportunities } from "../../../src/features/opportunities/today-data";
 import { TodayBatchGenerator } from "./today-batch-generator";
@@ -25,45 +24,33 @@ export default async function TodayPage() {
           </p>
         </div>
         <span className={styles.batch}>
-          batch 07 ·{" "}
-          {source === "api" ? "live workspace" : "temporarily unavailable"}
+          batch 07 · {source === "api" ? "live workspace" : "MVP demo"}
         </span>
       </header>
 
-      {source === "unavailable" ? (
-        <section className={styles.unavailable} role="status">
-          <span aria-hidden="true">↻</span>
-          <div>
-            <h2>We couldn’t load this week’s opportunities.</h2>
-            <p>
-              Nothing was charged. Try again to reconnect to your live
-              workspace.
-            </p>
-          </div>
-          <Link href="/today">Try again</Link>
-        </section>
-      ) : (
-        <section
-          className={styles.grid}
-          aria-label="This week’s creative opportunities"
-        >
-          {opportunities.map((opportunity) => (
-            <TodayOpportunityCard
-              key={opportunity.id}
-              opportunity={opportunity}
-            />
-          ))}
-        </section>
-      )}
-
-      {source === "api" ? (
-        <section
-          className={styles.newBatch}
-          aria-label="Generate another batch"
-        >
-          <TodayBatchGenerator />
-        </section>
+      {source === "demo" ? (
+        <p className={styles.previewNotice} role="status">
+          MVP demo · Live generation is reconnecting. Preview these three routes
+          now, or create a persisted batch below.
+        </p>
       ) : null}
+
+      <section
+        className={styles.grid}
+        aria-label="This week’s creative opportunities"
+      >
+        {opportunities.map((opportunity) => (
+          <TodayOpportunityCard
+            key={opportunity.id}
+            opportunity={opportunity}
+            preview={source === "demo"}
+          />
+        ))}
+      </section>
+
+      <section className={styles.newBatch} aria-label="Generate another batch">
+        <TodayBatchGenerator preview={source === "demo"} />
+      </section>
     </main>
   );
 }
