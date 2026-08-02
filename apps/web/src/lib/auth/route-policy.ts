@@ -5,6 +5,7 @@ const protectedRoutePrefixes = [
   "/opportunities",
   "/library",
   "/creator-dna",
+  "/credits",
   "/profile",
   "/settings",
 ] as const;

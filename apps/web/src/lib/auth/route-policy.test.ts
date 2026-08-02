@@ -7,6 +7,7 @@ describe("application route policy", () => {
     expect(isProtectedPath("/onboarding")).toBe(true);
     expect(isProtectedPath("/projects/warehouse-tapes")).toBe(true);
     expect(isProtectedPath("/opportunities/warehouse-tapes")).toBe(true);
+    expect(isProtectedPath("/credits")).toBe(true);
     expect(isProtectedPath("/settings/billing")).toBe(true);
   });
 

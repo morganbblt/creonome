@@ -13,6 +13,7 @@ export const config = {
     "/opportunities/:path*",
     "/library/:path*",
     "/creator-dna/:path*",
+    "/credits/:path*",
     "/profile/:path*",
     "/settings/:path*",
   ],
