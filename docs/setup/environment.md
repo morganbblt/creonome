@@ -25,7 +25,7 @@ TikTok and Meta environment names remain in `.env.example` only as post-MVP plac
 - Private bucket `gs://creonome-909754432431-media` with uniform access and public-access prevention.
 - Cloud Tasks queue `creonome-generation` in `europe-west1` because Paris is unavailable.
 - Runtime service accounts `creonome-api`, `creonome-worker`, and `creonome-gemini`.
-- Vertex AI enabled; `creonome-api` has only `roles/aiplatform.user` plus private media object access.
+- Vertex AI enabled; `creonome-api` has only `roles/aiplatform.user` plus `roles/storage.objectUser` for private upload registration and confirmed source deletion.
 - Secret Manager entries for Gemini, Mem0, Resend, Neon database/auth, reserved social credentials and social-token encryption.
 
 For local Google client libraries, use Application Default Credentials instead of a downloaded service-account key:

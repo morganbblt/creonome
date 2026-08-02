@@ -2,19 +2,26 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
+  AssetDeletionSchema,
   CreateAssetInputSchema,
   LibraryItemSchema,
   LibrarySchema,
+  type AssetDeletion,
   type CreateAssetInput,
   type Library,
   type LibraryItem,
   type LibraryItemKind,
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import {
+  PRIVATE_OBJECT_STORE,
+  type PrivateObjectStore,
+} from "../uploads/private-object-store.js";
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
   ASSETS_REPOSITORY,
@@ -30,6 +37,8 @@ export class AssetsService {
     @Inject(ASSETS_REPOSITORY)
     private readonly repository: AssetsRepository,
     @Inject(ConfigService) private readonly config: ConfigService,
+    @Inject(PRIVATE_OBJECT_STORE)
+    private readonly objectStore: PrivateObjectStore,
   ) {}
 
   async list(principal: AuthPrincipal): Promise<Library> {
@@ -61,6 +70,42 @@ export class AssetsService {
       throw new BadRequestException("Asset is outside the current workspace");
     }
     return this.toItem(await this.repository.create({ ...input, ...context }));
+  }
+
+  async get(principal: AuthPrincipal, assetId: string): Promise<LibraryItem> {
+    const context = await this.workspaces.resolve(principal);
+    const asset = await this.repository.findSourceById(
+      context.workspaceId,
+      assetId,
+    );
+    if (!asset) throw new NotFoundException("Source asset was not found");
+    return this.toItem(asset);
+  }
+
+  async remove(
+    principal: AuthPrincipal,
+    assetId: string,
+  ): Promise<AssetDeletion> {
+    const context = await this.workspaces.resolve(principal);
+    const asset = await this.repository.findSourceById(
+      context.workspaceId,
+      assetId,
+    );
+    if (!asset) throw new NotFoundException("Source asset was not found");
+
+    try {
+      await this.objectStore.deleteObject(asset.gcsUri);
+    } catch {
+      throw new ServiceUnavailableException(
+        "Private source deletion could not be confirmed",
+      );
+    }
+    const deleted = await this.repository.deleteSource(
+      context.workspaceId,
+      assetId,
+    );
+    if (!deleted) throw new NotFoundException("Source asset was not found");
+    return AssetDeletionSchema.parse({ id: assetId, deleted: true });
   }
 
   private toItem(record: LibraryAssetRecord): LibraryItem {

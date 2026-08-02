@@ -1,9 +1,11 @@
 export { HealthResponseSchema, type HealthResponse } from "./health.js";
 export {
+  AssetDeletionSchema,
   CreateAssetInputSchema,
   LibraryItemKindSchema,
   LibraryItemSchema,
   LibrarySchema,
+  type AssetDeletion,
   type CreateAssetInput,
   type Library,
   type LibraryItem,

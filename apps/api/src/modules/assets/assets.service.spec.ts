@@ -1,7 +1,12 @@
-import { BadRequestException } from "@nestjs/common";
+import {
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
 import { describe, expect, it, vi } from "vitest";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import type { PrivateObjectStore } from "../uploads/private-object-store.js";
 import type { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import type { AssetsRepository } from "./assets.repository.js";
 import { AssetsService } from "./assets.service.js";
@@ -17,6 +22,26 @@ function createService(records: Array<Record<string, unknown>> = []) {
       userId: "0198f3a2-82dd-7000-8000-000000000003",
     }),
   } as unknown as WorkspaceContextService;
+  const source = {
+    id: "0198f3a2-82dd-7000-8000-000000000043",
+    projectId: null,
+    name: "private-rush.mov",
+    kind: null,
+    mimeType: "video/quicktime",
+    byteSize: 4_200_000,
+    durationSeconds: null,
+    status: "ready",
+    source: "upload" as const,
+    gcsUri:
+      "gs://creonome-909754432431-media/workspaces/0198f3a2-82dd-7000-8000-000000000002/sources/private-rush.mov",
+    createdAt: new Date("2026-08-02T10:00:00.000Z"),
+  };
+  const findSourceById = vi
+    .fn<AssetsRepository["findSourceById"]>()
+    .mockResolvedValue(source);
+  const deleteSource = vi
+    .fn<AssetsRepository["deleteSource"]>()
+    .mockResolvedValue(true);
   const repository: AssetsRepository = {
     list: vi.fn().mockResolvedValue(records),
     create: vi.fn().mockImplementation(async (input) => ({
@@ -31,13 +56,25 @@ function createService(records: Array<Record<string, unknown>> = []) {
       source: "upload",
       createdAt: new Date("2026-08-02T10:00:00.000Z"),
     })),
+    findSourceById,
+    deleteSource,
+  };
+  const deleteObject = vi
+    .fn<PrivateObjectStore["deleteObject"]>()
+    .mockResolvedValue(undefined);
+  const objectStore: PrivateObjectStore = {
+    deleteObject,
   };
   const config = {
     get: vi.fn().mockReturnValue("creonome-909754432431-media"),
   } as unknown as ConfigService;
   return {
-    service: new AssetsService(workspaces, repository, config),
+    service: new AssetsService(workspaces, repository, config, objectStore),
     repository,
+    findSourceById,
+    deleteSource,
+    deleteObject,
+    source,
   };
 }
 
@@ -131,5 +168,61 @@ describe("AssetsService", () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("returns one uploaded source without exposing its private GCS URI", async () => {
+    const { service, findSourceById, source } = createService();
+
+    const asset = await service.get(principal, source.id);
+
+    expect(asset).toMatchObject({
+      id: source.id,
+      name: source.name,
+      source: "upload",
+    });
+    expect(asset).not.toHaveProperty("gcsUri");
+    expect(findSourceById).toHaveBeenCalledWith(
+      "0198f3a2-82dd-7000-8000-000000000002",
+      source.id,
+    );
+  });
+
+  it("deletes the private object before its cascading database record", async () => {
+    const { service, deleteObject, deleteSource, source } = createService();
+
+    await expect(service.remove(principal, source.id)).resolves.toEqual({
+      id: source.id,
+      deleted: true,
+    });
+    expect(deleteObject).toHaveBeenCalledWith(source.gcsUri);
+    expect(deleteSource).toHaveBeenCalledWith(
+      "0198f3a2-82dd-7000-8000-000000000002",
+      source.id,
+    );
+    expect(deleteObject.mock.invocationCallOrder[0]).toBeLessThan(
+      deleteSource.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("does not touch storage when a source belongs to another workspace", async () => {
+    const { service, findSourceById, deleteSource, deleteObject, source } =
+      createService();
+    findSourceById.mockResolvedValue(null);
+
+    await expect(service.remove(principal, source.id)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(deleteObject).not.toHaveBeenCalled();
+    expect(deleteSource).not.toHaveBeenCalled();
+  });
+
+  it("preserves the database record when private object deletion fails", async () => {
+    const { service, deleteSource, deleteObject, source } = createService();
+    deleteObject.mockRejectedValue(new Error("storage unavailable"));
+
+    await expect(service.remove(principal, source.id)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(deleteSource).not.toHaveBeenCalled();
   });
 });

@@ -19,7 +19,8 @@ apps/web/src/features/opportunities/              six-signal feedback UI + memor
 apps/web/app/(app)/projects/                      live Neon project index and deliverable workspace
 apps/web/app/api/creonome/projects/[id]/upgrade/  authenticated storyboard generation proxy
 apps/web/app/api/creonome/projects/[id]/exports/  authenticated Markdown export proxy
-apps/web/app/(app)/library/                       live private media/script/export library
+apps/web/app/(app)/library/                       live private library + confirmed source deletion
+apps/web/app/api/creonome/assets/[id]/             authenticated source detail/deletion proxy
 apps/web/app/(app)/creator-dna/                   live evidence-backed creator profile
 apps/web/app/api/creonome/memory-candidates/      authenticated memory review proxies
 apps/web/src/features/creator-dna/memory-control  explicit approval queue + decision history
@@ -38,7 +39,7 @@ apps/api/src/modules/onboarding/                  private GCS analysis + editabl
 apps/api/src/modules/opportunities/               daily cards, generation, save, revision and explicit feedback
 apps/api/src/modules/projects/                    project read model + credited script→storyboard workflow
 apps/api/src/modules/exports/                     recorded, downloadable project Markdown packages
-apps/api/src/modules/assets/                      private asset registry and mixed library read model
+apps/api/src/modules/assets/                      tenant-scoped asset registry, GCS deletion and mixed library
 apps/api/src/modules/creator-dna/                 creator profile read model
 apps/api/src/modules/credits/                     reserve/commit/release ledger
 apps/api/src/modules/jobs/                        asynchronous job state

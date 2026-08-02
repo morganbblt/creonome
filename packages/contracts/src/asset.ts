@@ -39,6 +39,12 @@ export const CreateAssetInputSchema = z.object({
     .optional(),
 });
 
+export const AssetDeletionSchema = z.object({
+  id: z.uuid(),
+  deleted: z.literal(true),
+});
+
+export type AssetDeletion = z.infer<typeof AssetDeletionSchema>;
 export type CreateAssetInput = z.infer<typeof CreateAssetInputSchema>;
 export type Library = z.infer<typeof LibrarySchema>;
 export type LibraryItem = z.infer<typeof LibraryItemSchema>;

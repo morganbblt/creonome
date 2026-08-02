@@ -193,6 +193,28 @@ describe("shared API contracts", () => {
     ).toBe(true);
   });
 
+  it("validates an explicit receipt after a private source is deleted", () => {
+    const assetDeletionSchema = (contracts as Record<string, unknown>)
+      .AssetDeletionSchema as
+      { safeParse: (value: unknown) => { success: boolean } } | undefined;
+
+    expect(assetDeletionSchema).toBeDefined();
+    if (!assetDeletionSchema) return;
+
+    expect(
+      assetDeletionSchema.safeParse({
+        id: "0198f3a2-82dd-7000-8000-000000000040",
+        deleted: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      assetDeletionSchema.safeParse({
+        id: "0198f3a2-82dd-7000-8000-000000000040",
+        deleted: false,
+      }).success,
+    ).toBe(false);
+  });
+
   it("validates an evidence-backed onboarding workspace", () => {
     const state = OnboardingStateSchema.parse({
       status: "in_progress",

@@ -1,11 +1,23 @@
 import type { Library } from "@creonome/contracts";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LibraryWorkspace } from "./library-workspace";
 
 const library: Library = {
-  totalByteSize: 8_400_000,
+  totalByteSize: 10_400_000,
   items: [
+    {
+      id: "0198f3a2-82dd-7000-8000-000000000042",
+      projectId: null,
+      name: "private-rush.mov",
+      kind: "video",
+      mimeType: "video/quicktime",
+      byteSize: 2_000_000,
+      durationSeconds: null,
+      status: "ready",
+      source: "upload",
+      createdAt: "2026-08-02T10:30:00.000Z",
+    },
     {
       id: "0198f3a2-82dd-7000-8000-000000000040",
       projectId: null,
@@ -92,5 +104,64 @@ describe("LibraryWorkspace", () => {
       "/api/creonome/assets",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("confirms and removes a private source from the live library", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        id: "0198f3a2-82dd-7000-8000-000000000042",
+        deleted: true,
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+    render(<LibraryWorkspace library={library} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /delete private-rush\.mov/i }),
+    );
+    const confirmation = screen.getByRole("dialog", {
+      name: /delete private source/i,
+    });
+    expect(confirmation.textContent).toMatch(
+      /stored file and its private analysis/i,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /delete source permanently/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByText("private-rush.mov")).toBeNull(),
+    );
+    expect(request).toHaveBeenCalledWith(
+      "/api/creonome/assets/0198f3a2-82dd-7000-8000-000000000042",
+      { method: "DELETE" },
+    );
+    expect(screen.getByText("8.4 MB")).toBeTruthy();
+  });
+
+  it("keeps a source visible when deletion cannot be confirmed", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          Response.json({ message: "storage unavailable" }, { status: 503 }),
+        ),
+    );
+    render(<LibraryWorkspace library={library} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /delete private-rush\.mov/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /delete source permanently/i }),
+    );
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(
+      /could not be deleted.*still intact/i,
+    );
+    expect(
+      screen.getByRole("heading", { name: "private-rush.mov" }),
+    ).toBeTruthy();
   });
 });

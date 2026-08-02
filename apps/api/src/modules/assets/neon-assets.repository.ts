@@ -15,6 +15,7 @@ import type {
   AssetsRepository,
   LibraryAssetRecord,
   RegisterAssetInput,
+  SourceAssetRecord,
 } from "./assets.repository.js";
 
 function fileNameFromGcsUri(gcsUri: string): string {
@@ -197,6 +198,57 @@ export class NeonAssetsRepository implements AssetsRepository {
       source: "upload",
       createdAt: asset.createdAt,
     };
+  }
+
+  async findSourceById(
+    workspaceId: string,
+    assetId: string,
+  ): Promise<SourceAssetRecord | null> {
+    const [asset] = await this.requireDatabase()
+      .select({
+        id: sourceAssets.id,
+        fileName: sourceAssets.fileName,
+        mimeType: sourceAssets.mimeType,
+        byteSize: sourceAssets.byteSize,
+        gcsUri: sourceAssets.gcsUri,
+        status: sourceAssets.status,
+        createdAt: sourceAssets.createdAt,
+      })
+      .from(sourceAssets)
+      .where(
+        and(
+          eq(sourceAssets.workspaceId, workspaceId),
+          eq(sourceAssets.id, assetId),
+        ),
+      )
+      .limit(1);
+    if (!asset) return null;
+    return {
+      id: asset.id,
+      projectId: null,
+      name: asset.fileName,
+      kind: null,
+      mimeType: asset.mimeType,
+      byteSize: asset.byteSize,
+      durationSeconds: null,
+      status: asset.status,
+      source: "upload",
+      gcsUri: asset.gcsUri,
+      createdAt: asset.createdAt,
+    };
+  }
+
+  async deleteSource(workspaceId: string, assetId: string): Promise<boolean> {
+    const deleted = await this.requireDatabase()
+      .delete(sourceAssets)
+      .where(
+        and(
+          eq(sourceAssets.workspaceId, workspaceId),
+          eq(sourceAssets.id, assetId),
+        ),
+      )
+      .returning({ id: sourceAssets.id });
+    return deleted.length > 0;
   }
 
   private requireDatabase(): CreonomeDatabase {

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AssetDeletionSchema,
   LibraryItemSchema,
   UploadSignResponseSchema,
   type Library,
@@ -48,6 +49,10 @@ export function LibraryWorkspace({ library }: { library: Library }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [uploadStage, setUploadStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deleteCandidate, setDeleteCandidate] = useState<LibraryItem | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const filters = Object.keys(filterLabels) as Filter[];
   const visible = useMemo(
@@ -114,6 +119,48 @@ export function LibraryWorkspace({ library }: { library: Library }) {
       }
     }
     if (input.current) input.current.value = "";
+  }
+
+  async function deleteSource() {
+    if (!deleteCandidate) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/creonome/assets/${deleteCandidate.id}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        setError(
+          response.status === 401 || response.status === 403
+            ? "Your session expired. Sign in again before deleting this source."
+            : "This source could not be deleted. Your private file is still intact.",
+        );
+        return;
+      }
+      const receipt = AssetDeletionSchema.safeParse(
+        await response.json().catch(() => null),
+      );
+      if (!receipt.success || receipt.data.id !== deleteCandidate.id) {
+        setError(
+          "Deletion could not be confirmed. Reload the Library before trying again.",
+        );
+        return;
+      }
+      setItems((current) =>
+        current.filter(({ id }) => id !== deleteCandidate.id),
+      );
+      setTotalByteSize((current) =>
+        Math.max(0, current - (deleteCandidate.byteSize ?? 0)),
+      );
+      setDeleteCandidate(null);
+    } catch {
+      setError(
+        "This source could not be deleted. Your private file is still intact.",
+      );
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -204,11 +251,29 @@ export function LibraryWorkspace({ library }: { library: Library }) {
                 </div>
                 <span data-status={item.status}>{item.status}</span>
               </div>
-              {item.projectId ? (
-                <Link href={`/projects/${item.projectId}`}>Open project ↗</Link>
-              ) : (
-                <span className={styles.private}>private workspace asset</span>
-              )}
+              <div className={styles.itemFooter}>
+                {item.projectId ? (
+                  <Link href={`/projects/${item.projectId}`}>
+                    Open project ↗
+                  </Link>
+                ) : (
+                  <span className={styles.private}>
+                    private workspace asset
+                  </span>
+                )}
+                {item.source === "upload" ? (
+                  <button
+                    type="button"
+                    aria-label={`Delete ${item.name}`}
+                    onClick={() => {
+                      setError(null);
+                      setDeleteCandidate(item);
+                    }}
+                  >
+                    Delete
+                  </button>
+                ) : null}
+              </div>
             </article>
           ))}
 
@@ -228,6 +293,40 @@ export function LibraryWorkspace({ library }: { library: Library }) {
           </button>
         </div>
       </section>
+
+      {deleteCandidate ? (
+        <div className={styles.dialogBackdrop}>
+          <section
+            className={styles.deleteDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-source-title"
+          >
+            <p>PRIVATE SOURCE</p>
+            <h2 id="delete-source-title">Delete private source?</h2>
+            <p>
+              <strong>{deleteCandidate.name}</strong> will be removed with its
+              stored file and its private analysis. This cannot be undone.
+            </p>
+            <div>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteCandidate(null)}
+              >
+                Keep source
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => void deleteSource()}
+              >
+                {deleting ? "Deleting…" : "Delete source permanently"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

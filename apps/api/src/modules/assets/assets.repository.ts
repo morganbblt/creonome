@@ -13,6 +13,11 @@ export type LibraryAssetRecord = {
   createdAt: Date;
 };
 
+export type SourceAssetRecord = LibraryAssetRecord & {
+  source: "upload";
+  gcsUri: string;
+};
+
 export type RegisterAssetInput = CreateAssetInput & {
   workspaceId: string;
   userId: string;
@@ -21,6 +26,11 @@ export type RegisterAssetInput = CreateAssetInput & {
 export interface AssetsRepository {
   list(workspaceId: string): Promise<LibraryAssetRecord[]>;
   create(input: RegisterAssetInput): Promise<LibraryAssetRecord>;
+  findSourceById(
+    workspaceId: string,
+    assetId: string,
+  ): Promise<SourceAssetRecord | null>;
+  deleteSource(workspaceId: string, assetId: string): Promise<boolean>;
 }
 
 export const ASSETS_REPOSITORY = Symbol("ASSETS_REPOSITORY");
