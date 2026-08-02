@@ -8,7 +8,7 @@ Creonome helps an independent music creator answer a deceptively hard question: 
 
 This public repository is the end-to-end hackathon build: a production-deployed Next.js application, a NestJS/Fastify API on Cloud Run, Neon Postgres/Auth, Mem0, Gemini/Vertex structured generation and a resilient Veo video pipeline.
 
-## The two-minute judge path
+## The core product journey
 
 1. **Sign in and establish Creator DNA.** Upload or describe representative work; Creonome extracts evidence-backed patterns that remain editable and reviewable.
 2. **Open Today.** Three opportunities explain their signal, freshness, confidence and fit instead of presenting a black-box ranking.
@@ -35,25 +35,26 @@ flowchart LR
 
 ## What is working
 
-| Area                   | Hackathon implementation                                                                 |
-| ---------------------- | ---------------------------------------------------------------------------------------- |
-| Authentication         | Neon Auth email/password and Sign in with Google                                         |
-| Creator onboarding     | Private GCS uploads, multimodal analysis, editable evidence-backed Creator DNA           |
-| Today                  | Three explainable opportunities, multiple filters, incremental batches and card carousel |
-| Creative direction     | Conversational idea modification with version preservation                               |
-| Production workflow    | Credited Script → Storyboard → Video project progression                                 |
-| Video                  | Veo 3.1 attempt, async polling, private GCS delivery and deterministic MP4 fallback      |
-| Memory                 | Mem0 adapter plus approval-gated memory candidate queue                                  |
-| Credits                | Idempotent reserve / commit / release ledger; no charge for unusable output              |
-| Library and export     | Tenant-scoped assets, confirmed source deletion and Markdown project package             |
-| Privacy                | Persisted consent/retention controls, sanitized export, cancellable deletion request     |
-| Themes and interaction | Responsive light/dark UI, route progress and non-blocking generation toasts              |
+| Area                   | Current implementation                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| Authentication         | Neon Auth email/password and Sign in with Google                                          |
+| Creator onboarding     | Private GCS uploads, multimodal analysis, editable evidence-backed Creator DNA            |
+| Trend intelligence     | Normalized sources, candidates, snapshots and clusters attached to opportunity reasoning  |
+| Today                  | Three explainable opportunities, multiple filters, incremental batches and card carousel  |
+| Creative direction     | Conversational idea modification with version preservation                                |
+| Production workflow    | Credited Script → Storyboard → Video project progression                                  |
+| Video                  | Verified Vertex AI Veo 3.1 rendering, private GCS delivery and deterministic MP4 fallback |
+| Memory                 | Mem0 adapter plus approval-gated memory candidate queue                                   |
+| Credits                | Idempotent reserve / commit / release ledger; no charge for unusable output               |
+| Library and export     | Tenant-scoped assets, confirmed source deletion and Markdown project package              |
+| Privacy                | Persisted consent/retention controls, sanitized export, cancellable deletion request      |
+| Themes and interaction | Responsive light/dark UI, route progress and non-blocking generation toasts               |
 
 TikTok/Instagram connections and Stripe are intentionally marked **Coming soon**. They are outside the MVP rather than mocked as live integrations.
 
 ## Resilient video generation
 
-`VIDEO_PROVIDER=auto` attempts a real 8-second, 720p, 9:16 Veo render from the latest script, storyboard and Creator DNA. Veo is a long-running operation, so the API polls with a controlled deadline, downloads the completed result from Google, validates the MP4 and stores it in the private GCS bucket before declaring success.
+`VIDEO_PROVIDER=auto` uses Vertex AI to generate a real 8-second, 720p, 9:16 Veo render from the latest script, storyboard and Creator DNA. This path has been verified end to end in the deployed product: the browser loaded the authenticated 720×1280 MP4 from the project after the API persisted its provider metadata and complete object in private GCS. Veo is a long-running operation, so the API polls with a controlled deadline and never exposes an incomplete result.
 
 Any quota, permission, model, timeout, safety, incomplete-response, download or storage failure atomically selects the committed deterministic MP4. The UI reports the distinction honestly:
 
@@ -61,6 +62,12 @@ Any quota, permission, model, timeout, safety, incomplete-response, download or 
 - **Video preview ready — generated with MVP fallback** — the deterministic preview kept the workflow usable.
 
 Both variants play and download from the project. Credits are reserved once and committed once; they are released only if neither path can persist a usable result. See [the video rendering design](docs/architecture/video-rendering.md).
+
+## Trend intelligence
+
+The research handoff is integrated through the canonical Neon model rather than by coupling the web request path to fragile scraping scripts. A trend passes through `trend_sources` → `trend_candidates` → `trend_snapshots` → `trend_clusters`; the opportunity generator receives the strongest workspace clusters, and each persisted opportunity keeps the cluster that informed its momentum score and rationale.
+
+The API response follows the handoff's degradation contract: keys never disappear, `status` drives the UI, unavailable evidence is explained instead of becoming a silent zero, and synthetic/authorized demo data is visibly labeled as sample data. Collection can evolve independently behind this boundary without changing the Today or opportunity-detail contracts.
 
 ## Architecture
 

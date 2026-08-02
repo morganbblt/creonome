@@ -71,6 +71,10 @@ web_modules/
 !.env.example
 !**/.env.example
 
+# Local research handoffs are inputs to implementation, not public source.
+# They may contain credentials, scraped media, transcripts and generated runs.
+creonome scraping backend/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
