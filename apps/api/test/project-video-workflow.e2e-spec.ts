@@ -9,6 +9,7 @@ import type {
   VideoUpgradeRecord,
 } from "../src/modules/projects/projects.repository.js";
 import { DeterministicVideoProvider } from "../src/modules/projects/video/deterministic-video.provider.js";
+import type { QualityGateService } from "../src/modules/quality-gate/quality-gate.service.js";
 import type { WorkspaceContextService } from "../src/modules/workspaces/workspace-context.service.js";
 
 const now = new Date("2026-08-02T10:00:00.000Z");
@@ -207,6 +208,13 @@ describe("Storyboard → Video workflow", () => {
         available: balance,
       })),
     } as unknown as CreditsService;
+    const qualityGate = {
+      evaluateScript: vi.fn().mockResolvedValue({ passed: true, violations: [] }),
+      evaluateStoryboard: vi
+        .fn()
+        .mockResolvedValue({ passed: true, violations: [] }),
+      evaluateVideo: vi.fn().mockResolvedValue({ passed: true, violations: [] }),
+    } as unknown as QualityGateService;
     const service = new ProjectWorkflowService(
       {
         resolve: vi.fn().mockResolvedValue(context),
@@ -217,6 +225,7 @@ describe("Storyboard → Video workflow", () => {
         generate: vi.fn().mockResolvedValue(generatedStoryboard),
       } as unknown as StructuredGenerator,
       new DeterministicVideoProvider(),
+      qualityGate,
     );
 
     const storyboard = await service.upgrade(

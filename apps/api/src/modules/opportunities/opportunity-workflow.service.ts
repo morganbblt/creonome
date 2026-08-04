@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import {
   OpportunityRevisionSchema,
@@ -20,6 +21,10 @@ import {
 } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CreditsService, creditCosts } from "../credits/credits.service.js";
+import {
+  QualityGateRejectedError,
+  QualityGateService,
+} from "../quality-gate/quality-gate.service.js";
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
   OPPORTUNITIES_REPOSITORY,
@@ -108,6 +113,8 @@ export class OpportunityWorkflowService {
     private readonly credits: CreditsService,
     @Inject(STRUCTURED_GENERATOR)
     private readonly generator: StructuredGenerator,
+    @Inject(QualityGateService)
+    private readonly qualityGate: QualityGateService,
   ) {}
 
   async modify(
@@ -194,6 +201,13 @@ export class OpportunityWorkflowService {
     let persisted = false;
     try {
       const generated = await this.generateScript(opportunity);
+      const gate = await this.qualityGate.evaluateScript(
+        context.creatorProfileId,
+        generated.script,
+      );
+      if (!gate.passed) {
+        throw new QualityGateRejectedError(gate.violations);
+      }
       const upgrade = await this.repository.createScriptUpgrade({
         ...context,
         opportunityId,
@@ -224,6 +238,13 @@ export class OpportunityWorkflowService {
           );
         } catch {
           throw error;
+        }
+        if (error instanceof QualityGateRejectedError) {
+          throw new UnprocessableEntityException({
+            message: "Script generation failed the pre-publish content review",
+            retryMode: "regenerate",
+            violations: error.violations,
+          });
         }
         throw new ServiceUnavailableException({
           message: "Script generation could not be completed",

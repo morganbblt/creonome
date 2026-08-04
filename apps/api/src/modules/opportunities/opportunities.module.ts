@@ -4,6 +4,7 @@ import { AiModule } from "../ai/ai.module.js";
 import { CreatorDnaModule } from "../creator-dna/creator-dna.module.js";
 import { CreditsModule } from "../credits/credits.module.js";
 import { MemoryModule } from "../memory/memory.module.js";
+import { QualityGateModule } from "../quality-gate/quality-gate.module.js";
 import { NeonOpportunitiesRepository } from "./neon-opportunities.repository.js";
 import { OpportunitiesController } from "./opportunities.controller.js";
 import { OPPORTUNITIES_REPOSITORY } from "./opportunities.repository.js";
@@ -17,6 +18,7 @@ import { OpportunityWorkflowService } from "./opportunity-workflow.service.js";
     CreatorDnaModule,
     CreditsModule,
     MemoryModule,
+    QualityGateModule,
     WorkspacesModule,
   ],
   controllers: [OpportunitiesController],

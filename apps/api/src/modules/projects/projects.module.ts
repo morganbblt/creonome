@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { GoogleGenAI } from "@google/genai";
 import { AiModule } from "../ai/ai.module.js";
 import { CreditsModule } from "../credits/credits.module.js";
+import { QualityGateModule } from "../quality-gate/quality-gate.module.js";
 import { WorkspacesModule } from "../workspaces/workspaces.module.js";
 import {
   PRIVATE_OBJECT_READER,
@@ -32,7 +33,13 @@ import {
 import { VeoVideoProvider } from "./video/veo-video.provider.js";
 
 @Module({
-  imports: [AiModule, CreditsModule, UploadsModule, WorkspacesModule],
+  imports: [
+    AiModule,
+    CreditsModule,
+    QualityGateModule,
+    UploadsModule,
+    WorkspacesModule,
+  ],
   controllers: [ProjectsController],
   providers: [
     ProjectsService,

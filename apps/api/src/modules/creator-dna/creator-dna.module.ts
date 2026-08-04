@@ -16,6 +16,6 @@ import { NeonCreatorDnaRepository } from "./neon-creator-dna.repository.js";
       useExisting: NeonCreatorDnaRepository,
     },
   ],
-  exports: [CreatorDnaService],
+  exports: [CreatorDnaService, CREATOR_DNA_REPOSITORY],
 })
 export class CreatorDnaModule {}

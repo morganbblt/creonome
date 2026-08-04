@@ -2,11 +2,13 @@ import {
   HttpException,
   NotFoundException,
   ServiceUnavailableException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import type { CreditsService } from "../credits/credits.service.js";
+import type { QualityGateService } from "../quality-gate/quality-gate.service.js";
 import type { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import type {
   OpportunityRecord,
@@ -49,6 +51,7 @@ function setup(options?: {
   generatorRejects?: boolean;
   missing?: boolean;
   existingUpgrade?: boolean;
+  qualityGateRejects?: boolean;
 }) {
   const workspaces = {
     resolve: vi.fn().mockResolvedValue(context),
@@ -202,6 +205,24 @@ function setup(options?: {
             durationSeconds: 35,
           }),
   } as unknown as StructuredGenerator;
+  const qualityGate = {
+    evaluateScript: vi.fn().mockResolvedValue(
+      options?.qualityGateRejects
+        ? {
+            passed: false,
+            violations: [
+              {
+                code: "forbidden_topic",
+                message:
+                  'Generated content references "alcohol", which conflicts with the creator boundary "No alcohol brand promotions".',
+              },
+            ],
+          }
+        : { passed: true, violations: [] },
+    ),
+    evaluateStoryboard: vi.fn(),
+    evaluateVideo: vi.fn(),
+  } as unknown as QualityGateService;
 
   return {
     service: new OpportunityWorkflowService(
@@ -209,10 +230,12 @@ function setup(options?: {
       repository,
       credits,
       generator,
+      qualityGate,
     ),
     repository,
     credits,
     generator,
+    qualityGate,
   };
 }
 
@@ -392,6 +415,43 @@ describe("OpportunityWorkflowService", () => {
         lockedFields: [],
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("rejects a generated script that fails the pre-publish content gate and releases the reservation", async () => {
+    const { service, credits, repository, qualityGate } = setup({
+      qualityGateRejects: true,
+    });
+
+    const failure = await service
+      .upgrade(
+        principal,
+        opportunity.id,
+        { targetLevel: "script", confirmedCreditCost: true },
+        "upgrade-script-gate-rejected",
+      )
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(UnprocessableEntityException);
+    expect((failure as UnprocessableEntityException).getResponse()).toMatchObject(
+      {
+        retryMode: "regenerate",
+        violations: expect.arrayContaining([
+          expect.objectContaining({ code: "forbidden_topic" }),
+        ]),
+      },
+    );
+    expect(qualityGate.evaluateScript).toHaveBeenCalledWith(
+      context.creatorProfileId,
+      expect.objectContaining({ hook: expect.any(String) }),
+    );
+    expect(repository.createScriptUpgrade).not.toHaveBeenCalled();
+    expect(credits.commit).not.toHaveBeenCalled();
+    expect(credits.release).toHaveBeenCalledWith(
+      context.workspaceId,
+      2,
+      "upgrade-script-gate-rejected:release",
+      expect.stringMatching(/failed/i),
+    );
   });
 
   it("requires an idempotency key before reserving credits", async () => {
