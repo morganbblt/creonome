@@ -39,13 +39,13 @@ const stateMarkClasses = {
 } as const;
 
 type GenerationToastState =
-  | "queued"
-  | "pending"
-  | "running"
-  | "success"
-  | "error";
+  "queued" | "pending" | "running" | "success" | "error";
 
-const busyStates = new Set<GenerationToastState>(["queued", "pending", "running"]);
+const busyStates = new Set<GenerationToastState>([
+  "queued",
+  "pending",
+  "running",
+]);
 
 export function GenerationToast({
   state,

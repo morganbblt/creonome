@@ -277,7 +277,9 @@ function setup(options?: {
       : vi.fn().mockResolvedValue(upgradeRecord()),
     findVideoUpgradeByIdempotency: vi
       .fn()
-      .mockResolvedValue(options?.videoIdempotent ? videoUpgradeRecord() : null),
+      .mockResolvedValue(
+        options?.videoIdempotent ? videoUpgradeRecord() : null,
+      ),
     findExistingVideoUpgrade: vi
       .fn()
       .mockResolvedValue(options?.videoExisting ? videoUpgradeRecord() : null),

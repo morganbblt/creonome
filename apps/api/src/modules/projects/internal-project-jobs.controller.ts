@@ -10,7 +10,10 @@ import {
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { InternalJobAuthGuard } from "../auth/internal-job-auth.guard.js";
 import { Public } from "../auth/public.decorator.js";
-import { JOBS_REPOSITORY, type JobsRepository } from "../jobs/jobs.repository.js";
+import {
+  JOBS_REPOSITORY,
+  type JobsRepository,
+} from "../jobs/jobs.repository.js";
 import { ProjectWorkflowService } from "./project-workflow.service.js";
 
 /**

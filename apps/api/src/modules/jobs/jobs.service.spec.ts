@@ -32,7 +32,11 @@ function createService(
   const queue: GenerationQueue = {
     enqueue: vi.fn().mockResolvedValue(undefined),
   };
-  return { service: new JobsService(workspaces, repository, queue), repository, queue };
+  return {
+    service: new JobsService(workspaces, repository, queue),
+    repository,
+    queue,
+  };
 }
 
 const baseJob = {

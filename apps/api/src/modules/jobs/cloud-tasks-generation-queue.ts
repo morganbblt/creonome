@@ -48,8 +48,14 @@ export class CloudTasksGenerationQueue implements GenerationQueue {
       );
     }
 
-    const { project, location, queue, workerBaseUrl, internalJobToken, apiPrefix } =
-      this.requireConfig();
+    const {
+      project,
+      location,
+      queue,
+      workerBaseUrl,
+      internalJobToken,
+      apiPrefix,
+    } = this.requireConfig();
 
     const client = this.getClient();
     const parent = client.queuePath(project, location, queue);

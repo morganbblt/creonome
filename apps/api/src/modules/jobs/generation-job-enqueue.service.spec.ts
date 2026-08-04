@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GenerationQueue } from "./generation-queue.js";
 import { GenerationJobEnqueueService } from "./generation-job-enqueue.service.js";
-import type { CreateJobInput, InternalJobRecord, JobsRepository } from "./jobs.repository.js";
+import type {
+  CreateJobInput,
+  InternalJobRecord,
+  JobsRepository,
+} from "./jobs.repository.js";
 
 const input: CreateJobInput = {
   workspaceId: "0198f3a2-82dd-7000-8000-000000000001",
@@ -44,9 +48,13 @@ function setup() {
     create: vi.fn().mockResolvedValue(createdJob()),
     markRunning: vi.fn(),
     markSucceeded: vi.fn(),
-    markFailed: vi.fn().mockResolvedValue({ ...createdJob(), status: "failed_final" }),
+    markFailed: vi
+      .fn()
+      .mockResolvedValue({ ...createdJob(), status: "failed_final" }),
   };
-  const queue: GenerationQueue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+  const queue: GenerationQueue = {
+    enqueue: vi.fn().mockResolvedValue(undefined),
+  };
   return { service: new GenerationJobEnqueueService(jobs, queue), jobs, queue };
 }
 

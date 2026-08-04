@@ -234,9 +234,7 @@ export class OpportunityWorkflowService {
       });
       return QueuedGenerationJobSchema.parse({
         job: toGenerationJobContract(job),
-        credits: await this.credits.getAccountForWorkspace(
-          context.workspaceId,
-        ),
+        credits: await this.credits.getAccountForWorkspace(context.workspaceId),
       });
     } catch (error) {
       try {

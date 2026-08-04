@@ -47,7 +47,9 @@ const generatedRecords: OpportunityRecord[] = [1, 2, 3].map((position) => ({
 
 const jobId = "0198f3a2-82dd-7000-8000-000000000099";
 
-function queuedJob(overrides: Partial<InternalJobRecord> = {}): InternalJobRecord {
+function queuedJob(
+  overrides: Partial<InternalJobRecord> = {},
+): InternalJobRecord {
   return {
     id: jobId,
     kind: "opportunity_batch",
@@ -147,10 +149,12 @@ function setup(existing: OpportunityRecord[] = []) {
     retry: vi.fn(),
     create: vi.fn(),
     markRunning: vi.fn().mockResolvedValue(queuedJob({ status: "running" })),
-    markSucceeded: vi.fn().mockResolvedValue(queuedJob({ status: "succeeded" })),
-    markFailed: vi.fn().mockResolvedValue(
-      queuedJob({ status: "failed_retryable" }),
-    ),
+    markSucceeded: vi
+      .fn()
+      .mockResolvedValue(queuedJob({ status: "succeeded" })),
+    markFailed: vi
+      .fn()
+      .mockResolvedValue(queuedJob({ status: "failed_retryable" })),
   };
   return {
     service: new OpportunityGenerationService(

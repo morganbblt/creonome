@@ -49,7 +49,9 @@ const opportunity: OpportunityRecord = {
 
 const jobId = "0198f3a2-82dd-7000-8000-000000000099";
 
-function queuedJob(overrides: Partial<InternalJobRecord> = {}): InternalJobRecord {
+function queuedJob(
+  overrides: Partial<InternalJobRecord> = {},
+): InternalJobRecord {
   return {
     id: jobId,
     kind: "script",
@@ -267,10 +269,12 @@ function setup(options?: {
     retry: vi.fn(),
     create: vi.fn(),
     markRunning: vi.fn().mockResolvedValue(queuedJob({ status: "running" })),
-    markSucceeded: vi.fn().mockResolvedValue(queuedJob({ status: "succeeded" })),
-    markFailed: vi.fn().mockResolvedValue(
-      queuedJob({ status: "failed_retryable" }),
-    ),
+    markSucceeded: vi
+      .fn()
+      .mockResolvedValue(queuedJob({ status: "succeeded" })),
+    markFailed: vi
+      .fn()
+      .mockResolvedValue(queuedJob({ status: "failed_retryable" })),
   };
 
   return {

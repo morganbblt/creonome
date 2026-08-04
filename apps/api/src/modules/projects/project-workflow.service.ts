@@ -260,9 +260,7 @@ export class ProjectWorkflowService {
       });
       return QueuedGenerationJobSchema.parse({
         job: toGenerationJobContract(job),
-        credits: await this.credits.getAccountForWorkspace(
-          context.workspaceId,
-        ),
+        credits: await this.credits.getAccountForWorkspace(context.workspaceId),
       });
     } catch (error) {
       try {
@@ -445,9 +443,7 @@ export class ProjectWorkflowService {
       });
       return QueuedGenerationJobSchema.parse({
         job: toGenerationJobContract(job),
-        credits: await this.credits.getAccountForWorkspace(
-          context.workspaceId,
-        ),
+        credits: await this.credits.getAccountForWorkspace(context.workspaceId),
       });
     } catch (error) {
       try {
@@ -505,9 +501,7 @@ export class ProjectWorkflowService {
         projectId,
       );
       if (!source) {
-        throw new NotFoundException(
-          "A storyboard-ready project was not found",
-        );
+        throw new NotFoundException("A storyboard-ready project was not found");
       }
       const artifact = await this.videoProvider.generate({
         workspaceId,
@@ -535,9 +529,7 @@ export class ProjectWorkflowService {
         jobId,
       });
       if (!upgrade) {
-        throw new NotFoundException(
-          "A storyboard-ready project was not found",
-        );
+        throw new NotFoundException("A storyboard-ready project was not found");
       }
       // The job row itself was already flipped to "succeeded" as part of
       // the same write that persisted the video above.

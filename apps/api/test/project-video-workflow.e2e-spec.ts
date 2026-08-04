@@ -106,7 +106,9 @@ function createInMemoryJobsRepository(): JobsRepository {
     findById: vi.fn(),
     cancel: vi.fn(),
     retry: vi.fn(),
-    findByIdUnscoped: vi.fn(async (jobId: string) => jobsById.get(jobId) ?? null),
+    findByIdUnscoped: vi.fn(
+      async (jobId: string) => jobsById.get(jobId) ?? null,
+    ),
     create: vi.fn(async (input: CreateJobInput) => {
       const job: InternalJobRecord = {
         id: randomUUID(),
@@ -136,13 +138,15 @@ function createInMemoryJobsRepository(): JobsRepository {
       jobsById.set(jobId, updated);
       return updated;
     }),
-    markSucceeded: vi.fn(async (jobId: string, output: Record<string, unknown>) => {
-      const job = jobsById.get(jobId);
-      if (!job) return null;
-      const updated = { ...job, status: "succeeded", progress: 100, output };
-      jobsById.set(jobId, updated);
-      return updated;
-    }),
+    markSucceeded: vi.fn(
+      async (jobId: string, output: Record<string, unknown>) => {
+        const job = jobsById.get(jobId);
+        if (!job) return null;
+        const updated = { ...job, status: "succeeded", progress: 100, output };
+        jobsById.set(jobId, updated);
+        return updated;
+      },
+    ),
     markFailed: vi.fn(
       async (
         jobId: string,
@@ -295,7 +299,9 @@ describe("Storyboard → Video workflow", () => {
         .mockResolvedValue({ passed: true, violations: [] }),
     } as unknown as QualityGateService;
     const jobsRepository = createInMemoryJobsRepository();
-    const queue: GenerationQueue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+    const queue: GenerationQueue = {
+      enqueue: vi.fn().mockResolvedValue(undefined),
+    };
     const enqueue = new GenerationJobEnqueueService(jobsRepository, queue);
     const service = new ProjectWorkflowService(
       {
@@ -319,7 +325,8 @@ describe("Storyboard → Video workflow", () => {
       "e2e-storyboard-generation",
     );
     expect(queuedStoryboardJob).toMatchObject({ job: { status: "queued" } });
-    if (!("job" in queuedStoryboardJob)) throw new Error("expected a queued job");
+    if (!("job" in queuedStoryboardJob))
+      throw new Error("expected a queued job");
     await service.executeQueuedStoryboardUpgrade(queuedStoryboardJob.job.id);
     expect(storyboardUpgrade).not.toBeNull();
     expect(storyboardUpgrade!.project.currentLevel).toBe("storyboard");

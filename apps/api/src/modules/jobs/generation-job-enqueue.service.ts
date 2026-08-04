@@ -1,8 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import {
-  GENERATION_QUEUE,
-  type GenerationQueue,
-} from "./generation-queue.js";
+import { GENERATION_QUEUE, type GenerationQueue } from "./generation-queue.js";
 import {
   JOBS_REPOSITORY,
   type CreateJobInput,

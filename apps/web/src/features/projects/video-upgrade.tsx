@@ -119,9 +119,7 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
         if (!projectResponse.ok || !creditsResponse.ok) {
           throw new Error("Could not load the finished video");
         }
-        const project = ProjectDetailSchema.parse(
-          await projectResponse.json(),
-        );
+        const project = ProjectDetailSchema.parse(await projectResponse.json());
         const credits = CreditsResponseSchema.parse(
           await creditsResponse.json(),
         );
