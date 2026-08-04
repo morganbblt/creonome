@@ -181,8 +181,8 @@ export function CreatorDnaVersionsView({
             Version history
           </h1>
           <p className="mt-1.5 max-w-lg text-sm text-muted-foreground">
-            Every Creator DNA version is kept. Restoring never deletes or
-            edits an earlier version — it creates a new one from its traits.
+            Every Creator DNA version is kept. Restoring never deletes or edits
+            an earlier version — it creates a new one from its traits.
           </p>
         </div>
         <Button
@@ -270,9 +270,9 @@ export function CreatorDnaVersionsView({
           <DialogHeader>
             <DialogTitle>Restore version {restoreTarget?.version}?</DialogTitle>
             <DialogDescription>
-              This creates a new Creator DNA version with the trait values
-              from version {restoreTarget?.version}. Version{" "}
-              {restoreTarget?.version} itself is kept exactly as is.
+              This creates a new Creator DNA version with the trait values from
+              version {restoreTarget?.version}. Version {restoreTarget?.version}{" "}
+              itself is kept exactly as is.
             </DialogDescription>
           </DialogHeader>
           {restoreError ? (

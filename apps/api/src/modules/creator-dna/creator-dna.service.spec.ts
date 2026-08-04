@@ -199,12 +199,10 @@ describe("CreatorDnaService", () => {
     };
     const service = new CreatorDnaService(workspaces, repository);
 
-    await expect(service.restoreVersion(principal, 2)).resolves.toMatchObject(
-      {
-        version: 6,
-        traits: [expect.objectContaining({ value: "warm and playful" })],
-      },
-    );
+    await expect(service.restoreVersion(principal, 2)).resolves.toMatchObject({
+      version: 6,
+      traits: [expect.objectContaining({ value: "warm and playful" })],
+    });
     expect(repository.restoreVersion).toHaveBeenCalledWith(
       "0198f3a2-82dd-7000-8000-000000000002",
       "0198f3a2-82dd-7000-8000-000000000011",
@@ -309,9 +307,7 @@ describe("CreatorDnaService", () => {
     };
     const service = new CreatorDnaService(workspaces, repository);
 
-    await expect(
-      service.compareVersions(principal, 1, 3),
-    ).resolves.toEqual({
+    await expect(service.compareVersions(principal, 1, 3)).resolves.toEqual({
       a: { version: 1, summary: "First summary" },
       b: { version: 3, summary: "Third summary" },
       traits: [
@@ -359,8 +355,8 @@ describe("CreatorDnaService", () => {
     };
     const service = new CreatorDnaService(workspaces, repository);
 
-    await expect(
-      service.compareVersions(principal, 1, 42),
-    ).rejects.toThrow("Creator DNA version was not found");
+    await expect(service.compareVersions(principal, 1, 42)).rejects.toThrow(
+      "Creator DNA version was not found",
+    );
   });
 });

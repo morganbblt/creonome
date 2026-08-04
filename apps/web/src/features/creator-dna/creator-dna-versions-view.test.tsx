@@ -48,9 +48,7 @@ describe("CreatorDnaVersionsView", () => {
     expect(screen.getByText("Version 2")).toBeTruthy();
     expect(screen.getByText("Version 1")).toBeTruthy();
     expect(screen.getByText("Manual trait correction")).toBeTruthy();
-    expect(
-      screen.getAllByText("Generated during onboarding"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("Generated during onboarding")).toHaveLength(2);
   });
 
   it("restores an earlier version and refreshes the list", async () => {
@@ -135,9 +133,7 @@ describe("CreatorDnaVersionsView", () => {
     fireEvent.click(checkboxes[0]!); // version 3
     fireEvent.click(checkboxes[2]!); // version 1
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /compare v1 and v3/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /compare v1 and v3/i }));
 
     await waitFor(() =>
       expect(

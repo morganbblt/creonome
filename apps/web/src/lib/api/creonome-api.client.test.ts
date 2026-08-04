@@ -259,9 +259,9 @@ describe("CreonomeApiClient", () => {
     await expect(client.restoreCreatorDnaVersion(2)).resolves.toEqual(
       restoredDna,
     );
-    await expect(
-      client.compareCreatorDnaVersions(1, 2),
-    ).resolves.toEqual(compareResponse);
+    await expect(client.compareCreatorDnaVersions(1, 2)).resolves.toEqual(
+      compareResponse,
+    );
 
     expect(request).toHaveBeenNthCalledWith(
       1,
