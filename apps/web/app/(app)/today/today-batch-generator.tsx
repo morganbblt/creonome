@@ -2,12 +2,14 @@
 
 import {
   OpportunityBatchSchema,
+  QueuedGenerationJobSchema,
   type OpportunityBatch,
 } from "@creonome/contracts";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Button } from "@/src/components/ui/button";
 import { cn } from "@/src/lib/utils";
+import { pollGenerationJob } from "@/src/features/generation/poll-generation-job";
 
 const directions = [
   "Closer to my DNA",
@@ -68,9 +70,26 @@ export function TodayBatchGenerator({
         }
         return;
       }
-      const parsedBatch = OpportunityBatchSchema.safeParse(
-        await response.json().catch(() => null),
-      );
+      const body = await response.json().catch(() => null);
+      const queued = QueuedGenerationJobSchema.safeParse(body);
+      if (queued.success && queued.data.job.status !== "succeeded") {
+        // Batch generation now runs on the Cloud Tasks queue instead of
+        // inline: wait for the job to finish, then refresh Today.
+        try {
+          await pollGenerationJob(queued.data.job.id);
+        } catch {
+          setError(
+            "The new batch is taking longer than expected. Reload Today in a moment to check on it.",
+          );
+          requestKey.current = null;
+          router.refresh();
+          return;
+        }
+        requestKey.current = null;
+        router.refresh();
+        return;
+      }
+      const parsedBatch = OpportunityBatchSchema.safeParse(body);
       if (!parsedBatch.success) {
         setError(
           "The new batch was created, but its response could not be displayed. Reload Today to recover it.",

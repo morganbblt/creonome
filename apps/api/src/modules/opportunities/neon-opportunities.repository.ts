@@ -660,7 +660,41 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
     const version = project.currentVersion + 1;
     const projectVersionId = randomUUID();
     const scriptId = randomUUID();
-    const jobId = randomUUID();
+    const jobId = input.jobId ?? randomUUID();
+    const jobWrite = input.jobId
+      ? database
+          .update(generationJobs)
+          .set({
+            projectId: project.id,
+            provider: input.provider,
+            model: input.model,
+            status: "succeeded",
+            progress: 100,
+            input: { opportunityId: input.opportunityId },
+            output: { scriptId, projectVersion: version },
+            startedAt: now,
+            completedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(generationJobs.id, input.jobId))
+      : database.insert(generationJobs).values({
+          id: jobId,
+          workspaceId: input.workspaceId,
+          projectId: project.id,
+          requestedByUserId: input.userId,
+          kind: "script",
+          provider: input.provider,
+          model: input.model,
+          status: "succeeded",
+          progress: 100,
+          idempotencyKey: input.idempotencyKey,
+          input: { opportunityId: input.opportunityId },
+          output: { scriptId, projectVersion: version },
+          createdAt: now,
+          startedAt: now,
+          completedAt: now,
+          updatedAt: now,
+        });
     await database.batch([
       database.insert(projectVersions).values({
         id: projectVersionId,
@@ -692,24 +726,7 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
         createdAt: now,
         updatedAt: now,
       }),
-      database.insert(generationJobs).values({
-        id: jobId,
-        workspaceId: input.workspaceId,
-        projectId: project.id,
-        requestedByUserId: input.userId,
-        kind: "script",
-        provider: input.provider,
-        model: input.model,
-        status: "succeeded",
-        progress: 100,
-        idempotencyKey: input.idempotencyKey,
-        input: { opportunityId: input.opportunityId },
-        output: { scriptId, projectVersion: version },
-        createdAt: now,
-        startedAt: now,
-        completedAt: now,
-        updatedAt: now,
-      }),
+      jobWrite,
       database
         .update(projects)
         .set({

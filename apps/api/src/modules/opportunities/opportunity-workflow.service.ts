@@ -4,13 +4,14 @@ import {
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
-  UnprocessableEntityException,
 } from "@nestjs/common";
 import {
   OpportunityRevisionSchema,
+  QueuedGenerationJobSchema,
   UpgradeOpportunityResultSchema,
   type ModifyOpportunityInput,
   type OpportunityRevision,
+  type QueuedGenerationJob,
   type UpgradeOpportunityInput,
   type UpgradeOpportunityResult,
 } from "@creonome/contracts";
@@ -21,6 +22,12 @@ import {
 } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CreditsService, creditCosts } from "../credits/credits.service.js";
+import { GenerationJobEnqueueService } from "../jobs/generation-job-enqueue.service.js";
+import { toGenerationJobContract } from "../jobs/generation-job.mapper.js";
+import {
+  JOBS_REPOSITORY,
+  type JobsRepository,
+} from "../jobs/jobs.repository.js";
 import {
   QualityGateRejectedError,
   QualityGateService,
@@ -115,6 +122,10 @@ export class OpportunityWorkflowService {
     private readonly generator: StructuredGenerator,
     @Inject(QualityGateService)
     private readonly qualityGate: QualityGateService,
+    @Inject(GenerationJobEnqueueService)
+    private readonly enqueue: GenerationJobEnqueueService,
+    @Inject(JOBS_REPOSITORY)
+    private readonly jobs: JobsRepository,
   ) {}
 
   async modify(
@@ -145,12 +156,19 @@ export class OpportunityWorkflowService {
     return this.toRevisionContract(revision);
   }
 
+  /**
+   * Triggered by `POST /opportunities/:id/upgrade`. Reserves credits (fast,
+   * kept synchronous) then hands the actual script generation off to the
+   * `creonome-generation` Cloud Tasks queue instead of running it inline.
+   * Idempotent replays and already-upgraded opportunities still return the
+   * finished result immediately.
+   */
   async upgrade(
     principal: AuthPrincipal,
     opportunityId: string,
     _input: UpgradeOpportunityInput,
     idempotencyKey: string,
-  ): Promise<UpgradeOpportunityResult> {
+  ): Promise<UpgradeOpportunityResult | QueuedGenerationJob> {
     const normalizedKey = idempotencyKey.trim();
     if (normalizedKey.length < 8 || normalizedKey.length > 180) {
       throw new BadRequestException(
@@ -198,8 +216,84 @@ export class OpportunityWorkflowService {
       `Reserve ${cost} credits for script generation`,
     );
 
+    try {
+      const job = await this.enqueue.createAndEnqueue({
+        workspaceId: context.workspaceId,
+        projectId: null,
+        requestedByUserId: context.userId,
+        kind: "script",
+        provider: "pending",
+        model: "pending",
+        idempotencyKey: normalizedKey,
+        input: {
+          workspaceId: context.workspaceId,
+          userId: context.userId,
+          creatorProfileId: context.creatorProfileId,
+          opportunityId,
+        },
+      });
+      return QueuedGenerationJobSchema.parse({
+        job: toGenerationJobContract(job),
+        credits: await this.credits.getAccountForWorkspace(
+          context.workspaceId,
+        ),
+      });
+    } catch (error) {
+      try {
+        await this.credits.release(
+          context.workspaceId,
+          cost,
+          `${normalizedKey}:release`,
+          `Released ${cost} credits after a failed script generation queue attempt`,
+        );
+      } catch {
+        throw error;
+      }
+      throw new ServiceUnavailableException({
+        message: "Script generation could not be queued",
+        retryMode: "new_request",
+      });
+    }
+  }
+
+  /**
+   * Invoked by the internal `/internal/opportunity-jobs/:jobId/execute`
+   * handler (Cloud Tasks push target) for jobs of kind "script". Performs
+   * the same generation work that used to run inline inside {@link upgrade},
+   * then commits or releases the credits reserved by the public controller
+   * action.
+   */
+  async executeQueuedScriptUpgrade(jobId: string): Promise<void> {
+    const job = await this.jobs.findByIdUnscoped(jobId);
+    if (!job) {
+      throw new NotFoundException("Generation job was not found");
+    }
+    if (job.status !== "queued") {
+      return;
+    }
+    const running = await this.jobs.markRunning(jobId);
+    if (!running) {
+      return;
+    }
+
+    const context = job.input as {
+      workspaceId: string;
+      creatorProfileId: string;
+      userId: string;
+      opportunityId: string;
+    };
+    const workspaceId = context.workspaceId ?? job.workspaceId;
+    const cost = creditCosts.script;
+
     let persisted = false;
     try {
+      const opportunity = await this.repository.findById(
+        workspaceId,
+        context.opportunityId,
+      );
+      if (!opportunity) {
+        throw new NotFoundException("Opportunity was not found");
+      }
       const generated = await this.generateScript(opportunity);
       const gate = await this.qualityGate.evaluateScript(
         context.creatorProfileId,
@@ -209,49 +303,49 @@ export class OpportunityWorkflowService {
         throw new QualityGateRejectedError(gate.violations);
       }
       const upgrade = await this.repository.createScriptUpgrade({
-        ...context,
-        opportunityId,
-        idempotencyKey: normalizedKey,
+        workspaceId,
+        creatorProfileId: context.creatorProfileId,
+        userId: context.userId,
+        opportunityId: context.opportunityId,
+        idempotencyKey: job.idempotencyKey,
         provider: generated.provider,
         model: generated.model,
         generated: generated.script,
+        jobId,
       });
       if (!upgrade) {
         throw new NotFoundException("Opportunity was not found");
       }
+      // The job row itself was already flipped to "succeeded" as part of
+      // the same write that persisted the script above.
       persisted = true;
-      const credits = await this.credits.commit(
-        context.workspaceId,
+      await this.credits.commit(
+        workspaceId,
         cost,
-        `${normalizedKey}:commit`,
+        `${job.idempotencyKey}:commit`,
         `Committed ${cost} credits for script generation`,
       );
-      return this.toUpgradeContract(upgrade, credits);
     } catch (error) {
-      if (!persisted) {
-        try {
-          await this.credits.release(
-            context.workspaceId,
-            cost,
-            `${normalizedKey}:release`,
-            `Released ${cost} credits after failed script generation`,
-          );
-        } catch {
-          throw error;
-        }
-        if (error instanceof QualityGateRejectedError) {
-          throw new UnprocessableEntityException({
-            message: "Script generation failed the pre-publish content review",
-            retryMode: "regenerate",
-            violations: error.violations,
-          });
-        }
-        throw new ServiceUnavailableException({
-          message: "Script generation could not be completed",
-          retryMode: "new_request",
-        });
+      if (persisted) {
+        // The script was already generated and saved (the job row already
+        // reads "succeeded"); only the credit commit confirmation failed.
+        // Don't overwrite a successful job with a failure status or
+        // double-release credits that may already be committed.
+        return;
       }
-      throw error;
+      const isQualityGateRejection = error instanceof QualityGateRejectedError;
+      await this.jobs.markFailed(
+        jobId,
+        isQualityGateRejection ? "failed_final" : "failed_retryable",
+        isQualityGateRejection ? "QUALITY_GATE_REJECTED" : "GENERATION_FAILED",
+        error instanceof Error ? error.message : "Script generation failed",
+      );
+      await this.credits.release(
+        workspaceId,
+        cost,
+        `${job.idempotencyKey}:release`,
+        "Script generation failed",
+      );
     }
   }
 

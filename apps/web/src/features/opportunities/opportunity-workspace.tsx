@@ -1,8 +1,11 @@
 "use client";
 
 import {
+  CreditsResponseSchema,
   OpportunityFeedbackResultSchema,
   OpportunityRevisionSchema,
+  ProjectDetailSchema,
+  QueuedGenerationJobSchema,
   UpgradeOpportunityResultSchema,
   type OpportunityDetail,
   type OpportunityFeedbackAction,
@@ -33,6 +36,7 @@ import { Textarea } from "@/src/components/ui/textarea";
 import { cn } from "@/src/lib/utils";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
+import { pollGenerationJob } from "../generation/poll-generation-job";
 import { splitScriptSegments } from "../projects/script-segments";
 
 type Panel = "modify" | "upgrade" | null;
@@ -134,7 +138,7 @@ export function OpportunityWorkspace({
   );
   const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
   const [generationState, setGenerationState] = useState<
-    "pending" | "success" | "error" | null
+    "queued" | "running" | "success" | "error" | null
   >(null);
   const [feedbackPending, setFeedbackPending] =
     useState<OpportunityFeedbackAction | null>(null);
@@ -251,10 +255,40 @@ export function OpportunityWorkspace({
     }
   }
 
+  async function hydrateFromFinishedScript(projectId: string) {
+    const [projectResponse, creditsResponse] = await Promise.all([
+      fetch(`/api/creonome/projects/${projectId}`, { cache: "no-store" }),
+      fetch("/api/creonome/credits", { cache: "no-store" }),
+    ]);
+    if (!projectResponse.ok || !creditsResponse.ok) {
+      throw new Error("Could not load the finished script");
+    }
+    const project = ProjectDetailSchema.parse(await projectResponse.json());
+    const credits = CreditsResponseSchema.parse(await creditsResponse.json());
+    if (!project.script) {
+      throw new Error("The finished project has no script yet");
+    }
+    setScript(project.script);
+    setActiveDeliverable("script");
+    setOpportunity((current) => ({
+      ...current,
+      currentLevel: project.currentLevel,
+      projectId: project.id,
+    }));
+    setRemainingCredits(credits.available);
+    publishCreditBalance(credits.available);
+    setNotice(
+      "Script generated. The idea remains available in version history.",
+    );
+    setGenerationState("success");
+    scriptRequestKey.current = null;
+    setPanel(null);
+  }
+
   async function generateScript() {
     setPending(true);
     setError(null);
-    setGenerationState("pending");
+    setGenerationState("running");
     setPanel(null);
     scriptRequestKey.current ??= idempotencyKey(opportunity.id);
     try {
@@ -287,9 +321,26 @@ export function OpportunityWorkspace({
         setGenerationState("error");
         return;
       }
-      const upgrade = UpgradeOpportunityResultSchema.parse(
-        await response.json(),
-      );
+      const body = await response.json();
+      const queued = QueuedGenerationJobSchema.safeParse(body);
+      if (queued.success && queued.data.job.status !== "succeeded") {
+        // The idea→script generation now runs on the Cloud Tasks queue
+        // instead of inline: poll the job, then load the finished script.
+        setGenerationState("queued");
+        const finished = await pollGenerationJob(queued.data.job.id, {
+          onUpdate: (job) => {
+            if (job.status === "running" || job.status === "queued") {
+              setGenerationState(job.status);
+            }
+          },
+        });
+        if (!finished.projectId) {
+          throw new Error("The finished job did not report its project");
+        }
+        await hydrateFromFinishedScript(finished.projectId);
+        return;
+      }
+      const upgrade = UpgradeOpportunityResultSchema.parse(body);
       setScript(upgrade.script);
       setActiveDeliverable("script");
       setOpportunity((current) => ({
@@ -854,27 +905,31 @@ export function OpportunityWorkspace({
           <GenerationToast
             state={generationState}
             title={
-              generationState === "pending"
-                ? "Building your script"
-                : generationState === "success"
-                  ? "Script ready"
-                  : "Script not generated"
+              generationState === "queued"
+                ? "Queued to build your script"
+                : generationState === "running"
+                  ? "Building your script"
+                  : generationState === "success"
+                    ? "Script ready"
+                    : "Script not generated"
             }
             detail={
-              generationState === "pending"
-                ? "Writing the hook, timeline, caption and call to action."
-                : generationState === "success"
-                  ? "The script is saved to this project. Your idea remains in history."
-                  : (error ??
-                    "The request stopped safely. No duplicate was created.")
+              generationState === "queued"
+                ? "Waiting for the generation queue to pick this up."
+                : generationState === "running"
+                  ? "Writing the hook, timeline, caption and call to action."
+                  : generationState === "success"
+                    ? "The script is saved to this project. Your idea remains in history."
+                    : (error ??
+                      "The request stopped safely. No duplicate was created.")
             }
             creditLabel={
-              generationState === "pending"
+              generationState === "queued" || generationState === "running"
                 ? `${opportunity.creditCost} credits held`
                 : undefined
             }
             onDismiss={
-              generationState === "pending"
+              generationState === "queued" || generationState === "running"
                 ? undefined
                 : () => {
                     setGenerationState(null);

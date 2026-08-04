@@ -803,7 +803,7 @@ export const generationJobs = pgTable(
     index("generation_jobs_requested_by_idx").on(table.requestedByUserId),
     check(
       "generation_jobs_status_check",
-      sql`${table.status} in ('queued', 'running', 'succeeded', 'failed', 'cancelled')`,
+      sql`${table.status} in ('queued', 'running', 'succeeded', 'failed', 'failed_retryable', 'failed_final', 'cancelled')`,
     ),
     check(
       "generation_jobs_progress_check",

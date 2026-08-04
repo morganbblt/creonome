@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { GoogleGenAI } from "@google/genai";
 import { AiModule } from "../ai/ai.module.js";
 import { CreditsModule } from "../credits/credits.module.js";
+import { JobsModule } from "../jobs/jobs.module.js";
 import { QualityGateModule } from "../quality-gate/quality-gate.module.js";
 import { WorkspacesModule } from "../workspaces/workspaces.module.js";
 import {
@@ -10,6 +11,7 @@ import {
   type PrivateObjectReader,
 } from "../uploads/private-object-store.js";
 import { UploadsModule } from "../uploads/uploads.module.js";
+import { InternalProjectJobsController } from "./internal-project-jobs.controller.js";
 import { NeonProjectsRepository } from "./neon-projects.repository.js";
 import { ProjectWorkflowService } from "./project-workflow.service.js";
 import { ProjectVideoService } from "./project-video.service.js";
@@ -36,11 +38,12 @@ import { VeoVideoProvider } from "./video/veo-video.provider.js";
   imports: [
     AiModule,
     CreditsModule,
+    JobsModule,
     QualityGateModule,
     UploadsModule,
     WorkspacesModule,
   ],
-  controllers: [ProjectsController],
+  controllers: [ProjectsController, InternalProjectJobsController],
   providers: [
     ProjectsService,
     ProjectVideoService,
@@ -145,6 +148,6 @@ import { VeoVideoProvider } from "./video/veo-video.provider.js";
       },
     },
   ],
-  exports: [ProjectsService],
+  exports: [ProjectsService, ProjectWorkflowService],
 })
 export class ProjectsModule {}

@@ -369,7 +369,7 @@ export class NeonProjectsRepository implements ProjectsRepository {
     const version = source.project.currentVersion + 1;
     const projectVersionId = randomUUID();
     const storyboardId = randomUUID();
-    const jobId = randomUUID();
+    const jobId = input.jobId ?? randomUUID();
     const sceneRows = input.generated.scenes.map((scene, index) => ({
       id: randomUUID(),
       storyboardId,
@@ -405,28 +405,45 @@ export class NeonProjectsRepository implements ProjectsRepository {
       updatedAt: now,
     });
     const insertScenes = database.insert(storyboardScenes).values(sceneRows);
-    const insertJob = database.insert(generationJobs).values({
-      id: jobId,
-      workspaceId: input.workspaceId,
-      projectId: input.projectId,
-      requestedByUserId: input.userId,
-      kind: "storyboard",
-      provider: input.provider,
-      model: input.model,
-      status: "succeeded",
-      progress: 100,
-      idempotencyKey: input.idempotencyKey,
-      input: { scriptId: source.script.id },
-      output: {
-        storyboardId,
-        projectVersion: version,
-        sceneCount: sceneRows.length,
-      },
-      createdAt: now,
-      startedAt: now,
-      completedAt: now,
-      updatedAt: now,
-    });
+    const jobOutput = {
+      storyboardId,
+      projectVersion: version,
+      sceneCount: sceneRows.length,
+    };
+    const jobWrite = input.jobId
+      ? database
+          .update(generationJobs)
+          .set({
+            projectId: input.projectId,
+            provider: input.provider,
+            model: input.model,
+            status: "succeeded",
+            progress: 100,
+            input: { scriptId: source.script.id },
+            output: jobOutput,
+            startedAt: now,
+            completedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(generationJobs.id, input.jobId))
+      : database.insert(generationJobs).values({
+          id: jobId,
+          workspaceId: input.workspaceId,
+          projectId: input.projectId,
+          requestedByUserId: input.userId,
+          kind: "storyboard",
+          provider: input.provider,
+          model: input.model,
+          status: "succeeded",
+          progress: 100,
+          idempotencyKey: input.idempotencyKey,
+          input: { scriptId: source.script.id },
+          output: jobOutput,
+          createdAt: now,
+          startedAt: now,
+          completedAt: now,
+          updatedAt: now,
+        });
     const updateProject = database
       .update(projects)
       .set({
@@ -444,7 +461,7 @@ export class NeonProjectsRepository implements ProjectsRepository {
       insertVersion,
       insertStoryboard,
       insertScenes,
-      insertJob,
+      jobWrite,
       updateProject,
     ] as const);
 
@@ -712,7 +729,7 @@ export class NeonProjectsRepository implements ProjectsRepository {
     const now = new Date();
     const version = source.project.currentVersion + 1;
     const projectVersionId = randomUUID();
-    const jobId = randomUUID();
+    const jobId = input.jobId ?? randomUUID();
     const assetId = randomUUID();
     const artifact = input.artifact;
     const video: ProjectVideoRecord = {
@@ -748,29 +765,50 @@ export class NeonProjectsRepository implements ProjectsRepository {
         createdByUserId: input.userId,
         createdAt: now,
       }),
-      database.insert(generationJobs).values({
-        id: jobId,
-        workspaceId: input.workspaceId,
-        projectId: input.projectId,
-        requestedByUserId: input.userId,
-        kind: "video_render",
-        provider: artifact.provider,
-        model: artifact.model,
-        status: "succeeded",
-        progress: 100,
-        idempotencyKey: input.idempotencyKey,
-        input: { storyboardId: source.storyboard.id },
-        output: {
-          generatedAssetId: assetId,
-          previewUrl: artifact.previewUrl,
-          simulated: artifact.simulated,
-          fallbackReasonCode: artifact.fallbackReasonCode,
-        },
-        createdAt: now,
-        startedAt: now,
-        completedAt: now,
-        updatedAt: now,
-      }),
+      input.jobId
+        ? database
+            .update(generationJobs)
+            .set({
+              projectId: input.projectId,
+              provider: artifact.provider,
+              model: artifact.model,
+              status: "succeeded",
+              progress: 100,
+              input: { storyboardId: source.storyboard.id },
+              output: {
+                generatedAssetId: assetId,
+                previewUrl: artifact.previewUrl,
+                simulated: artifact.simulated,
+                fallbackReasonCode: artifact.fallbackReasonCode,
+              },
+              startedAt: now,
+              completedAt: now,
+              updatedAt: now,
+            })
+            .where(eq(generationJobs.id, input.jobId))
+        : database.insert(generationJobs).values({
+            id: jobId,
+            workspaceId: input.workspaceId,
+            projectId: input.projectId,
+            requestedByUserId: input.userId,
+            kind: "video_render",
+            provider: artifact.provider,
+            model: artifact.model,
+            status: "succeeded",
+            progress: 100,
+            idempotencyKey: input.idempotencyKey,
+            input: { storyboardId: source.storyboard.id },
+            output: {
+              generatedAssetId: assetId,
+              previewUrl: artifact.previewUrl,
+              simulated: artifact.simulated,
+              fallbackReasonCode: artifact.fallbackReasonCode,
+            },
+            createdAt: now,
+            startedAt: now,
+            completedAt: now,
+            updatedAt: now,
+          }),
       database.insert(generatedAssets).values({
         id: assetId,
         generationJobId: jobId,

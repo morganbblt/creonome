@@ -2,16 +2,25 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import {
   OpportunityBatchSchema,
+  QueuedGenerationJobSchema,
   type OpportunityBatch,
+  type QueuedGenerationJob,
 } from "@creonome/contracts";
 import { z } from "zod";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CreatorDnaService } from "../creator-dna/creator-dna.service.js";
 import { CreditsService } from "../credits/credits.service.js";
+import { GenerationJobEnqueueService } from "../jobs/generation-job-enqueue.service.js";
+import { toGenerationJobContract } from "../jobs/generation-job.mapper.js";
+import {
+  JOBS_REPOSITORY,
+  type JobsRepository,
+} from "../jobs/jobs.repository.js";
 import {
   MEMORY_PROVIDER,
   type MemoryProvider,
@@ -66,6 +75,15 @@ const generatedSetJsonSchema = {
   additionalProperties: false,
 };
 
+const generationCost = 3;
+
+type QueuedBatchContext = {
+  workspaceId: string;
+  userId: string;
+  creatorProfileId: string;
+  direction: string | null;
+};
+
 @Injectable()
 export class OpportunityGenerationService {
   constructor(
@@ -78,20 +96,31 @@ export class OpportunityGenerationService {
     @Inject(MEMORY_PROVIDER) private readonly memory: MemoryProvider,
     @Inject(STRUCTURED_GENERATOR)
     private readonly generator: StructuredGenerator,
+    @Inject(GenerationJobEnqueueService)
+    private readonly enqueue: GenerationJobEnqueueService,
+    @Inject(JOBS_REPOSITORY)
+    private readonly jobs: JobsRepository,
   ) {}
 
+  /**
+   * Triggered by `POST /opportunities/batches`. Reserves credits (fast,
+   * kept synchronous) then hands the actual generation off to the
+   * `creonome-generation` Cloud Tasks queue instead of running it inline,
+   * so the request never risks the Cloud Run timeout. Replaying an
+   * already-completed idempotency key still returns the finished batch
+   * immediately, matching the previous synchronous behaviour.
+   */
   async generate(
     principal: AuthPrincipal,
     idempotencyKey: string,
     direction?: string,
-  ): Promise<OpportunityBatch> {
+  ): Promise<OpportunityBatch | QueuedGenerationJob> {
     if (idempotencyKey.trim().length < 8) {
       throw new BadRequestException(
         "A valid Idempotency-Key header is required",
       );
     }
     const context = await this.workspaces.resolve(principal);
-    const cost = 3;
     const existing = await this.repository.findByIdempotency(
       context.workspaceId,
       idempotencyKey,
@@ -99,7 +128,7 @@ export class OpportunityGenerationService {
     if (existing.length === 3) {
       await this.credits.commit(
         context.workspaceId,
-        cost,
+        generationCost,
         `${idempotencyKey}:commit`,
         "Generated three opportunities",
       );
@@ -108,65 +137,135 @@ export class OpportunityGenerationService {
 
     await this.credits.reserve(
       context.workspaceId,
-      cost,
+      generationCost,
       `${idempotencyKey}:reserve`,
       "Generate three opportunities",
     );
 
-    let persisted = false;
     try {
-      const trendSignals = await this.repository
-        .listTrendSignals(context.workspaceId)
-        .catch(() => []);
-      const opportunities = await this.generateOpportunities(
-        principal,
-        context,
-        direction,
-        trendSignals,
-      ).catch(() => this.localOpportunities(direction));
-      const records = await this.repository.createBatch({
-        ...context,
+      const job = await this.enqueue.createAndEnqueue({
+        workspaceId: context.workspaceId,
+        projectId: null,
+        requestedByUserId: context.userId,
+        kind: "opportunity_batch",
+        provider: "pending",
+        model: "pending",
         idempotencyKey,
-        opportunities,
-        trendSignals,
+        input: {
+          workspaceId: context.workspaceId,
+          userId: context.userId,
+          creatorProfileId: context.creatorProfileId,
+          direction: direction ?? null,
+        } satisfies QueuedBatchContext,
       });
-      persisted = true;
-      await this.credits.commit(
-        context.workspaceId,
-        cost,
-        `${idempotencyKey}:commit`,
-        "Generated three opportunities",
-      );
-      return this.toContract(records);
+      return QueuedGenerationJobSchema.parse({
+        job: toGenerationJobContract(job),
+        credits: await this.credits.getAccountForWorkspace(
+          context.workspaceId,
+        ),
+      });
     } catch (error) {
-      if (persisted) {
-        throw error;
-      }
       try {
         await this.credits.release(
           context.workspaceId,
-          cost,
+          generationCost,
           `${idempotencyKey}:release`,
-          "Opportunity generation failed",
+          "Opportunity generation could not be queued",
         );
       } catch {
         throw error;
       }
       throw new ServiceUnavailableException({
-        message: "Opportunity generation could not be completed",
+        message: "Opportunity generation could not be queued",
         retryMode: "new_request",
       });
     }
   }
 
+  /**
+   * Invoked by the internal `/internal/opportunity-jobs/:jobId/execute`
+   * handler (Cloud Tasks push target). Performs the same generation work
+   * that used to run inline inside {@link generate}, then commits or
+   * releases the credits reserved by the public controller action.
+   */
+  async executeQueuedBatch(jobId: string): Promise<void> {
+    const job = await this.jobs.findByIdUnscoped(jobId);
+    if (!job) {
+      throw new NotFoundException("Generation job was not found");
+    }
+    if (job.status !== "queued") {
+      // Already handled by a previous delivery of the same Cloud Tasks
+      // task; treat as a no-op instead of redoing (and double-billing) it.
+      return;
+    }
+    const running = await this.jobs.markRunning(jobId);
+    if (!running) {
+      return;
+    }
+
+    const context = job.input as unknown as QueuedBatchContext;
+    const workspaceId = context.workspaceId ?? job.workspaceId;
+    const direction = context.direction ?? undefined;
+
+    let persisted = false;
+    try {
+      const trendSignals = await this.repository
+        .listTrendSignals(workspaceId)
+        .catch(() => []);
+      const generated = await this.generateOpportunities(
+        context,
+        direction,
+        trendSignals,
+      ).catch(() => this.localOpportunities(direction));
+      const records = await this.repository.createBatch({
+        workspaceId,
+        creatorProfileId: context.creatorProfileId,
+        idempotencyKey: job.idempotencyKey,
+        opportunities: generated,
+        trendSignals,
+      });
+      await this.jobs.markSucceeded(jobId, {
+        opportunityIds: records.map((record) => record.id),
+      });
+      persisted = true;
+      await this.credits.commit(
+        workspaceId,
+        generationCost,
+        `${job.idempotencyKey}:commit`,
+        "Generated three opportunities",
+      );
+    } catch (error) {
+      if (persisted) {
+        // The batch was already generated and saved (the job row already
+        // reads "succeeded"); only the credit commit confirmation failed.
+        // Don't overwrite a successful job or double-release credits that
+        // may already be committed.
+        return;
+      }
+      await this.jobs.markFailed(
+        jobId,
+        "failed_retryable",
+        "GENERATION_FAILED",
+        error instanceof Error
+          ? error.message
+          : "Opportunity generation failed",
+      );
+      await this.credits.release(
+        workspaceId,
+        generationCost,
+        `${job.idempotencyKey}:release`,
+        "Opportunity generation failed",
+      );
+    }
+  }
+
   private async generateOpportunities(
-    principal: AuthPrincipal,
     context: { workspaceId: string; creatorProfileId: string },
     direction?: string,
     trendSignals: TrendSignalRecord[] = [],
   ): Promise<GeneratedOpportunity[]> {
     const [dna, memories] = await Promise.all([
-      this.creatorDna.getCurrent(principal),
+      this.creatorDna.getForWorkspaceContext(context),
       this.memory
         .search({
           query: direction ?? "current creative preferences and boundaries",

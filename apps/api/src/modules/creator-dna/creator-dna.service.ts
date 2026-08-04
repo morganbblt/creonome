@@ -20,6 +20,19 @@ export class CreatorDnaService {
 
   async getCurrent(principal: AuthPrincipal): Promise<CreatorDna> {
     const context = await this.workspaces.resolve(principal);
+    return this.getForWorkspaceContext(context);
+  }
+
+  /**
+   * Same lookup as {@link getCurrent}, but for callers that already have a
+   * resolved workspace context and no end-user `AuthPrincipal` to resolve
+   * one from — e.g. an internal Cloud Tasks generation-job handler acting
+   * on behalf of a workspace it read off the queued job row.
+   */
+  async getForWorkspaceContext(context: {
+    workspaceId: string;
+    creatorProfileId: string;
+  }): Promise<CreatorDna> {
     const dna = await this.repository.getCurrent(context.creatorProfileId);
     return this.toContract(
       dna,

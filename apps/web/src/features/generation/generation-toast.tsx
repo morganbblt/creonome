@@ -1,28 +1,51 @@
 import {
   ArrowUpRightIcon,
   CheckIcon,
+  ClockIcon,
   TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 
+/**
+ * "pending" is a deprecated alias of "running", kept for existing callers
+ * that haven't been wired up to the queued-job lifecycle yet. New callers
+ * that poll GET /api/v1/jobs/:id should distinguish "queued" (accepted,
+ * waiting on the Cloud Tasks queue) from "running" (the internal handler
+ * is actively generating).
+ */
 const stateCopy = {
+  queued: "Queued",
   pending: "Generation in progress",
+  running: "Generation in progress",
   success: "Saved to project",
   error: "Generation stopped",
 } as const;
 
 const stateIcon = {
+  queued: ClockIcon,
   pending: ArrowUpRightIcon,
+  running: ArrowUpRightIcon,
   success: CheckIcon,
   error: TriangleAlertIcon,
 } as const;
 
 const stateMarkClasses = {
+  queued: "bg-secondary text-muted-foreground",
   pending: "bg-accent-soft text-accent-soft-foreground",
+  running: "bg-accent-soft text-accent-soft-foreground",
   success: "bg-success/12 text-success",
   error: "bg-destructive/12 text-destructive",
 } as const;
+
+type GenerationToastState =
+  | "queued"
+  | "pending"
+  | "running"
+  | "success"
+  | "error";
+
+const busyStates = new Set<GenerationToastState>(["queued", "pending", "running"]);
 
 export function GenerationToast({
   state,
@@ -31,13 +54,14 @@ export function GenerationToast({
   creditLabel,
   onDismiss,
 }: {
-  state: "pending" | "success" | "error";
+  state: GenerationToastState;
   title: string;
   detail: string;
   creditLabel?: string;
   onDismiss?: () => void;
 }) {
   const Icon = stateIcon[state];
+  const isBusy = busyStates.has(state);
 
   return (
     <section
@@ -69,7 +93,7 @@ export function GenerationToast({
             {creditLabel}
           </em>
         ) : null}
-        {onDismiss && state !== "pending" ? (
+        {onDismiss && !isBusy ? (
           <button
             type="button"
             aria-label="Dismiss"
@@ -80,7 +104,7 @@ export function GenerationToast({
           </button>
         ) : null}
       </div>
-      {state === "pending" ? (
+      {isBusy ? (
         <progress
           aria-label={`${title} progress`}
           className="h-1.5 w-full overflow-hidden rounded-full [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-secondary [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-accent"
@@ -94,7 +118,7 @@ export function GenerationToast({
         />
       )}
       <p className="text-xs text-muted-foreground">{detail}</p>
-      {state === "pending" ? (
+      {isBusy ? (
         <small className="text-[11px] text-muted-foreground/80">
           You can keep working — this notification will update.
         </small>

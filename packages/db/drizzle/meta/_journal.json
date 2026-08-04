@@ -64,6 +64,13 @@
       "when": 1785662400000,
       "tag": "20260802120000_backfill_demo_trend_links",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785862534035,
+      "tag": "20260804165534_add_finer_generation_job_statuses",
+      "breakpoints": true
     }
   ]
 }

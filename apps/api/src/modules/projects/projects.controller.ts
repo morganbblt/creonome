@@ -19,6 +19,7 @@ import {
 import type {
   ProjectDetail,
   ProjectList,
+  QueuedGenerationJob,
   UpgradeProjectResult,
   UpgradeVideoResult,
 } from "@creonome/contracts";
@@ -86,17 +87,19 @@ export class ProjectsController {
 
   @Post(":id/upgrade")
   @ApiOperation({
-    summary: "Confirm credits and upgrade a project deliverable",
+    summary:
+      "Confirm credits and queue a storyboard or video generation job; poll GET /jobs/:id for completion",
   })
   @ApiOkResponse({
-    description: "Persisted storyboard or MVP video and updated credit balance",
+    description:
+      "Queued generation job (poll GET /jobs/:id), or the already-persisted storyboard/video for an idempotent replay",
   })
   upgrade(
     @CurrentUser() principal: AuthPrincipal,
     @Param("id") projectId: string,
     @Headers("idempotency-key") idempotencyKey: string,
     @Body() input: UpgradeProjectDto,
-  ): Promise<UpgradeProjectResult | UpgradeVideoResult> {
+  ): Promise<UpgradeProjectResult | UpgradeVideoResult | QueuedGenerationJob> {
     return this.workflow.upgrade(
       principal,
       projectId,

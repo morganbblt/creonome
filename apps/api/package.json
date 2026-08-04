@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@google-cloud/storage": "catalog:",
+    "@google-cloud/tasks": "catalog:",
     "@google/genai": "catalog:",
     "@creonome/config": "workspace:*",
     "@creonome/contracts": "workspace:*",

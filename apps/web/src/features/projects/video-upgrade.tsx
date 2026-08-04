@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  CreditsResponseSchema,
+  ProjectDetailSchema,
+  QueuedGenerationJobSchema,
   UpgradeVideoResultSchema,
   type UpgradeVideoResult,
 } from "@creonome/contracts";
@@ -18,6 +21,7 @@ import {
 } from "@/src/components/ui/dialog";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
+import { pollGenerationJob } from "../generation/poll-generation-job";
 
 function videoErrorMessage(status: number): string {
   if (status === 401 || status === 403) {
@@ -48,12 +52,14 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
   const key = useRef<string | null>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [phase, setPhase] = useState<"queued" | "running" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<UpgradeVideoResult | null>(null);
 
   async function generateVideo() {
     setOpen(false);
     setPending(true);
+    setPhase("running");
     setError(null);
     key.current ??= createIdempotencyKey(projectId);
 
@@ -87,7 +93,54 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
         return;
       }
 
-      const upgrade = UpgradeVideoResultSchema.parse(await response.json());
+      const body = await response.json();
+      const queued = QueuedGenerationJobSchema.safeParse(body);
+      if (queued.success && queued.data.job.status !== "succeeded") {
+        // Video rendering now runs on the Cloud Tasks queue instead of
+        // inline (it used to sit dangerously close to the Cloud Run
+        // request timeout): poll the job, then load the finished video.
+        setPhase("queued");
+        const finished = await pollGenerationJob(queued.data.job.id, {
+          onUpdate: (job) => {
+            if (job.status === "queued" || job.status === "running") {
+              setPhase(job.status);
+            }
+          },
+        });
+        if (!finished.projectId) {
+          throw new Error("The finished job did not report its project");
+        }
+        const [projectResponse, creditsResponse] = await Promise.all([
+          fetch(`/api/creonome/projects/${finished.projectId}`, {
+            cache: "no-store",
+          }),
+          fetch("/api/creonome/credits", { cache: "no-store" }),
+        ]);
+        if (!projectResponse.ok || !creditsResponse.ok) {
+          throw new Error("Could not load the finished video");
+        }
+        const project = ProjectDetailSchema.parse(
+          await projectResponse.json(),
+        );
+        const credits = CreditsResponseSchema.parse(
+          await creditsResponse.json(),
+        );
+        if (!project.video) {
+          throw new Error("The finished project has no video yet");
+        }
+        publishCreditBalance(credits.available);
+        setReceipt({
+          project,
+          video: project.video,
+          job: finished,
+          credits,
+        });
+        key.current = null;
+        router.refresh();
+        return;
+      }
+
+      const upgrade = UpgradeVideoResultSchema.parse(body);
       publishCreditBalance(upgrade.credits.available);
       setReceipt(upgrade);
       key.current = null;
@@ -98,6 +151,7 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
       );
     } finally {
       setPending(false);
+      setPhase(null);
     }
   }
 
@@ -140,9 +194,17 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
 
       {pending ? (
         <GenerationToast
-          state="pending"
-          title="Rendering your vertical video"
-          detail="Veo is composing the saved script and storyboard. The resilient preview will take over automatically if needed."
+          state={phase === "queued" ? "queued" : "running"}
+          title={
+            phase === "queued"
+              ? "Queued to render your vertical video"
+              : "Rendering your vertical video"
+          }
+          detail={
+            phase === "queued"
+              ? "Waiting for the generation queue to pick this up."
+              : "Veo is composing the saved script and storyboard. The resilient preview will take over automatically if needed."
+          }
           creditLabel="12 credits held"
         />
       ) : receipt ? (

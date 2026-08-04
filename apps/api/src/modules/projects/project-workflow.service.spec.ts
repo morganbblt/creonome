@@ -1,13 +1,13 @@
-import {
-  HttpException,
-  NotFoundException,
-  ServiceUnavailableException,
-  UnprocessableEntityException,
-} from "@nestjs/common";
+import { HttpException, NotFoundException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import type { CreditsService } from "../credits/credits.service.js";
+import type { GenerationJobEnqueueService } from "../jobs/generation-job-enqueue.service.js";
+import type {
+  InternalJobRecord,
+  JobsRepository,
+} from "../jobs/jobs.repository.js";
 import type { QualityGateService } from "../quality-gate/quality-gate.service.js";
 import type { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import type { ProjectsRepository } from "./projects.repository.js";
@@ -29,6 +29,8 @@ const context = {
 
 const projectId = "0198f3a2-82dd-7000-8000-000000000020";
 const now = new Date("2026-08-02T10:00:00.000Z");
+const storyboardJobId = "0198f3a2-82dd-7000-8000-000000000098";
+const videoJobId = "0198f3a2-82dd-7000-8000-000000000099";
 
 const source = {
   project: {
@@ -211,6 +213,37 @@ function videoUpgradeRecord(
   };
 }
 
+function queuedJob(
+  kind: "storyboard" | "video_render",
+  overrides: Partial<InternalJobRecord> = {},
+): InternalJobRecord {
+  return {
+    id: kind === "storyboard" ? storyboardJobId : videoJobId,
+    kind,
+    provider: "pending",
+    model: "pending",
+    status: "queued",
+    progress: 0,
+    errorCode: null,
+    errorMessage: null,
+    createdAt: now,
+    updatedAt: now,
+    completedAt: null,
+    workspaceId: context.workspaceId,
+    projectId,
+    requestedByUserId: context.userId,
+    idempotencyKey:
+      kind === "storyboard" ? "upgrade-storyboard-1" : "upgrade-video-1",
+    input: {
+      workspaceId: context.workspaceId,
+      userId: context.userId,
+      creatorProfileId: context.creatorProfileId,
+      projectId,
+    },
+    ...overrides,
+  };
+}
+
 function setup(options?: {
   existing?: boolean;
   idempotent?: boolean;
@@ -221,6 +254,8 @@ function setup(options?: {
   videoRejects?: boolean;
   storyboardGateRejects?: boolean;
   videoGateRejects?: boolean;
+  videoExisting?: boolean;
+  videoIdempotent?: boolean;
 }) {
   const workspaces = {
     resolve: vi.fn().mockResolvedValue(context),
@@ -240,8 +275,12 @@ function setup(options?: {
     createStoryboardUpgrade: options?.persistenceRejects
       ? vi.fn().mockRejectedValue(new Error("database unavailable"))
       : vi.fn().mockResolvedValue(upgradeRecord()),
-    findVideoUpgradeByIdempotency: vi.fn().mockResolvedValue(null),
-    findExistingVideoUpgrade: vi.fn().mockResolvedValue(null),
+    findVideoUpgradeByIdempotency: vi
+      .fn()
+      .mockResolvedValue(options?.videoIdempotent ? videoUpgradeRecord() : null),
+    findExistingVideoUpgrade: vi
+      .fn()
+      .mockResolvedValue(options?.videoExisting ? videoUpgradeRecord() : null),
     findVideoSource: vi.fn().mockResolvedValue({
       project: {
         ...source.project,
@@ -271,6 +310,11 @@ function setup(options?: {
       balance: 58,
       reserved: 0,
       available: 58,
+    }),
+    getAccountForWorkspace: vi.fn().mockResolvedValue({
+      balance: 58,
+      reserved: 4,
+      available: 54,
     }),
     reserve: vi.fn().mockImplementation((_workspaceId, amount: number) => ({
       balance: 58,
@@ -338,6 +382,37 @@ function setup(options?: {
           : { passed: true, violations: [] },
       ),
   } as unknown as QualityGateService;
+  const enqueue = {
+    createAndEnqueue: vi
+      .fn()
+      .mockImplementation(({ kind }) =>
+        Promise.resolve(
+          queuedJob(kind === "video_render" ? "video_render" : "storyboard"),
+        ),
+      ),
+  } as unknown as GenerationJobEnqueueService;
+  const jobsFindResult: Record<string, InternalJobRecord> = {
+    [storyboardJobId]: queuedJob("storyboard"),
+    [videoJobId]: queuedJob("video_render"),
+  };
+  const jobs: JobsRepository = {
+    findById: vi.fn(),
+    findByIdUnscoped: vi
+      .fn()
+      .mockImplementation((jobId: string) =>
+        Promise.resolve(jobsFindResult[jobId] ?? null),
+      ),
+    cancel: vi.fn(),
+    retry: vi.fn(),
+    create: vi.fn(),
+    markRunning: vi
+      .fn()
+      .mockImplementation((jobId: string) =>
+        Promise.resolve({ ...jobsFindResult[jobId], status: "running" }),
+      ),
+    markSucceeded: vi.fn(),
+    markFailed: vi.fn(),
+  };
 
   return {
     service: new ProjectWorkflowService(
@@ -347,38 +422,131 @@ function setup(options?: {
       generator,
       videoProvider,
       qualityGate,
+      enqueue,
+      jobs,
     ),
     repository,
     credits,
     videoProvider,
     qualityGate,
+    enqueue,
+    jobs,
   };
 }
 
-describe("ProjectWorkflowService", () => {
-  it("persists the deterministic fallback and atomically commits twelve credits", async () => {
-    const { service, repository, credits, videoProvider } = setup();
+describe("ProjectWorkflowService.upgrade (video)", () => {
+  it("reserves credits and queues a video generation job instead of rendering inline", async () => {
+    const { service, credits, enqueue, repository, videoProvider } = setup();
+
+    const result = await service.upgrade(
+      principal,
+      projectId,
+      { targetLevel: "video", confirmedCreditCost: true },
+      "upgrade-video-1",
+    );
+
+    expect(credits.reserve).toHaveBeenCalledWith(
+      context.workspaceId,
+      12,
+      "upgrade-video-1:reserve",
+      expect.stringMatching(/video/i),
+    );
+    expect(enqueue.createAndEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "video_render",
+        projectId,
+        idempotencyKey: "upgrade-video-1",
+      }),
+    );
+    expect(result).toMatchObject({
+      job: { id: videoJobId, status: "queued" },
+    });
+    expect(videoProvider.generate).not.toHaveBeenCalled();
+    expect(repository.createVideoUpgrade).not.toHaveBeenCalled();
+  });
+
+  it("returns an existing video without reserving credits or queueing a job", async () => {
+    const { service, credits, repository, enqueue } = setup({
+      videoExisting: true,
+    });
 
     await expect(
       service.upgrade(
         principal,
         projectId,
         { targetLevel: "video", confirmedCreditCost: true },
-        "upgrade-video-1",
+        "upgrade-video-existing",
       ),
     ).resolves.toMatchObject({
-      project: { currentLevel: "video", currentVersion: 4 },
-      video: {
-        previewUrl: "/demo/creonome-vertical-demo.mp4",
-        simulated: true,
-      },
-      credits: { balance: 46, reserved: 0 },
+      project: { currentLevel: "video" },
     });
+    expect(repository.findExistingVideoUpgrade).toHaveBeenCalledWith(
+      context.workspaceId,
+      projectId,
+    );
+    expect(credits.reserve).not.toHaveBeenCalled();
+    expect(enqueue.createAndEnqueue).not.toHaveBeenCalled();
+  });
+
+  it("finishes an idempotent video commit without re-queueing", async () => {
+    const { service, credits, enqueue } = setup({ videoIdempotent: true });
+
+    await expect(
+      service.upgrade(
+        principal,
+        projectId,
+        { targetLevel: "video", confirmedCreditCost: true },
+        "upgrade-video-resume",
+      ),
+    ).resolves.toMatchObject({ video: { simulated: true } });
+    expect(credits.commit).toHaveBeenCalledWith(
+      context.workspaceId,
+      12,
+      "upgrade-video-resume:commit",
+      expect.stringMatching(/video/i),
+    );
+    expect(credits.reserve).not.toHaveBeenCalled();
+    expect(enqueue.createAndEnqueue).not.toHaveBeenCalled();
+  });
+
+  it("releases reserved credits and fails clearly when the queue is unavailable", async () => {
+    const { service, credits, enqueue } = setup();
+    vi.mocked(enqueue.createAndEnqueue).mockRejectedValueOnce(
+      new Error("Cloud Tasks is not configured"),
+    );
+
+    await expect(
+      service.upgrade(
+        principal,
+        projectId,
+        { targetLevel: "video", confirmedCreditCost: true },
+        "upgrade-video-queue-down",
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ retryMode: "new_request" }),
+    });
+    expect(credits.release).toHaveBeenCalledWith(
+      context.workspaceId,
+      12,
+      "upgrade-video-queue-down:release",
+      expect.stringMatching(/queue/i),
+    );
+  });
+});
+
+describe("ProjectWorkflowService.executeQueuedVideoUpgrade", () => {
+  it("persists the deterministic fallback and atomically commits twelve credits", async () => {
+    const { service, repository, credits, videoProvider, jobs } = setup();
+
+    await service.executeQueuedVideoUpgrade(videoJobId);
+
+    expect(jobs.markRunning).toHaveBeenCalledWith(videoJobId);
     expect(repository.createVideoUpgrade).toHaveBeenCalledWith(
       expect.objectContaining({
         workspaceId: context.workspaceId,
         projectId,
         idempotencyKey: "upgrade-video-1",
+        jobId: videoJobId,
         artifact: expect.objectContaining({
           simulated: true,
           fallbackReasonCode: "VEO_QUOTA",
@@ -386,12 +554,6 @@ describe("ProjectWorkflowService", () => {
       }),
     );
     expect(videoProvider.generate).toHaveBeenCalledTimes(1);
-    expect(credits.reserve).toHaveBeenCalledWith(
-      context.workspaceId,
-      12,
-      "upgrade-video-1:reserve",
-      expect.stringMatching(/video/i),
-    );
     expect(credits.commit).toHaveBeenCalledWith(
       context.workspaceId,
       12,
@@ -400,124 +562,110 @@ describe("ProjectWorkflowService", () => {
     );
   });
 
-  it("commits the same single reservation when a real Veo render succeeds", async () => {
+  it("commits credits when a real Veo render succeeds", async () => {
     const { service, repository, credits } = setup({ realVideo: true });
 
-    await expect(
-      service.upgrade(
-        principal,
-        projectId,
-        { targetLevel: "video", confirmedCreditCost: true },
-        "upgrade-video-real",
-      ),
-    ).resolves.toMatchObject({
-      video: {
-        provider: "google-gemini-api",
-        simulated: false,
-        width: 720,
-        height: 1280,
-      },
-      credits: { balance: 46, reserved: 0 },
-    });
+    await service.executeQueuedVideoUpgrade(videoJobId);
+
     expect(repository.createVideoUpgrade).toHaveBeenCalledWith(
       expect.objectContaining({ artifact: realVideo }),
     );
-    expect(credits.reserve).toHaveBeenCalledTimes(1);
     expect(credits.commit).toHaveBeenCalledTimes(1);
     expect(credits.release).not.toHaveBeenCalled();
   });
 
   it("rejects a video whose render fails the pre-publish content gate and releases the reservation", async () => {
-    const { service, credits, repository, qualityGate } = setup({
+    const { service, credits, repository, qualityGate, jobs } = setup({
       videoGateRejects: true,
     });
 
-    const failure = await service
-      .upgrade(
-        principal,
-        projectId,
-        { targetLevel: "video", confirmedCreditCost: true },
-        "upgrade-video-gate-rejected",
-      )
-      .catch((error: unknown) => error);
+    await service.executeQueuedVideoUpgrade(videoJobId);
 
-    expect(failure).toBeInstanceOf(UnprocessableEntityException);
-    expect(
-      (failure as UnprocessableEntityException).getResponse(),
-    ).toMatchObject({
-      retryMode: "regenerate",
-      violations: expect.arrayContaining([
-        expect.objectContaining({ code: "invalid_aspect_ratio" }),
-      ]),
-    });
     expect(qualityGate.evaluateVideo).toHaveBeenCalledWith(
       context.creatorProfileId,
       expect.objectContaining({ width: expect.any(Number) }),
     );
     expect(repository.createVideoUpgrade).not.toHaveBeenCalled();
     expect(credits.commit).not.toHaveBeenCalled();
+    expect(jobs.markFailed).toHaveBeenCalledWith(
+      videoJobId,
+      "failed_final",
+      "QUALITY_GATE_REJECTED",
+      expect.any(String),
+    );
     expect(credits.release).toHaveBeenCalledWith(
       context.workspaceId,
       12,
-      "upgrade-video-gate-rejected:release",
+      "upgrade-video-1:release",
       expect.stringMatching(/failed/i),
     );
   });
 
-  it("refunds the reservation only when neither video provider produced an artifact", async () => {
-    const { service, credits, repository } = setup({ videoRejects: true });
+  it("fails the job when neither video provider produced an artifact", async () => {
+    const { service, credits, repository, jobs } = setup({
+      videoRejects: true,
+    });
 
-    await expect(
-      service.upgrade(
-        principal,
-        projectId,
-        { targetLevel: "video", confirmedCreditCost: true },
-        "upgrade-video-total-failure",
-      ),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await service.executeQueuedVideoUpgrade(videoJobId);
+
     expect(repository.createVideoUpgrade).not.toHaveBeenCalled();
     expect(credits.commit).not.toHaveBeenCalled();
+    expect(jobs.markFailed).toHaveBeenCalledWith(
+      videoJobId,
+      "failed_retryable",
+      "GENERATION_FAILED",
+      expect.any(String),
+    );
     expect(credits.release).toHaveBeenCalledTimes(1);
   });
 
-  it("reserves and commits four credits around a persisted storyboard", async () => {
-    const { service, repository, credits } = setup();
+  it("keeps a succeeded job untouched when only the commit confirmation fails", async () => {
+    const { service, credits, jobs } = setup();
+    vi.mocked(credits.commit).mockRejectedValueOnce(
+      new Error("credit commit unavailable"),
+    );
 
-    await expect(
-      service.upgrade(
-        principal,
-        projectId,
-        { targetLevel: "storyboard", confirmedCreditCost: true },
-        "upgrade-storyboard-1",
-      ),
-    ).resolves.toMatchObject({
-      project: { currentLevel: "storyboard", currentVersion: 3 },
-      storyboard: { scenes: [{ startSeconds: 0 }, {}, { startSeconds: 17 }] },
-      credits: { balance: 54, reserved: 0 },
-    });
-    expect(credits.reserve).toHaveBeenCalledBefore(
-      vi.mocked(repository.createStoryboardUpgrade),
+    await service.executeQueuedVideoUpgrade(videoJobId);
+
+    expect(jobs.markFailed).not.toHaveBeenCalled();
+    expect(credits.release).not.toHaveBeenCalled();
+  });
+});
+
+describe("ProjectWorkflowService.upgrade (storyboard)", () => {
+  it("reserves credits and queues a storyboard generation job instead of generating inline", async () => {
+    const { service, repository, credits, enqueue } = setup();
+
+    const result = await service.upgrade(
+      principal,
+      projectId,
+      { targetLevel: "storyboard", confirmedCreditCost: true },
+      "upgrade-storyboard-1",
     );
-    expect(repository.createStoryboardUpgrade).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workspaceId: context.workspaceId,
-        projectId,
-        idempotencyKey: "upgrade-storyboard-1",
-        provider: "vertex-ai",
-        model: "gemini-3.5-flash",
-        generated,
-      }),
-    );
-    expect(credits.commit).toHaveBeenCalledWith(
+
+    expect(credits.reserve).toHaveBeenCalledWith(
       context.workspaceId,
       4,
-      "upgrade-storyboard-1:commit",
+      "upgrade-storyboard-1:reserve",
       expect.stringMatching(/storyboard/i),
     );
+    expect(enqueue.createAndEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "storyboard",
+        projectId,
+        idempotencyKey: "upgrade-storyboard-1",
+      }),
+    );
+    expect(result).toMatchObject({
+      job: { id: storyboardJobId, status: "queued" },
+    });
+    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
   });
 
   it("returns an existing storyboard without reserving credits", async () => {
-    const { service, repository, credits } = setup({ existing: true });
+    const { service, repository, credits, enqueue } = setup({
+      existing: true,
+    });
 
     await expect(
       service.upgrade(
@@ -535,11 +683,13 @@ describe("ProjectWorkflowService", () => {
       projectId,
     );
     expect(credits.reserve).not.toHaveBeenCalled();
-    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
+    expect(enqueue.createAndEnqueue).not.toHaveBeenCalled();
   });
 
   it("finishes an idempotent credit commit without regenerating", async () => {
-    const { service, repository, credits } = setup({ idempotent: true });
+    const { service, repository, credits, enqueue } = setup({
+      idempotent: true,
+    });
 
     await expect(
       service.upgrade(
@@ -556,92 +706,7 @@ describe("ProjectWorkflowService", () => {
       expect.stringMatching(/storyboard/i),
     );
     expect(credits.reserve).not.toHaveBeenCalled();
-    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
-  });
-
-  it("uses a deterministic storyboard when Gemini is unavailable", async () => {
-    const { service, repository, credits } = setup({ generatorRejects: true });
-
-    await service.upgrade(
-      principal,
-      projectId,
-      { targetLevel: "storyboard", confirmedCreditCost: true },
-      "upgrade-storyboard-fallback",
-    );
-
-    expect(repository.createStoryboardUpgrade).toHaveBeenCalledWith(
-      expect.objectContaining({
-        provider: "creonome",
-        model: "deterministic-storyboard-v1",
-        generated: expect.objectContaining({
-          scenes: expect.arrayContaining([
-            expect.objectContaining({ editingNote: expect.any(String) }),
-          ]),
-        }),
-      }),
-    );
-    expect(credits.commit).toHaveBeenCalled();
-    expect(credits.release).not.toHaveBeenCalled();
-  });
-
-  it("rejects a storyboard that fails the pre-publish content gate and releases the reservation", async () => {
-    const { service, credits, repository, qualityGate } = setup({
-      storyboardGateRejects: true,
-    });
-
-    const failure = await service
-      .upgrade(
-        principal,
-        projectId,
-        { targetLevel: "storyboard", confirmedCreditCost: true },
-        "upgrade-storyboard-gate-rejected",
-      )
-      .catch((error: unknown) => error);
-
-    expect(failure).toBeInstanceOf(UnprocessableEntityException);
-    expect(
-      (failure as UnprocessableEntityException).getResponse(),
-    ).toMatchObject({
-      retryMode: "regenerate",
-      violations: expect.arrayContaining([
-        expect.objectContaining({ code: "forbidden_topic" }),
-      ]),
-    });
-    expect(qualityGate.evaluateStoryboard).toHaveBeenCalledWith(
-      context.creatorProfileId,
-      expect.objectContaining({ durationSeconds: expect.any(Number) }),
-    );
-    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
-    expect(credits.commit).not.toHaveBeenCalled();
-    expect(credits.release).toHaveBeenCalledWith(
-      context.workspaceId,
-      4,
-      "upgrade-storyboard-gate-rejected:release",
-      expect.stringMatching(/failed/i),
-    );
-  });
-
-  it("releases the reservation if persistence fails", async () => {
-    const { service, credits } = setup({ persistenceRejects: true });
-
-    const failure = await service
-      .upgrade(
-        principal,
-        projectId,
-        { targetLevel: "storyboard", confirmedCreditCost: true },
-        "upgrade-storyboard-2",
-      )
-      .catch((error: unknown) => error);
-    expect(failure).toBeInstanceOf(ServiceUnavailableException);
-    expect(
-      (failure as ServiceUnavailableException).getResponse(),
-    ).toMatchObject({ retryMode: "new_request" });
-    expect(credits.release).toHaveBeenCalledWith(
-      context.workspaceId,
-      4,
-      "upgrade-storyboard-2:release",
-      expect.stringMatching(/failed/i),
-    );
+    expect(enqueue.createAndEnqueue).not.toHaveBeenCalled();
   });
 
   it("does not reserve credits for an unavailable project", async () => {
@@ -670,5 +735,124 @@ describe("ProjectWorkflowService", () => {
       ),
     ).rejects.toBeInstanceOf(HttpException);
     expect(credits.reserve).not.toHaveBeenCalled();
+  });
+});
+
+describe("ProjectWorkflowService.executeQueuedStoryboardUpgrade", () => {
+  it("marks the job running, generates, persists and commits four credits", async () => {
+    const { service, repository, credits, jobs } = setup();
+
+    await service.executeQueuedStoryboardUpgrade(storyboardJobId);
+
+    expect(jobs.markRunning).toHaveBeenCalledWith(storyboardJobId);
+    expect(repository.createStoryboardUpgrade).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: context.workspaceId,
+        projectId,
+        idempotencyKey: "upgrade-storyboard-1",
+        provider: "vertex-ai",
+        model: "gemini-3.5-flash",
+        generated,
+        jobId: storyboardJobId,
+      }),
+    );
+    expect(credits.commit).toHaveBeenCalledWith(
+      context.workspaceId,
+      4,
+      "upgrade-storyboard-1:commit",
+      expect.stringMatching(/storyboard/i),
+    );
+  });
+
+  it("uses a deterministic storyboard when Gemini is unavailable", async () => {
+    const { service, repository, credits } = setup({
+      generatorRejects: true,
+    });
+
+    await service.executeQueuedStoryboardUpgrade(storyboardJobId);
+
+    expect(repository.createStoryboardUpgrade).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "creonome",
+        model: "deterministic-storyboard-v1",
+        generated: expect.objectContaining({
+          scenes: expect.arrayContaining([
+            expect.objectContaining({ editingNote: expect.any(String) }),
+          ]),
+        }),
+      }),
+    );
+    expect(credits.commit).toHaveBeenCalled();
+    expect(credits.release).not.toHaveBeenCalled();
+  });
+
+  it("rejects a storyboard that fails the pre-publish content gate and releases the reservation", async () => {
+    const { service, credits, repository, qualityGate, jobs } = setup({
+      storyboardGateRejects: true,
+    });
+
+    await service.executeQueuedStoryboardUpgrade(storyboardJobId);
+
+    expect(qualityGate.evaluateStoryboard).toHaveBeenCalledWith(
+      context.creatorProfileId,
+      expect.objectContaining({ durationSeconds: expect.any(Number) }),
+    );
+    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
+    expect(credits.commit).not.toHaveBeenCalled();
+    expect(jobs.markFailed).toHaveBeenCalledWith(
+      storyboardJobId,
+      "failed_final",
+      "QUALITY_GATE_REJECTED",
+      expect.any(String),
+    );
+    expect(credits.release).toHaveBeenCalledWith(
+      context.workspaceId,
+      4,
+      "upgrade-storyboard-1:release",
+      expect.stringMatching(/failed/i),
+    );
+  });
+
+  it("fails the job and releases the reservation if persistence fails", async () => {
+    const { service, credits, jobs } = setup({ persistenceRejects: true });
+
+    await service.executeQueuedStoryboardUpgrade(storyboardJobId);
+
+    expect(jobs.markFailed).toHaveBeenCalledWith(
+      storyboardJobId,
+      "failed_retryable",
+      "GENERATION_FAILED",
+      "database unavailable",
+    );
+    expect(credits.release).toHaveBeenCalledWith(
+      context.workspaceId,
+      4,
+      "upgrade-storyboard-1:release",
+      expect.stringMatching(/failed/i),
+    );
+  });
+
+  it("keeps a succeeded job untouched when only the commit confirmation fails", async () => {
+    const { service, credits, jobs } = setup();
+    vi.mocked(credits.commit).mockRejectedValueOnce(
+      new Error("credit commit unavailable"),
+    );
+
+    await service.executeQueuedStoryboardUpgrade(storyboardJobId);
+
+    expect(jobs.markFailed).not.toHaveBeenCalled();
+    expect(credits.release).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op when the job is not (or is no longer) queued", async () => {
+    const { service, jobs, repository } = setup();
+    vi.mocked(jobs.findByIdUnscoped).mockResolvedValueOnce(
+      queuedJob("storyboard", { status: "succeeded" }),
+    );
+
+    await service.executeQueuedStoryboardUpgrade(storyboardJobId);
+
+    expect(jobs.markRunning).not.toHaveBeenCalled();
+    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
   });
 });
