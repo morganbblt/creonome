@@ -99,6 +99,10 @@ const ApiEnvSchema = z.object({
   DEMO_MODE: booleanEnvironmentSchema(true),
   DEMO_WORKSPACE_SLUG: z.string().min(1).default("nova-sainte"),
   DEFAULT_CREDIT_BALANCE: z.coerce.number().int().min(0).default(60),
+  // Shared secret for trusted internal callers (e.g. a Cloud Scheduler job)
+  // hitting service-to-service endpoints such as the account deletion
+  // executor. Unset disables those endpoints entirely.
+  INTERNAL_JOB_TOKEN: OptionalSecretSchema,
 });
 
 export type ApiEnv = z.infer<typeof ApiEnvSchema>;

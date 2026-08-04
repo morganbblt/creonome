@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -25,8 +26,11 @@ import type {
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
+import { InternalJobAuthGuard } from "../auth/internal-job-auth.guard.js";
+import { Public } from "../auth/public.decorator.js";
 import { CreateAccountDeletionDto } from "./create-account-deletion.dto.js";
 import { CreatePrivacyExportDto } from "./create-privacy-export.dto.js";
+import type { AccountDeletionExecutionSummary } from "./privacy.service.js";
 import { PrivacyService } from "./privacy.service.js";
 import { UpdatePrivacyPreferencesDto } from "./update-privacy-preferences.dto.js";
 
@@ -83,5 +87,17 @@ export class PrivacyController {
     @Param("id", new ParseUUIDPipe()) requestId: string,
   ): Promise<AccountDeletionCancellation> {
     return this.privacy.cancelAccountDeletion(principal, requestId);
+  }
+
+  @Public()
+  @UseGuards(InternalJobAuthGuard)
+  @Post("account-deletion/execute-due")
+  @ApiOperation({
+    summary:
+      "Execute every account deletion past its grace period (internal only)",
+  })
+  @ApiOkResponse({ description: "Summary of processed deletion requests" })
+  executeDueAccountDeletions(): Promise<AccountDeletionExecutionSummary> {
+    return this.privacy.executeDueAccountDeletions();
   }
 }

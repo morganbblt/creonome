@@ -27,15 +27,17 @@ import {
   storyboards,
   workspaces,
 } from "@creonome/db";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import { sanitizePrivacyExport } from "./privacy-export.js";
 import type {
   AccountDeletionRecord,
+  DueAccountDeletionRecord,
   PrivacyRepository,
   PrivacyStateRecord,
   ScheduleAccountDeletionRecord,
   UpdatePrivacyPreferencesRecord,
+  WorkspaceSourceAssetRecord,
 } from "./privacy.repository.js";
 
 const preferenceSelection = {
@@ -250,6 +252,94 @@ export class NeonPrivacyRepository implements PrivacyRepository {
       }),
     ] as const);
     return true;
+  }
+
+  async findDueAccountDeletions(
+    now: Date,
+  ): Promise<DueAccountDeletionRecord[]> {
+    return this.requireDatabase()
+      .select({
+        id: accountDeletionRequests.id,
+        workspaceId: accountDeletionRequests.workspaceId,
+        scheduledFor: accountDeletionRequests.scheduledFor,
+      })
+      .from(accountDeletionRequests)
+      .where(
+        and(
+          eq(accountDeletionRequests.status, "scheduled"),
+          lte(accountDeletionRequests.scheduledFor, now),
+        ),
+      )
+      .orderBy(asc(accountDeletionRequests.scheduledFor));
+  }
+
+  async listWorkspaceSourceAssets(
+    workspaceId: string,
+  ): Promise<WorkspaceSourceAssetRecord[]> {
+    return this.requireDatabase()
+      .select({ id: sourceAssets.id, gcsUri: sourceAssets.gcsUri })
+      .from(sourceAssets)
+      .where(eq(sourceAssets.workspaceId, workspaceId));
+  }
+
+  async deleteWorkspaceSourceAsset(
+    workspaceId: string,
+    assetId: string,
+  ): Promise<void> {
+    await this.requireDatabase()
+      .delete(sourceAssets)
+      .where(
+        and(
+          eq(sourceAssets.workspaceId, workspaceId),
+          eq(sourceAssets.id, assetId),
+        ),
+      );
+  }
+
+  async deleteWorkspaceCreatorDna(workspaceId: string): Promise<void> {
+    const database = this.requireDatabase();
+    const profiles = await database
+      .select({ id: creatorProfiles.id })
+      .from(creatorProfiles)
+      .where(eq(creatorProfiles.workspaceId, workspaceId));
+    if (!profiles.length) return;
+    await database.delete(creatorDnaVersions).where(
+      inArray(
+        creatorDnaVersions.creatorProfileId,
+        profiles.map((profile) => profile.id),
+      ),
+    );
+  }
+
+  async deleteWorkspaceProjects(workspaceId: string): Promise<void> {
+    await this.requireDatabase()
+      .delete(projects)
+      .where(eq(projects.workspaceId, workspaceId));
+  }
+
+  async markAccountDeletionExecuted(
+    requestId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const database = this.requireDatabase();
+    const completedAt = new Date();
+    await database.batch([
+      database
+        .update(accountDeletionRequests)
+        .set({ status: "completed", completedAt })
+        .where(
+          and(
+            eq(accountDeletionRequests.id, requestId),
+            eq(accountDeletionRequests.status, "scheduled"),
+          ),
+        ),
+      database.insert(auditEvents).values({
+        workspaceId,
+        action: "privacy.account_deletion_executed",
+        entityType: "account_deletion_request",
+        entityId: requestId,
+      }),
+    ] as const);
   }
 
   private async buildCreatorDnaExport(workspaceId: string) {

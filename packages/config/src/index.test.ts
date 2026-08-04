@@ -43,6 +43,13 @@ describe("API environment", () => {
     expect(env.VEO_TIMEOUT_MS).toBe(240_000);
     expect(env.MEM0_BASE_URL).toBe("https://api.mem0.ai");
     expect(env.TIKTOK_CLIENT_KEY).toBeUndefined();
+    expect(env.INTERNAL_JOB_TOKEN).toBeUndefined();
+  });
+
+  it("accepts an internal job token for service-to-service endpoints", () => {
+    const env = parseApiEnv({ INTERNAL_JOB_TOKEN: "a-trusted-secret" });
+
+    expect(env.INTERNAL_JOB_TOKEN).toBe("a-trusted-secret");
   });
 });
 
