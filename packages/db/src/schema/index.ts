@@ -204,6 +204,7 @@ export const creatorDnaVersions = pgTable(
     summary: text("summary").notNull(),
     source: text("source").notNull().default("onboarding"),
     confirmed: boolean("confirmed").notNull().default(false),
+    restoredFromVersion: integer("restored_from_version"),
     createdByUserId: uuid("created_by_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -217,6 +218,10 @@ export const creatorDnaVersions = pgTable(
     index("creator_dna_versions_profile_idx").on(table.creatorProfileId),
     index("creator_dna_versions_created_by_idx").on(table.createdByUserId),
     check("creator_dna_versions_version_check", sql`${table.version} > 0`),
+    check(
+      "creator_dna_versions_restored_from_check",
+      sql`${table.restoredFromVersion} is null or ${table.restoredFromVersion} > 0`,
+    ),
   ],
 );
 

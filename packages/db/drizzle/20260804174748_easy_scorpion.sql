@@ -1,0 +1,2 @@
+ALTER TABLE "creator_dna_versions" ADD COLUMN "restored_from_version" integer;--> statement-breakpoint
+ALTER TABLE "creator_dna_versions" ADD CONSTRAINT "creator_dna_versions_restored_from_check" CHECK ("creator_dna_versions"."restored_from_version" is null or "creator_dna_versions"."restored_from_version" > 0);

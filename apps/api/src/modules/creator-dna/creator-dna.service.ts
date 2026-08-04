@@ -1,5 +1,11 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { CreatorDnaSchema, type CreatorDna } from "@creonome/contracts";
+import {
+  CreatorDnaSchema,
+  type CreatorDna,
+  type CreatorDnaTraitDiff,
+  type CreatorDnaVersionCompare,
+  type CreatorDnaVersionsResponse,
+} from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
@@ -99,7 +105,9 @@ export class CreatorDnaService {
     );
   }
 
-  async listVersions(principal: AuthPrincipal) {
+  async listVersions(
+    principal: AuthPrincipal,
+  ): Promise<CreatorDnaVersionsResponse> {
     const context = await this.workspaces.resolve(principal);
     const versions = await this.repository.listVersions(
       context.creatorProfileId,
@@ -110,9 +118,107 @@ export class CreatorDnaService {
         version: version.version,
         summary: version.summary,
         confirmed: version.confirmed,
+        source: version.source,
+        restoredFromVersion: version.restoredFromVersion,
         createdAt: version.createdAt.toISOString(),
       })),
     };
+  }
+
+  /**
+   * Creates a NEW version that copies the trait values of `version`. The
+   * target version (and every version in between) is never mutated or
+   * deleted — restoring is purely additive so the full audit trail stays
+   * intact.
+   */
+  async restoreVersion(
+    principal: AuthPrincipal,
+    version: number,
+  ): Promise<CreatorDna> {
+    const context = await this.workspaces.resolve(principal);
+    const dna = await this.repository.restoreVersion(
+      context.creatorProfileId,
+      context.userId,
+      version,
+    );
+    if (!dna) {
+      throw new NotFoundException("Creator DNA version was not found");
+    }
+    return this.toContract(
+      dna,
+      await this.repository.getPeopleReferenceImage(context.workspaceId),
+    );
+  }
+
+  async compareVersions(
+    principal: AuthPrincipal,
+    versionA: number,
+    versionB: number,
+  ): Promise<CreatorDnaVersionCompare> {
+    const context = await this.workspaces.resolve(principal);
+    const [a, b] = await Promise.all([
+      this.repository.getVersion(context.creatorProfileId, versionA),
+      this.repository.getVersion(context.creatorProfileId, versionB),
+    ]);
+    if (!a || !b) {
+      throw new NotFoundException("Creator DNA version was not found");
+    }
+
+    return {
+      a: { version: a.version, summary: a.summary },
+      b: { version: b.version, summary: b.summary },
+      traits: this.diffTraits(a.traits, b.traits),
+    };
+  }
+
+  private diffTraits(
+    fromTraits: CreatorDnaRecord["traits"],
+    toTraits: CreatorDnaRecord["traits"],
+  ): CreatorDnaTraitDiff[] {
+    const key = (category: string, label: string) => `${category}::${label}`;
+    const fromByKey = new Map(
+      fromTraits.map((trait) => [key(trait.category, trait.label), trait]),
+    );
+    const toByKey = new Map(
+      toTraits.map((trait) => [key(trait.category, trait.label), trait]),
+    );
+
+    const diffs: CreatorDnaTraitDiff[] = [];
+
+    for (const [traitKey, fromTrait] of fromByKey) {
+      const toTrait = toByKey.get(traitKey);
+      if (!toTrait) {
+        diffs.push({
+          category: fromTrait.category,
+          label: fromTrait.label,
+          status: "removed",
+          fromValue: fromTrait.value,
+          toValue: null,
+        });
+      } else if (toTrait.value !== fromTrait.value) {
+        diffs.push({
+          category: fromTrait.category,
+          label: fromTrait.label,
+          status: "changed",
+          fromValue: fromTrait.value,
+          toValue: toTrait.value,
+        });
+      }
+    }
+
+    for (const [traitKey, toTrait] of toByKey) {
+      if (!fromByKey.has(traitKey)) {
+        diffs.push({
+          category: toTrait.category,
+          label: toTrait.label,
+          status: "added",
+          fromValue: null,
+          toValue: toTrait.value,
+        });
+      }
+    }
+
+    return diffs;
   }
 
   private toContract(

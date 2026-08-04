@@ -5,6 +5,7 @@ import {
   Get,
   Inject,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -76,5 +77,27 @@ export class CreatorDnaController {
   @ApiOperation({ summary: "List Creator DNA versions" })
   listVersions(@CurrentUser() principal: AuthPrincipal) {
     return this.creatorDna.listVersions(principal);
+  }
+
+  @Post("versions/:version/restore")
+  @ApiOperation({
+    summary:
+      "Restore a Creator DNA version by copying its traits into a new version",
+  })
+  restoreVersion(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("version", new ParseIntPipe()) version: number,
+  ): Promise<CreatorDna> {
+    return this.creatorDna.restoreVersion(principal, version);
+  }
+
+  @Get("versions/:a/compare/:b")
+  @ApiOperation({ summary: "Compare two Creator DNA versions trait by trait" })
+  compareVersions(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("a", new ParseIntPipe()) a: number,
+    @Param("b", new ParseIntPipe()) b: number,
+  ) {
+    return this.creatorDna.compareVersions(principal, a, b);
   }
 }

@@ -16,6 +16,14 @@ export type CreatorDnaRecord = {
 };
 
 export type CreatorDnaVersionRecord = Omit<CreatorDnaRecord, "traits"> & {
+  source: string;
+  restoredFromVersion: number | null;
+  createdAt: Date;
+};
+
+export type CreatorDnaVersionDetailRecord = CreatorDnaRecord & {
+  source: string;
+  restoredFromVersion: number | null;
   createdAt: Date;
 };
 
@@ -38,6 +46,15 @@ export interface CreatorDnaRepository {
   ): Promise<CreatorDnaRecord | null>;
   confirmCurrent(creatorProfileId: string): Promise<CreatorDnaRecord | null>;
   listVersions(creatorProfileId: string): Promise<CreatorDnaVersionRecord[]>;
+  getVersion(
+    creatorProfileId: string,
+    version: number,
+  ): Promise<CreatorDnaVersionDetailRecord | null>;
+  restoreVersion(
+    creatorProfileId: string,
+    userId: string,
+    version: number,
+  ): Promise<CreatorDnaRecord | null>;
   getPeopleReferenceImage(
     workspaceId: string,
   ): Promise<CreatorDnaReferenceImageRecord | null>;

@@ -13,11 +13,13 @@ import {
 } from "@creonome/contracts";
 import {
   DownloadIcon,
+  HistoryIcon,
   ImageIcon,
   PencilIcon,
   TriangleAlertIcon,
   UploadIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { Alert, AlertDescription } from "@/src/components/ui/alert";
 import { Avatar, AvatarImage } from "@/src/components/ui/avatar";
@@ -227,6 +229,12 @@ export function CreatorDnaView({
               Version {currentDna.version}
             </span>
           </div>
+          <Button asChild size="sm" type="button" variant="outline">
+            <Link href="/creator-dna/versions">
+              <HistoryIcon />
+              Version history
+            </Link>
+          </Button>
           <Button
             onClick={exportJson}
             size="sm"

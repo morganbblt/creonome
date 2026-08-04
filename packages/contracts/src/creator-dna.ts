@@ -33,6 +33,40 @@ export const UpdateCreatorDnaTraitInputSchema = z.object({
   value: z.string().trim().min(1).max(500),
 });
 
+export const CreatorDnaVersionSummarySchema = z.object({
+  id: z.uuid(),
+  version: z.number().int().positive(),
+  summary: z.string(),
+  confirmed: z.boolean(),
+  source: z.string(),
+  restoredFromVersion: z.number().int().positive().nullable(),
+  createdAt: z.iso.datetime(),
+});
+
+export const CreatorDnaVersionsResponseSchema = z.object({
+  versions: z.array(CreatorDnaVersionSummarySchema),
+});
+
+export const CreatorDnaTraitDiffStatusSchema = z.enum([
+  "added",
+  "removed",
+  "changed",
+]);
+
+export const CreatorDnaTraitDiffSchema = z.object({
+  category: z.string(),
+  label: z.string(),
+  status: CreatorDnaTraitDiffStatusSchema,
+  fromValue: z.string().nullable(),
+  toValue: z.string().nullable(),
+});
+
+export const CreatorDnaVersionCompareSchema = z.object({
+  a: z.object({ version: z.number().int().positive(), summary: z.string() }),
+  b: z.object({ version: z.number().int().positive(), summary: z.string() }),
+  traits: z.array(CreatorDnaTraitDiffSchema),
+});
+
 export type CreatorDna = z.infer<typeof CreatorDnaSchema>;
 export type CreatorDnaReferenceImage = z.infer<
   typeof CreatorDnaReferenceImageSchema
@@ -43,4 +77,17 @@ export type SetCreatorDnaReferenceImageInput = z.infer<
 >;
 export type UpdateCreatorDnaTraitInput = z.infer<
   typeof UpdateCreatorDnaTraitInputSchema
+>;
+export type CreatorDnaVersionSummary = z.infer<
+  typeof CreatorDnaVersionSummarySchema
+>;
+export type CreatorDnaVersionsResponse = z.infer<
+  typeof CreatorDnaVersionsResponseSchema
+>;
+export type CreatorDnaTraitDiffStatus = z.infer<
+  typeof CreatorDnaTraitDiffStatusSchema
+>;
+export type CreatorDnaTraitDiff = z.infer<typeof CreatorDnaTraitDiffSchema>;
+export type CreatorDnaVersionCompare = z.infer<
+  typeof CreatorDnaVersionCompareSchema
 >;
