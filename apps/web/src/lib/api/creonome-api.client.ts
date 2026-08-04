@@ -1,5 +1,7 @@
 import {
   CreatorDnaSchema,
+  CreatorDnaVersionCompareSchema,
+  CreatorDnaVersionsResponseSchema,
   CreditLedgerSchema,
   CreditsResponseSchema,
   IntegrationsResponseSchema,
@@ -16,6 +18,8 @@ import {
   UpgradeOpportunityInputSchema,
   UpgradeOpportunityResultSchema,
   type CreatorDna,
+  type CreatorDnaVersionCompare,
+  type CreatorDnaVersionsResponse,
   type CreditLedger,
   type CreditsResponse,
   type IntegrationsResponse,
@@ -88,6 +92,28 @@ export class CreonomeApiClient {
 
   getCreatorDna(): Promise<CreatorDna> {
     return this.get("/creator-dna", CreatorDnaSchema);
+  }
+
+  getCreatorDnaVersions(): Promise<CreatorDnaVersionsResponse> {
+    return this.get("/creator-dna/versions", CreatorDnaVersionsResponseSchema);
+  }
+
+  restoreCreatorDnaVersion(version: number): Promise<CreatorDna> {
+    return this.post(
+      `/creator-dna/versions/${encodeURIComponent(version)}/restore`,
+      {},
+      CreatorDnaSchema,
+    );
+  }
+
+  compareCreatorDnaVersions(
+    versionA: number,
+    versionB: number,
+  ): Promise<CreatorDnaVersionCompare> {
+    return this.get(
+      `/creator-dna/versions/${encodeURIComponent(versionA)}/compare/${encodeURIComponent(versionB)}`,
+      CreatorDnaVersionCompareSchema,
+    );
   }
 
   getMemoryCandidates(): Promise<MemoryCandidatesResponse> {

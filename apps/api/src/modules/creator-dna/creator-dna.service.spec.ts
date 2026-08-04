@@ -35,6 +35,8 @@ describe("CreatorDnaService", () => {
       updateTrait: vi.fn(),
       confirmCurrent: vi.fn(),
       listVersions: vi.fn(),
+      getVersion: vi.fn(),
+      restoreVersion: vi.fn(),
       getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
       setPeopleReferenceImage: vi.fn(),
       clearPeopleReferenceImage: vi.fn(),
@@ -76,6 +78,8 @@ describe("CreatorDnaService", () => {
       updateTrait: vi.fn(),
       confirmCurrent: vi.fn(),
       listVersions: vi.fn(),
+      getVersion: vi.fn(),
+      restoreVersion: vi.fn(),
       getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
       setPeopleReferenceImage: vi.fn().mockResolvedValue(image),
       clearPeopleReferenceImage: vi.fn().mockResolvedValue(true),
@@ -130,6 +134,8 @@ describe("CreatorDnaService", () => {
       updateTrait: vi.fn().mockResolvedValue(updated),
       confirmCurrent: vi.fn(),
       listVersions: vi.fn(),
+      getVersion: vi.fn(),
+      restoreVersion: vi.fn(),
       getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
       setPeopleReferenceImage: vi.fn(),
       clearPeopleReferenceImage: vi.fn(),
@@ -154,5 +160,207 @@ describe("CreatorDnaService", () => {
       "0198f3a2-82dd-7000-8000-000000000004",
       "precise, intimate and understated",
     );
+  });
+
+  it("restores an earlier version by delegating to the repository", async () => {
+    const workspaces = {
+      resolve: vi.fn().mockResolvedValue({
+        userId: "0198f3a2-82dd-7000-8000-000000000011",
+        workspaceId: "0198f3a2-82dd-7000-8000-000000000010",
+        creatorProfileId: "0198f3a2-82dd-7000-8000-000000000002",
+      }),
+    } as unknown as WorkspaceContextService;
+    const restored = {
+      id: "0198f3a2-82dd-7000-8000-000000000006",
+      version: 6,
+      summary: "Older summary",
+      confirmed: true,
+      traits: [
+        {
+          id: "0198f3a2-82dd-7000-8000-000000000007",
+          category: "voice",
+          label: "Tone",
+          value: "warm and playful",
+          confidence: "0.800",
+          evidence: { source: "restore", restoredFromVersion: 2 },
+        },
+      ],
+    };
+    const repository: CreatorDnaRepository = {
+      getCurrent: vi.fn(),
+      updateTrait: vi.fn(),
+      confirmCurrent: vi.fn(),
+      listVersions: vi.fn(),
+      getVersion: vi.fn(),
+      restoreVersion: vi.fn().mockResolvedValue(restored),
+      getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
+      setPeopleReferenceImage: vi.fn(),
+      clearPeopleReferenceImage: vi.fn(),
+    };
+    const service = new CreatorDnaService(workspaces, repository);
+
+    await expect(service.restoreVersion(principal, 2)).resolves.toMatchObject(
+      {
+        version: 6,
+        traits: [expect.objectContaining({ value: "warm and playful" })],
+      },
+    );
+    expect(repository.restoreVersion).toHaveBeenCalledWith(
+      "0198f3a2-82dd-7000-8000-000000000002",
+      "0198f3a2-82dd-7000-8000-000000000011",
+      2,
+    );
+  });
+
+  it("throws when restoring a version that does not exist", async () => {
+    const workspaces = {
+      resolve: vi.fn().mockResolvedValue({
+        userId: "0198f3a2-82dd-7000-8000-000000000011",
+        workspaceId: "0198f3a2-82dd-7000-8000-000000000010",
+        creatorProfileId: "0198f3a2-82dd-7000-8000-000000000002",
+      }),
+    } as unknown as WorkspaceContextService;
+    const repository: CreatorDnaRepository = {
+      getCurrent: vi.fn(),
+      updateTrait: vi.fn(),
+      confirmCurrent: vi.fn(),
+      listVersions: vi.fn(),
+      getVersion: vi.fn(),
+      restoreVersion: vi.fn().mockResolvedValue(null),
+      getPeopleReferenceImage: vi.fn().mockResolvedValue(null),
+      setPeopleReferenceImage: vi.fn(),
+      clearPeopleReferenceImage: vi.fn(),
+    };
+    const service = new CreatorDnaService(workspaces, repository);
+
+    await expect(service.restoreVersion(principal, 999)).rejects.toThrow(
+      "Creator DNA version was not found",
+    );
+  });
+
+  it("diffs two versions: additions, removals and value changes", async () => {
+    const workspaces = {
+      resolve: vi.fn().mockResolvedValue({
+        creatorProfileId: "0198f3a2-82dd-7000-8000-000000000002",
+      }),
+    } as unknown as WorkspaceContextService;
+    const versionA = {
+      id: "version-a",
+      version: 1,
+      summary: "First summary",
+      confirmed: true,
+      traits: [
+        {
+          id: "trait-tone",
+          category: "voice",
+          label: "Tone",
+          value: "precise and intimate",
+          confidence: "0.950",
+          evidence: {},
+        },
+        {
+          id: "trait-pacing",
+          category: "voice",
+          label: "Pacing",
+          value: "brisk",
+          confidence: "0.700",
+          evidence: {},
+        },
+      ],
+    };
+    const versionB = {
+      id: "version-b",
+      version: 3,
+      summary: "Third summary",
+      confirmed: true,
+      traits: [
+        {
+          id: "trait-tone-2",
+          category: "voice",
+          label: "Tone",
+          value: "warm and playful",
+          confidence: "0.800",
+          evidence: {},
+        },
+        {
+          id: "trait-topic",
+          category: "content",
+          label: "Signature topic",
+          value: "urban gardening",
+          confidence: "0.600",
+          evidence: {},
+        },
+      ],
+    };
+    const repository: CreatorDnaRepository = {
+      getCurrent: vi.fn(),
+      updateTrait: vi.fn(),
+      confirmCurrent: vi.fn(),
+      listVersions: vi.fn(),
+      getVersion: vi.fn().mockImplementation((_profileId, version) => {
+        if (version === 1) return Promise.resolve(versionA);
+        if (version === 3) return Promise.resolve(versionB);
+        return Promise.resolve(null);
+      }),
+      restoreVersion: vi.fn(),
+      getPeopleReferenceImage: vi.fn(),
+      setPeopleReferenceImage: vi.fn(),
+      clearPeopleReferenceImage: vi.fn(),
+    };
+    const service = new CreatorDnaService(workspaces, repository);
+
+    await expect(
+      service.compareVersions(principal, 1, 3),
+    ).resolves.toEqual({
+      a: { version: 1, summary: "First summary" },
+      b: { version: 3, summary: "Third summary" },
+      traits: [
+        {
+          category: "voice",
+          label: "Tone",
+          status: "changed",
+          fromValue: "precise and intimate",
+          toValue: "warm and playful",
+        },
+        {
+          category: "voice",
+          label: "Pacing",
+          status: "removed",
+          fromValue: "brisk",
+          toValue: null,
+        },
+        {
+          category: "content",
+          label: "Signature topic",
+          status: "added",
+          fromValue: null,
+          toValue: "urban gardening",
+        },
+      ],
+    });
+  });
+
+  it("throws when comparing a version that does not exist", async () => {
+    const workspaces = {
+      resolve: vi.fn().mockResolvedValue({
+        creatorProfileId: "0198f3a2-82dd-7000-8000-000000000002",
+      }),
+    } as unknown as WorkspaceContextService;
+    const repository: CreatorDnaRepository = {
+      getCurrent: vi.fn(),
+      updateTrait: vi.fn(),
+      confirmCurrent: vi.fn(),
+      listVersions: vi.fn(),
+      getVersion: vi.fn().mockResolvedValue(null),
+      restoreVersion: vi.fn(),
+      getPeopleReferenceImage: vi.fn(),
+      setPeopleReferenceImage: vi.fn(),
+      clearPeopleReferenceImage: vi.fn(),
+    };
+    const service = new CreatorDnaService(workspaces, repository);
+
+    await expect(
+      service.compareVersions(principal, 1, 42),
+    ).rejects.toThrow("Creator DNA version was not found");
   });
 });

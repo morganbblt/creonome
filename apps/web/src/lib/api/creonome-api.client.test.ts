@@ -217,6 +217,69 @@ describe("CreonomeApiClient", () => {
     await expect(client.getCredits()).rejects.toThrow();
   });
 
+  it("lists Creator DNA versions and restores or compares them", async () => {
+    const versionsResponse = {
+      versions: [
+        {
+          id: "0198f3a2-82dd-7000-8000-000000000001",
+          version: 2,
+          summary: "Nocturnal electronic stories.",
+          confirmed: true,
+          source: "creator_edit",
+          restoredFromVersion: null,
+          createdAt: "2026-08-02T10:00:00.000Z",
+        },
+      ],
+    } as const;
+    const restoredDna = {
+      version: 3,
+      summary: "Nocturnal electronic stories.",
+      confirmed: true,
+      traits: [],
+    } as const;
+    const compareResponse = {
+      a: { version: 1, summary: "Old summary" },
+      b: { version: 2, summary: "New summary" },
+      traits: [],
+    } as const;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json(versionsResponse))
+      .mockResolvedValueOnce(Response.json(restoredDna))
+      .mockResolvedValueOnce(Response.json(compareResponse));
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await expect(client.getCreatorDnaVersions()).resolves.toEqual(
+      versionsResponse,
+    );
+    await expect(client.restoreCreatorDnaVersion(2)).resolves.toEqual(
+      restoredDna,
+    );
+    await expect(
+      client.compareCreatorDnaVersions(1, 2),
+    ).resolves.toEqual(compareResponse);
+
+    expect(request).toHaveBeenNthCalledWith(
+      1,
+      "https://api.creonome.app/api/v1/creator-dna/versions",
+      expect.any(Object),
+    );
+    expect(request).toHaveBeenNthCalledWith(
+      2,
+      "https://api.creonome.app/api/v1/creator-dna/versions/2/restore",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(request).toHaveBeenNthCalledWith(
+      3,
+      "https://api.creonome.app/api/v1/creator-dna/versions/1/compare/2",
+      expect.any(Object),
+    );
+  });
+
   it("posts validated chat revisions and idempotent script upgrades", async () => {
     const project = {
       id: "0198f3a2-82dd-7000-8000-000000000020",

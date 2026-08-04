@@ -12,6 +12,7 @@ import type {
   CreatorDnaRecord,
   CreatorDnaReferenceImageRecord,
   CreatorDnaRepository,
+  CreatorDnaVersionDetailRecord,
   CreatorDnaVersionRecord,
 } from "./creator-dna.repository.js";
 
@@ -132,11 +133,105 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
         version: creatorDnaVersions.version,
         summary: creatorDnaVersions.summary,
         confirmed: creatorDnaVersions.confirmed,
+        source: creatorDnaVersions.source,
+        restoredFromVersion: creatorDnaVersions.restoredFromVersion,
         createdAt: creatorDnaVersions.createdAt,
       })
       .from(creatorDnaVersions)
       .where(eq(creatorDnaVersions.creatorProfileId, creatorProfileId))
       .orderBy(desc(creatorDnaVersions.version));
+  }
+
+  async getVersion(
+    creatorProfileId: string,
+    version: number,
+  ): Promise<CreatorDnaVersionDetailRecord | null> {
+    const database = this.requireDatabase();
+    const [row] = await database
+      .select({
+        id: creatorDnaVersions.id,
+        version: creatorDnaVersions.version,
+        summary: creatorDnaVersions.summary,
+        confirmed: creatorDnaVersions.confirmed,
+        source: creatorDnaVersions.source,
+        restoredFromVersion: creatorDnaVersions.restoredFromVersion,
+        createdAt: creatorDnaVersions.createdAt,
+      })
+      .from(creatorDnaVersions)
+      .where(
+        and(
+          eq(creatorDnaVersions.creatorProfileId, creatorProfileId),
+          eq(creatorDnaVersions.version, version),
+        ),
+      )
+      .limit(1);
+
+    if (!row) {
+      return null;
+    }
+
+    const traits = await database
+      .select({
+        id: dnaTraits.id,
+        category: dnaTraits.category,
+        label: dnaTraits.label,
+        value: dnaTraits.value,
+        confidence: dnaTraits.confidence,
+        evidence: dnaTraits.evidence,
+      })
+      .from(dnaTraits)
+      .where(eq(dnaTraits.dnaVersionId, row.id))
+      .orderBy(asc(dnaTraits.position));
+
+    return { ...row, traits };
+  }
+
+  async restoreVersion(
+    creatorProfileId: string,
+    userId: string,
+    version: number,
+  ): Promise<CreatorDnaRecord | null> {
+    const database = this.requireDatabase();
+    const [current, target] = await Promise.all([
+      this.getCurrent(creatorProfileId),
+      this.getVersion(creatorProfileId, version),
+    ]);
+    if (!current || !target) return null;
+
+    const now = new Date();
+    const versionId = randomUUID();
+    await database.batch([
+      database.insert(creatorDnaVersions).values({
+        id: versionId,
+        creatorProfileId,
+        version: current.version + 1,
+        summary: target.summary,
+        source: "restore",
+        confirmed: true,
+        restoredFromVersion: target.version,
+        createdByUserId: userId,
+        createdAt: now,
+      }),
+      database.insert(dnaTraits).values(
+        target.traits.map((trait, index) => ({
+          id: randomUUID(),
+          dnaVersionId: versionId,
+          category: trait.category,
+          label: trait.label,
+          value: trait.value,
+          confidence: trait.confidence,
+          evidence: {
+            ...trait.evidence,
+            source: "restore",
+            restoredFromVersion: target.version,
+          },
+          position: index + 1,
+          createdAt: now,
+        })),
+      ),
+    ] as const);
+
+    return this.getCurrent(creatorProfileId);
   }
 
   async getPeopleReferenceImage(

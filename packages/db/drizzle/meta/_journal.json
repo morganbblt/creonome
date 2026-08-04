@@ -71,6 +71,13 @@
       "when": 1785862534035,
       "tag": "20260804165534_add_finer_generation_job_statuses",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785865668731,
+      "tag": "20260804174748_easy_scorpion",
+      "breakpoints": true
     }
   ]
 }
