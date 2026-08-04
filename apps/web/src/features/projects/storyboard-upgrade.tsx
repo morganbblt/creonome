@@ -6,9 +6,18 @@ import {
 } from "@creonome/contracts";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { Button } from "@/src/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/src/components/ui/dialog";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
-import styles from "./projects.module.css";
 
 function storyboardErrorMessage(status: number): string {
   if (status === 401 || status === 403) {
@@ -37,14 +46,14 @@ function createIdempotencyKey(projectId: string): string {
 export function StoryboardUpgrade({ projectId }: { projectId: string }) {
   const router = useRouter();
   const key = useRef<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
+  const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<UpgradeProjectResult | null>(null);
 
   async function generateStoryboard() {
+    setOpen(false);
     setPending(true);
-    setConfirming(false);
     setError(null);
     key.current ??= createIdempotencyKey(projectId);
 
@@ -93,45 +102,38 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
   }
 
   return (
-    <>
-      <section
-        className={styles.upgradeCard}
-        aria-label="Storyboard generation"
-      >
-        <div>
-          <p>READY FOR LEVEL 03</p>
-          <h2>Turn this script into a shootable sequence.</h2>
-          <span>
-            Timecodes, framing, action, audio, assets and edit notes for every
-            scene.
-          </span>
-        </div>
-
-        {!confirming ? (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => setConfirming(true)}
-          >
+    <div className="flex flex-col items-end gap-3">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button type="button" disabled={pending}>
             {pending ? "Generating…" : "Generate storyboard · 4 cr"}
-          </button>
-        ) : (
-          <div className={styles.upgradeConfirmation}>
-            <p>
-              4 credits will be reserved. They are only charged if the
-              storyboard is generated.
-            </p>
-            <div>
-              <button type="button" onClick={generateStoryboard}>
-                Confirm and generate
-              </button>
-              <button type="button" onClick={() => setConfirming(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
+          </Button>
+        </DialogTrigger>
+        <DialogContent aria-label="Storyboard generation">
+          <DialogHeader>
+            <DialogTitle>
+              Turn this script into a shootable sequence
+            </DialogTitle>
+            <DialogDescription>
+              Timecodes, framing, action, audio, assets and edit notes for
+              every scene.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            4 credits will be reserved. They are only charged if the
+            storyboard is generated.
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={generateStoryboard}>
+              Confirm and generate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {pending ? (
         <GenerationToast
           state="pending"
@@ -154,6 +156,6 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
           onDismiss={() => setError(null)}
         />
       ) : null}
-    </>
+    </div>
   );
 }

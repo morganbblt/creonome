@@ -9,12 +9,31 @@ import {
   type OpportunityMemoryScope,
   type ScriptDraft,
 } from "@creonome/contracts";
+import { ArrowLeftIcon, PlayIcon } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from "@/src/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/src/components/ui/sheet";
+import { Textarea } from "@/src/components/ui/textarea";
+import { cn } from "@/src/lib/utils";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
 import { splitScriptSegments } from "../projects/script-segments";
-import styles from "./opportunity-workspace.module.css";
 
 type Panel = "modify" | "upgrade" | null;
 
@@ -296,15 +315,21 @@ export function OpportunityWorkspace({
     }
   }
 
+  const currentIndex = maturityLevels.indexOf(opportunity.currentLevel);
+
   return (
-    <main className={styles.page}>
-      <Link href="/today" className={styles.back}>
-        ← Back to Today
+    <main className="mx-auto w-full max-w-[1180px] px-5.5 pt-7 pb-16 max-[620px]:px-3.5 max-[620px]:pt-5.5 max-[620px]:pb-12">
+      <Link
+        href="/today"
+        className="mb-6 inline-flex items-center gap-1.5 font-mono text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeftIcon className="size-3.5" aria-hidden="true" />
+        Back to Today
       </Link>
 
       {script ? (
         <div
-          className={styles.deliverableTabs}
+          className="mb-5 inline-flex h-11 w-fit items-center gap-1 rounded-control bg-secondary p-1"
           role="tablist"
           aria-label="Deliverables"
         >
@@ -313,6 +338,12 @@ export function OpportunityWorkspace({
             role="tab"
             aria-selected={activeDeliverable === "script"}
             onClick={() => setActiveDeliverable("script")}
+            className={cn(
+              "inline-flex h-full items-center rounded-[calc(var(--radius-control)-4px)] px-3.5 text-sm font-medium transition-colors",
+              activeDeliverable === "script"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
           >
             Script
           </button>
@@ -321,6 +352,12 @@ export function OpportunityWorkspace({
             role="tab"
             aria-selected={activeDeliverable === "idea"}
             onClick={() => setActiveDeliverable("idea")}
+            className={cn(
+              "inline-flex h-full items-center rounded-[calc(var(--radius-control)-4px)] px-3.5 text-sm font-medium transition-colors",
+              activeDeliverable === "idea"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
           >
             Idea
           </button>
@@ -328,71 +365,95 @@ export function OpportunityWorkspace({
       ) : null}
 
       {activeDeliverable === "idea" ? (
-        <div className={styles.layout}>
-          <section className={styles.idea} aria-label="Opportunity detail">
-            <header className={styles.hero}>
-              <div className={styles.heroMeta}>
-                <span
-                  className={`${styles.badge} ${styles[opportunity.strategy]}`}
-                >
-                  <span aria-hidden="true" />
+        <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-7 max-[900px]:grid-cols-1">
+          <section
+            className="flex min-w-0 flex-col gap-6"
+            aria-label="Opportunity detail"
+          >
+            <header>
+              <div className="mb-3 flex flex-wrap items-center gap-3">
+                <Badge className="border-transparent bg-accent-soft text-accent-soft-foreground">
+                  <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
                   {badgeByStrategy[opportunity.strategy]}
-                </span>
-                <span>
+                </Badge>
+                <span className="font-mono text-[11px] text-muted-foreground">
                   {opportunity.estimatedDurationSeconds ?? 35}s · 9:16 ·{" "}
                   {opportunity.effort} effort
                 </span>
               </div>
-              <h1>{opportunity.title}</h1>
-              <p>{opportunity.pitch}</p>
+              <h1 className="m-0 text-[34px] leading-[1.08] font-semibold tracking-[-0.03em] text-foreground text-balance max-[620px]:text-[26px]">
+                {opportunity.title}
+              </h1>
+              <p className="mt-2.5 text-[15px] leading-[1.5] text-muted-foreground">
+                {opportunity.pitch}
+              </p>
             </header>
 
-            <div className={styles.mediaStage}>
-              <div
-                className={styles.media}
-                role="img"
-                aria-label={`Vertical 9:16 preview for ${opportunity.title}`}
-              >
-                <span className={styles.mediaLabel}>
-                  VERTICAL PREVIEW · 9:16
-                </span>
-                <span className={styles.subject} />
-                <span className={styles.play} aria-hidden="true">
-                  ▶
-                </span>
-              </div>
+            <div
+              className="relative grid aspect-[9/16] w-[min(100%,286px)] place-items-center overflow-hidden rounded-card border border-border bg-gradient-to-br from-secondary via-secondary to-muted-foreground/20 shadow-lg"
+              role="img"
+              aria-label={`Vertical 9:16 preview for ${opportunity.title}`}
+            >
+              <span className="absolute top-4 left-4 rounded-full bg-background/85 px-2.5 py-1 font-mono text-[10px] tracking-[0.08em] text-foreground backdrop-blur-sm uppercase">
+                9:16
+              </span>
+              <span className="grid size-14 place-items-center rounded-full bg-foreground/90 text-background shadow-lg">
+                <PlayIcon aria-hidden="true" className="size-6 translate-x-0.5 fill-background" />
+              </span>
             </div>
 
-            <section className={styles.readout} aria-label="Creative reasoning">
-              <div className={styles.hook}>
-                <span>HOOK</span>
-                <p>{opportunity.hook}</p>
+            <section className="flex flex-col gap-4" aria-label="Creative reasoning">
+              <div className="border-l-2 border-accent pl-3">
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  HOOK
+                </span>
+                <p className="mt-1 text-sm leading-[1.5] text-foreground">
+                  {opportunity.hook}
+                </p>
               </div>
-              <div className={styles.score}>
-                <strong>{opportunity.score}</strong>
-                <span>/100</span>
-                <em>{verdict(opportunity.score)}</em>
-                <small>{opportunity.confidence} confidence</small>
+              <div className="flex flex-wrap items-center gap-2.5 rounded-card border border-border bg-card p-4">
+                <strong className="font-mono text-2xl leading-none font-semibold tracking-[-0.02em]">
+                  {opportunity.score}
+                </strong>
+                <span className="font-mono text-xs text-muted-foreground">
+                  /100
+                </span>
+                <em className="rounded-md bg-secondary px-2.5 py-1.5 text-xs font-semibold not-italic">
+                  {verdict(opportunity.score)}
+                </em>
+                <small className="ml-auto font-mono text-xs text-muted-foreground">
+                  {opportunity.confidence} confidence
+                </small>
               </div>
-              <div className={styles.why}>
-                <span>WHY THIS FITS</span>
+              <div className="flex flex-col gap-2.5">
+                <span className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
+                  Why this fits
+                </span>
                 <div
-                  className={styles.trendSignal}
+                  className="rounded-card border border-border bg-card p-4"
                   data-status={opportunity.trendSignal.status}
                 >
-                  <div>
-                    <span>TREND SIGNAL</span>
-                    <strong>
-                      {opportunity.trendSignal.title ?? "Signal unavailable"}
-                    </strong>
-                  </div>
-                  {opportunity.trendSignal.momentumScore !== null ? (
-                    <div className={styles.trendMomentum}>
-                      <strong>{opportunity.trendSignal.momentumScore}</strong>
-                      <span>/100 momentum</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <span className="font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
+                        Trend signal
+                      </span>
+                      <strong className="block text-sm font-semibold text-foreground">
+                        {opportunity.trendSignal.title ?? "Signal unavailable"}
+                      </strong>
                     </div>
-                  ) : null}
-                  <p>
+                    {opportunity.trendSignal.momentumScore !== null ? (
+                      <div className="text-right">
+                        <strong className="font-mono text-lg font-semibold">
+                          {opportunity.trendSignal.momentumScore}
+                        </strong>
+                        <span className="block font-mono text-[10px] text-muted-foreground">
+                          /100 momentum
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {opportunity.trendSignal.status === "unavailable"
                       ? opportunity.trendSignal.reason
                       : `${opportunity.trendSignal.lifecycle} · ${opportunity.trendSignal.evidenceCount} normalized references${
@@ -402,26 +463,41 @@ export function OpportunityWorkspace({
                         }`}
                   </p>
                 </div>
-                <p>{opportunity.rationale}</p>
-                <ul>
+                <p className="text-sm leading-[1.55] text-foreground">
+                  {opportunity.rationale}
+                </p>
+                <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                   {opportunity.evidence.map((item) => (
-                    <li key={item}>{item}</li>
+                    <li
+                      key={item}
+                      className="text-[13px] leading-[1.5] text-muted-foreground before:mr-2 before:content-['—']"
+                    >
+                      {item}
+                    </li>
                   ))}
                 </ul>
                 {opportunity.reserve ? (
-                  <p className={styles.reserve}>
-                    <strong>Reserve —</strong> {opportunity.reserve}
+                  <p className="text-[13px] leading-[1.5] text-muted-foreground">
+                    <strong className="text-foreground">Reserve —</strong>{" "}
+                    {opportunity.reserve}
                   </p>
                 ) : null}
               </div>
             </section>
 
-            <section className={styles.feedback} aria-label="Creative feedback">
+            <section
+              className="flex flex-col gap-3 rounded-card border border-border bg-card p-4"
+              aria-label="Creative feedback"
+            >
               <div>
-                <p>Does this feel like you?</p>
-                <span>Explicit feedback improves the next three routes.</span>
+                <p className="m-0 text-sm font-semibold text-foreground">
+                  Does this feel like you?
+                </p>
+                <span className="text-xs text-muted-foreground">
+                  Explicit feedback improves the next three routes.
+                </span>
               </div>
-              <div className={styles.feedbackActions}>
+              <div className="flex flex-wrap gap-1.5">
                 {feedbackActions.map(({ action, label }) => (
                   <button
                     type="button"
@@ -429,34 +505,48 @@ export function OpportunityWorkspace({
                     disabled={feedbackPending !== null}
                     key={action}
                     onClick={() => void submitFeedback(action)}
+                    className={cn(
+                      "rounded-full border px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      selectedFeedback === action
+                        ? "border-foreground bg-secondary text-foreground"
+                        : "border-input text-muted-foreground hover:bg-secondary",
+                    )}
                   >
                     {feedbackPending === action ? "Saving…" : label}
                   </button>
                 ))}
               </div>
               {feedbackNotice ? (
-                <p className={styles.feedbackStatus} aria-live="polite">
+                <p className="text-xs text-muted-foreground" aria-live="polite">
                   {feedbackNotice}{" "}
                   {feedbackMemoryReady ? (
-                    <Link href="/creator-dna">Review memory →</Link>
+                    <Link href="/creator-dna" className="font-semibold text-accent hover:underline">
+                      Review memory →
+                    </Link>
                   ) : null}
                 </p>
               ) : null}
               {feedbackError ? (
-                <p className={styles.feedbackError} role="alert">
+                <p className="text-xs font-medium text-destructive" role="alert">
                   {feedbackError}
                 </p>
               ) : null}
             </section>
 
-            {notice ? <p className={styles.notice}>{notice}</p> : null}
+            {notice ? (
+              <p className="rounded-control border border-border bg-secondary px-3.5 py-2.5 text-xs text-muted-foreground">
+                {notice}
+              </p>
+            ) : null}
             {error && !panel && !generationState ? (
-              <p className={styles.error}>{error}</p>
+              <p className="text-xs font-medium text-destructive" role="alert">
+                {error}
+              </p>
             ) : null}
 
-            <div className={styles.actions}>
+            <div className="flex gap-2.5">
               {opportunity.currentLevel === "idea" ? (
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     setError(null);
@@ -464,51 +554,76 @@ export function OpportunityWorkspace({
                     setPanel("upgrade");
                   }}
                 >
-                  Move to script <span>{opportunity.creditCost} cr</span>
-                </button>
+                  Move to script{" "}
+                  <span className="font-mono text-xs opacity-70">
+                    {opportunity.creditCost} cr
+                  </span>
+                </Button>
               ) : (
-                <Link
-                  href={
-                    opportunity.projectId
-                      ? `/projects/${opportunity.projectId}`
-                      : "/projects"
-                  }
-                  className={styles.continueProject}
-                >
-                  Continue in Projects
-                </Link>
+                <Button type="button" variant="outline" asChild>
+                  <Link
+                    href={
+                      opportunity.projectId
+                        ? `/projects/${opportunity.projectId}`
+                        : "/projects"
+                    }
+                  >
+                    Continue in Projects
+                  </Link>
+                </Button>
               )}
-              <button type="button" onClick={() => setPanel("modify")}>
+              <Button type="button" variant="outline" onClick={() => setPanel("modify")}>
                 Modify idea
-              </button>
+              </Button>
             </div>
           </section>
 
-          <aside className={styles.progress} aria-label="Project maturity">
-            <p>PROJECT PATH</p>
+          <aside
+            className="sticky top-35 flex flex-col gap-3 max-[900px]:static max-[900px]:grid max-[900px]:grid-cols-2"
+            aria-label="Project maturity"
+          >
+            <p className="col-span-full m-0 font-mono text-[10px] tracking-[0.1em] text-muted-foreground uppercase">
+              Project path
+            </p>
             {maturityLevels.map((level, index) => {
-              const currentIndex = maturityLevels.indexOf(
-                opportunity.currentLevel,
-              );
               const label = level[0]!.toUpperCase() + level.slice(1);
+              const active = index === currentIndex;
+              const complete = index < currentIndex;
               return (
                 <div
-                  className={
-                    index === currentIndex
-                      ? styles.activeLevel
-                      : index < currentIndex
-                        ? styles.completedLevel
-                        : styles.level
-                  }
                   key={level}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-control border px-3 py-2.5",
+                    active
+                      ? "border-accent bg-accent-soft"
+                      : complete
+                        ? "border-border bg-card"
+                        : "border-dashed border-border bg-card/50",
+                  )}
                 >
-                  <span>{index + 1}</span>
-                  <div>
-                    <strong>{label}</strong>
-                    <small>
-                      {index === currentIndex
+                  <span
+                    className={cn(
+                      "grid size-6 shrink-0 place-items-center rounded-full font-mono text-[11px] font-semibold",
+                      active
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-secondary text-muted-foreground",
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="leading-tight">
+                    <strong
+                      className={cn(
+                        "block text-[13px] font-semibold",
+                        active ? "text-accent-soft-foreground" : "text-foreground",
+                      )}
+                    >
+                      {label}
+                    </strong>
+                    <small className="text-[11px] text-muted-foreground">
+                      {active
                         ? "Current level"
-                        : index < currentIndex
+                        : complete
                           ? "Complete"
                           : "Not generated yet"}
                     </small>
@@ -521,32 +636,49 @@ export function OpportunityWorkspace({
       ) : null}
 
       {script && activeDeliverable === "script" ? (
-        <section className={styles.script} aria-live="polite">
+        <section className="flex flex-col gap-4" aria-live="polite">
           <div>
-            <p>SCRIPT · VERSION 1</p>
-            <h2>Your script</h2>
+            <p className="m-0 font-mono text-[10px] tracking-[0.1em] text-muted-foreground uppercase">
+              Script · Version 1
+            </p>
+            <h2 className="m-0 mt-1 text-2xl font-semibold tracking-[-0.02em] text-foreground">
+              Your script
+            </h2>
           </div>
-          <blockquote>{script.hook}</blockquote>
-          <div className={styles.scriptTimeline} aria-label="Script timeline">
+          <blockquote className="m-0 rounded-card border-l-2 border-accent bg-card px-4 py-3.5 text-[15px] leading-[1.5] font-medium text-foreground italic">
+            {script.hook}
+          </blockquote>
+          <div
+            className="flex flex-col gap-2.5 rounded-card border border-border bg-card p-4"
+            aria-label="Script timeline"
+          >
             {splitScriptSegments(script.body).map((segment, index) => (
-              <p data-testid="script-segment" key={`${index}-${segment}`}>
+              <p
+                data-testid="script-segment"
+                key={`${index}-${segment}`}
+                className="m-0 text-sm leading-[1.55] text-foreground"
+              >
                 {segment}
               </p>
             ))}
           </div>
           {script.callToAction ? (
-            <p>
-              <strong>CTA</strong> {script.callToAction}
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">CTA</strong>{" "}
+              {script.callToAction}
             </p>
           ) : null}
-          <footer>
-            <span>{remainingCredits} credits remaining</span>
+          <footer className="flex items-center justify-between gap-4 border-t border-border pt-4">
+            <span className="font-mono text-xs text-muted-foreground">
+              {remainingCredits} credits remaining
+            </span>
             <Link
               href={
                 opportunity.projectId
                   ? `/projects/${opportunity.projectId}`
                   : "/projects"
               }
+              className="text-sm font-semibold text-accent hover:underline"
             >
               View project →
             </Link>
@@ -554,163 +686,178 @@ export function OpportunityWorkspace({
         </section>
       ) : null}
 
-      {panel === "modify" ? (
-        <div className={`${styles.overlay} ${styles.modifyOverlay}`}>
-          <aside
-            className={styles.sheet}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modify-title"
-          >
-            <header>
-              <div>
-                <p>CREATIVE CHAT</p>
-                <h2 id="modify-title">Modify this idea</h2>
-              </div>
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setPanel(null)}
-              >
-                ×
-              </button>
-            </header>
-            <p>
-              Describe one change. The current idea stays in version history.
+      <Sheet
+        open={panel === "modify"}
+        onOpenChange={(open) => {
+          if (!open) setPanel(null);
+        }}
+      >
+        <SheetContent
+          overlayClassName="bg-transparent backdrop-blur-none"
+          className="border-l-border/70 bg-card/82 shadow-[-24px_0_70px_-20px_rgb(0_0_0/0.18)] backdrop-blur-lg backdrop-saturate-125"
+        >
+          <SheetHeader>
+            <p className="m-0 font-mono text-[10px] tracking-[0.1em] text-muted-foreground uppercase">
+              Creative chat
             </p>
-            <div className={styles.prompts}>
+            <SheetTitle>Modify this idea</SheetTitle>
+            <SheetDescription>
+              Describe one change. The current idea stays in version history.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 overflow-y-auto px-6">
+            <div className="flex flex-wrap gap-1.5">
               {quickPrompts.map((prompt) => (
                 <button
                   type="button"
                   key={prompt}
                   onClick={() => setInstruction(prompt)}
+                  className="rounded-full border border-input px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary"
                 >
                   {prompt}
                 </button>
               ))}
             </div>
-            <label className={styles.textareaLabel}>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
               Describe the change
-              <textarea
+              <Textarea
                 value={instruction}
                 onChange={(event) => setInstruction(event.target.value)}
                 placeholder="Make the hook quieter, but keep it one take…"
+                rows={4}
               />
             </label>
-            <fieldset className={styles.scope}>
-              <legend>Remember this preference</legend>
-              <label>
+            <fieldset className="flex flex-col gap-2 border-0 p-0">
+              <legend className="mb-1 text-xs font-semibold text-muted-foreground">
+                Remember this preference
+              </legend>
+              <label className="flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="radio"
                   name="memory-scope"
                   checked={memoryScope === "idea"}
                   onChange={() => setMemoryScope("idea")}
+                  className="size-4 accent-accent"
                 />
                 Only for this idea
               </label>
-              <label>
+              <label className="flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="radio"
                   name="memory-scope"
                   checked={memoryScope === "project"}
                   onChange={() => setMemoryScope("project")}
+                  className="size-4 accent-accent"
                 />
                 Remember for this project
               </label>
-              <label>
+              <label className="flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="radio"
                   name="memory-scope"
                   checked={memoryScope === "creator"}
                   onChange={() => setMemoryScope("creator")}
+                  className="size-4 accent-accent"
                 />
                 Suggest for Creator DNA
               </label>
             </fieldset>
-            <label className={styles.lock}>
+            <label className="flex items-center gap-2 text-sm text-foreground">
               <input
                 type="checkbox"
                 checked={keepDuration}
                 onChange={(event) => setKeepDuration(event.target.checked)}
+                className="size-4 accent-accent"
               />
               Lock the current duration
             </label>
-            {error ? <p className={styles.error}>{error}</p> : null}
-            <button
-              className={styles.submit}
-              type="button"
-              disabled={pending}
-              onClick={applyChange}
-            >
+            {error ? (
+              <p className="text-xs font-medium text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </div>
+          <SheetFooter>
+            <Button type="button" disabled={pending} onClick={applyChange}>
               {pending ? "Applying…" : "Apply change"}
-            </button>
-          </aside>
-        </div>
-      ) : null}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      {panel === "upgrade" ? (
-        <div className={styles.overlay}>
-          <section
-            className={styles.confirm}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="upgrade-title"
-          >
-            <span className={styles.cost}>{opportunity.creditCost} cr</span>
-            <p>NEXT LEVEL</p>
-            <h2 id="upgrade-title">Generate the script?</h2>
-            <p>
-              Creonome will turn this idea into a shootable script. This costs{" "}
-              <strong>{opportunity.creditCost} credits</strong>. Failed
-              generations are refunded automatically.
+      <Dialog
+        open={panel === "upgrade"}
+        onOpenChange={(open) => {
+          if (!open) setPanel(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <span className="w-fit rounded-full bg-accent-soft px-3 py-1.5 font-mono text-xs font-semibold text-accent-soft-foreground">
+            {opportunity.creditCost} cr
+          </span>
+          <p className="m-0 font-mono text-[10px] tracking-[0.1em] text-muted-foreground uppercase">
+            Next level
+          </p>
+          <DialogTitle>Generate the script?</DialogTitle>
+          <DialogDescription>
+            Creonome will turn this idea into a shootable script. This costs{" "}
+            <strong className="text-foreground">
+              {opportunity.creditCost} credits
+            </strong>
+            . Failed generations are refunded automatically.
+          </DialogDescription>
+          {error ? (
+            <p className="text-xs font-medium text-destructive" role="alert">
+              {error}
             </p>
-            {error ? <p className={styles.error}>{error}</p> : null}
-            <div>
-              <button type="button" onClick={() => setPanel(null)}>
-                Not now
-              </button>
-              <button type="button" disabled={pending} onClick={generateScript}>
-                {pending
-                  ? "Generating…"
-                  : `Generate script · ${opportunity.creditCost} credits`}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPanel(null)}>
+              Not now
+            </Button>
+            <Button type="button" disabled={pending} onClick={generateScript}>
+              {pending
+                ? "Generating…"
+                : `Generate script · ${opportunity.creditCost} credits`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {generationState ? (
-        <GenerationToast
-          state={generationState}
-          title={
-            generationState === "pending"
-              ? "Building your script"
-              : generationState === "success"
-                ? "Script ready"
-                : "Script not generated"
-          }
-          detail={
-            generationState === "pending"
-              ? "Writing the hook, timeline, caption and call to action."
-              : generationState === "success"
-                ? "The script is saved to this project. Your idea remains in history."
-                : (error ??
-                  "The request stopped safely. No duplicate was created.")
-          }
-          creditLabel={
-            generationState === "pending"
-              ? `${opportunity.creditCost} credits held`
-              : undefined
-          }
-          onDismiss={
-            generationState === "pending"
-              ? undefined
-              : () => {
-                  setGenerationState(null);
-                  setError(null);
-                }
-          }
-        />
+        <div className="fixed right-5 bottom-5 z-50">
+          <GenerationToast
+            state={generationState}
+            title={
+              generationState === "pending"
+                ? "Building your script"
+                : generationState === "success"
+                  ? "Script ready"
+                  : "Script not generated"
+            }
+            detail={
+              generationState === "pending"
+                ? "Writing the hook, timeline, caption and call to action."
+                : generationState === "success"
+                  ? "The script is saved to this project. Your idea remains in history."
+                  : (error ??
+                    "The request stopped safely. No duplicate was created.")
+            }
+            creditLabel={
+              generationState === "pending"
+                ? `${opportunity.creditCost} credits held`
+                : undefined
+            }
+            onDismiss={
+              generationState === "pending"
+                ? undefined
+                : () => {
+                    setGenerationState(null);
+                    setError(null);
+                  }
+            }
+          />
+        </div>
       ) : null}
     </main>
   );

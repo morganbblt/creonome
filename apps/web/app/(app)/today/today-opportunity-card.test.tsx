@@ -1,15 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { demoOpportunities } from "../../../src/features/opportunities/demo-opportunities";
 import { TodayOpportunityCard } from "./today-opportunity-card";
 
 describe("TodayOpportunityCard", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("discloses and undiscloses details after the 750ms hover delay", () => {
-    vi.useFakeTimers();
+  it("only reveals details on an explicit click, never on hover", () => {
     render(<TodayOpportunityCard opportunity={demoOpportunities[0]!} />);
 
     const card = screen.getByRole("article");
@@ -17,17 +12,15 @@ describe("TodayOpportunityCard", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
 
     fireEvent.mouseEnter(card);
-    act(() => vi.advanceTimersByTime(749));
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.mouseLeave(card);
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
 
-    act(() => vi.advanceTimersByTime(1));
+    fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText("HOOK")).toBeTruthy();
 
-    fireEvent.mouseLeave(card);
-    act(() => vi.advanceTimersByTime(749));
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-
-    act(() => vi.advanceTimersByTime(1));
+    fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 });

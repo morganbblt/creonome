@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
 
 describe("AppNavigation", () => {
   it("shows immediate progress when another workspace tab is selected", () => {
-    render(<AppNavigation progressClassName="route-progress" />);
+    render(<AppNavigation />);
 
     expect(screen.queryByRole("progressbar")).toBeNull();
     const projects = screen.getByRole("link", { name: "Projects" });
@@ -21,7 +21,7 @@ describe("AppNavigation", () => {
   });
 
   it("does not show progress when the current tab is selected again", () => {
-    render(<AppNavigation progressClassName="route-progress" />);
+    render(<AppNavigation />);
 
     const today = screen.getByRole("link", { name: "Today" });
     today.addEventListener("click", (event) => event.preventDefault());

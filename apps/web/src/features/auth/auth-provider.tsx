@@ -21,7 +21,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       onSessionChange={() => router.refresh()}
       redirectTo="/onboarding"
       basePath="/auth"
-      defaultTheme="light"
+      defaultTheme="system"
       credentials={{ forgotPassword: true }}
       social={{ providers: ["google"] }}
       signUp={{ fields: ["name"] }}

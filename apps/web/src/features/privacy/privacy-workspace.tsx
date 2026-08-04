@@ -8,15 +8,64 @@ import {
   type PrivacyExportKind,
   type PrivacyState,
 } from "@creonome/contracts";
+import { Loader2Icon, TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import styles from "./privacy.module.css";
+import { Alert, AlertDescription } from "@/src/components/ui/alert";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/src/components/ui/dialog";
+import { Input } from "@/src/components/ui/input";
+import { Label } from "@/src/components/ui/label";
+import { Switch } from "@/src/components/ui/switch";
 
 const exportLabels: Record<PrivacyExportKind, string> = {
   creator_dna: "Creator DNA",
   projects: "Projects & scripts",
   everything: "Everything",
 };
+
+const exportKinds: PrivacyExportKind[] = ["creator_dna", "projects", "everything"];
+
+function PreferenceToggle({
+  label,
+  description,
+  checked,
+  disabled,
+  onCheckedChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  disabled: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start gap-3.5 p-4">
+      <Switch
+        aria-label={label}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+        className="mt-0.5 shrink-0"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function PrivacyWorkspace({
   initialState,
@@ -31,6 +80,11 @@ export function PrivacyWorkspace({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [deletionBusy, setDeletionBusy] = useState(false);
+
+  function closeDialog() {
+    setDialogOpen(false);
+    setConfirmation("");
+  }
 
   async function savePreferences(
     next: Pick<
@@ -102,8 +156,7 @@ export function PrivacyWorkspace({
         await response.json(),
       );
       setState((current) => ({ ...current, accountDeletion }));
-      setDialogOpen(false);
-      setConfirmation("");
+      closeDialog();
     } catch {
       setError(
         "The deletion request could not be recorded. Your data is intact.",
@@ -142,179 +195,206 @@ export function PrivacyWorkspace({
   const preferences = state.preferences;
 
   return (
-    <main className={styles.page}>
-      <section className={styles.panel}>
-        <header className={styles.header}>
+    <main className="mx-auto w-full max-w-[720px] px-5.5 py-8.5 pb-14 max-[620px]:px-3.5 max-[620px]:py-6">
+      <div className="overflow-hidden rounded-card border border-border bg-card shadow-sm">
+        <header className="flex items-center justify-between gap-5 border-b border-border px-5.5 py-4.5">
           <div>
-            <p>CONTROL &amp; PORTABILITY</p>
-            <h1>Your data</h1>
+            <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Control &amp; portability
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">Your data</h1>
           </div>
-          <span>Private by default</span>
+          <Badge variant="success" className="max-[620px]:hidden">
+            Private by default
+          </Badge>
         </header>
 
-        <div className={styles.content}>
-          <div className={styles.preference}>
-            <button
-              type="button"
-              role="switch"
-              aria-label="Help improve the models"
-              aria-checked={preferences.modelTrainingOptIn}
+        <div className="flex flex-col gap-3 p-5">
+          <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
+            <PreferenceToggle
+              label="Help improve the models"
+              description={
+                preferences.modelTrainingOptIn
+                  ? "On. You allow selected workspace data to improve Creonome models."
+                  : "Off. Your media and Creator DNA are not used for model training."
+              }
+              checked={preferences.modelTrainingOptIn}
               disabled={saving}
-              onClick={() =>
+              onCheckedChange={(checked) =>
                 void savePreferences({
-                  modelTrainingOptIn: !preferences.modelTrainingOptIn,
+                  modelTrainingOptIn: checked,
                   keepRushesAfterExport: preferences.keepRushesAfterExport,
                 })
               }
-            >
-              <span />
-            </button>
-            <div>
-              <strong>Help improve the models</strong>
-              <p>
-                {preferences.modelTrainingOptIn
-                  ? "On. You allow selected workspace data to improve Creonome models."
-                  : "Off. Your media and Creator DNA are not used for model training."}
-              </p>
-            </div>
-          </div>
-
-          <div className={styles.preference}>
-            <button
-              type="button"
-              role="switch"
-              aria-label="Keep rushes after export"
-              aria-checked={preferences.keepRushesAfterExport}
+            />
+            <PreferenceToggle
+              label="Keep rushes after export"
+              description={
+                preferences.keepRushesAfterExport
+                  ? "On. Private source files stay in your library after export."
+                  : "Off. Your 30-day retention preference is recorded; automatic deletion is not active in this MVP."
+              }
+              checked={preferences.keepRushesAfterExport}
               disabled={saving}
-              onClick={() =>
+              onCheckedChange={(checked) =>
                 void savePreferences({
                   modelTrainingOptIn: preferences.modelTrainingOptIn,
-                  keepRushesAfterExport: !preferences.keepRushesAfterExport,
+                  keepRushesAfterExport: checked,
                 })
               }
-            >
-              <span />
-            </button>
-            <div>
-              <strong>Keep rushes after export</strong>
-              <p>
-                {preferences.keepRushesAfterExport
-                  ? "On. Private source files stay in your library after export."
-                  : "Off. Your 30-day retention preference is recorded; automatic deletion is not active in this MVP."}
-              </p>
-            </div>
+            />
           </div>
 
-          <div className={styles.notice} aria-live="polite">
-            {message ? <p>{message}</p> : null}
-            {error ? <p role="alert">{error}</p> : null}
+          <div aria-live="polite">
+            {message ? (
+              <p className="text-sm font-medium text-success">{message}</p>
+            ) : null}
+            {error ? (
+              <Alert variant="destructive">
+                <TriangleAlertIcon />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
           </div>
 
-          <section className={styles.exportSection}>
-            <p className={styles.sectionLabel}>PORTABLE EXPORTS</p>
-            <h2>Download structured workspace data</h2>
-            <p>
+          <section className="rounded-card border border-border p-4.5">
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Portable exports
+            </p>
+            <h2 className="text-base font-semibold text-foreground">
+              Download structured workspace data
+            </h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
               Exports are prepared immediately as JSON. Private media binaries
               remain in your Library.
             </p>
-            <div className={styles.actions}>
-              {(
-                ["creator_dna", "projects", "everything"] as PrivacyExportKind[]
-              ).map((kind) => (
-                <button
+            <div className="mt-4 flex flex-wrap gap-2">
+              {exportKinds.map((kind) => (
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   key={kind}
                   disabled={exporting !== null}
                   onClick={() => void download(kind)}
                 >
+                  {exporting === kind ? (
+                    <Loader2Icon className="animate-spin" />
+                  ) : null}
                   {exporting === kind
                     ? "Preparing…"
                     : `${exportLabels[kind]} · JSON`}
-                </button>
+                </Button>
               ))}
             </div>
           </section>
 
-          <section className={styles.danger}>
-            <p className={styles.sectionLabel}>DELETION</p>
-            <h2>Delete a source, or request account deletion</h2>
-            <p>
+          <section className="rounded-card border border-destructive/30 bg-destructive/5 p-4.5">
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-destructive">
+              Deletion
+            </p>
+            <h2 className="text-base font-semibold text-destructive">
+              Delete a source, or request account deletion
+            </h2>
+            <p className="mt-1.5 text-sm text-destructive/90">
               Deleting a source also removes its private analysis. Account
               deletion requests stay cancellable during the 24-hour window.
             </p>
+
             {state.accountDeletion ? (
-              <div className={styles.scheduled} role="status">
-                <strong>Your deletion request is scheduled.</strong>
-                <p>
+              <div
+                role="status"
+                className="mt-4 rounded-control border border-destructive/40 bg-card p-3.5"
+              >
+                <strong className="block text-sm font-semibold text-foreground">
+                  Your deletion request is scheduled.
+                </strong>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   Recorded for{" "}
-                  {new Date(
-                    state.accountDeletion.scheduledFor,
-                  ).toLocaleString()}
+                  {new Date(state.accountDeletion.scheduledFor).toLocaleString()}
                   . Final deletion processing is not active in this MVP.
                 </p>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
                   disabled={deletionBusy}
                   onClick={() => void cancelDeletion()}
                 >
                   {deletionBusy ? "Cancelling…" : "Cancel deletion request"}
-                </button>
+                </Button>
               </div>
             ) : (
-              <div className={styles.actions}>
-                <Link href="/library">Delete a source</Link>
-                <button type="button" onClick={() => setDialogOpen(true)}>
-                  Delete my account
-                </button>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href="/library">Delete a source</Link>
+                </Button>
+                <Dialog
+                  open={dialogOpen}
+                  onOpenChange={(open) => {
+                    setDialogOpen(open);
+                    if (!open) setConfirmation("");
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button type="button" variant="destructive" size="sm">
+                      Delete my account
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-destructive">
+                        Confirm deletion request
+                      </p>
+                      <DialogTitle>Schedule account deletion</DialogTitle>
+                      <DialogDescription>
+                        This records a cancellable request. Type DELETE MY
+                        ACCOUNT to continue.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                      <Label htmlFor="delete-confirmation">
+                        Type DELETE MY ACCOUNT
+                      </Label>
+                      <Input
+                        id="delete-confirmation"
+                        autoFocus
+                        autoComplete="off"
+                        value={confirmation}
+                        onChange={(event) =>
+                          setConfirmation(event.target.value)
+                        }
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={closeDialog}
+                      >
+                        Keep my account
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        disabled={
+                          deletionBusy || confirmation !== "DELETE MY ACCOUNT"
+                        }
+                        onClick={() => void scheduleDeletion()}
+                      >
+                        {deletionBusy
+                          ? "Scheduling…"
+                          : "Schedule account deletion"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             )}
           </section>
         </div>
-      </section>
-
-      {dialogOpen ? (
-        <div className={styles.backdrop}>
-          <section
-            className={styles.dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="account-deletion-title"
-          >
-            <p className={styles.sectionLabel}>CONFIRM DELETION REQUEST</p>
-            <h2 id="account-deletion-title">Schedule account deletion</h2>
-            <p>
-              This records a cancellable request. Type DELETE MY ACCOUNT to
-              continue.
-            </p>
-            <label>
-              Type DELETE MY ACCOUNT
-              <input
-                autoFocus
-                value={confirmation}
-                onChange={(event) => setConfirmation(event.target.value)}
-              />
-            </label>
-            <div className={styles.dialogActions}>
-              <button
-                type="button"
-                onClick={() => {
-                  setDialogOpen(false);
-                  setConfirmation("");
-                }}
-              >
-                Keep my account
-              </button>
-              <button
-                type="button"
-                disabled={deletionBusy || confirmation !== "DELETE MY ACCOUNT"}
-                onClick={() => void scheduleDeletion()}
-              >
-                {deletionBusy ? "Scheduling…" : "Schedule account deletion"}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+      </div>
     </main>
   );
 }

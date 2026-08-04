@@ -4,14 +4,42 @@ import {
   LibraryItemSchema,
   OnboardingStateSchema,
   UploadSignResponseSchema,
+  type OnboardingAsset,
   type OnboardingProfile,
   type OnboardingRepresentativeness,
   type OnboardingState,
 } from "@creonome/contracts";
+import {
+  BanIcon,
+  CameraIcon,
+  CircleCheckIcon,
+  FileAudioIcon,
+  FileIcon,
+  FileImageIcon,
+  FileTextIcon,
+  FileVideoIcon,
+  Loader2Icon,
+  Music2Icon,
+  PencilLineIcon,
+  RotateCcwIcon,
+  SparklesIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
+  UploadCloudIcon,
+  XIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/src/components/ui/accordion";
+import { Alert, AlertDescription } from "@/src/components/ui/alert";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import { Input } from "@/src/components/ui/input";
+import { Label } from "@/src/components/ui/label";
+import { Progress } from "@/src/components/ui/progress";
+import { Textarea } from "@/src/components/ui/textarea";
+import { cn } from "@/src/lib/utils";
 import { BrandWordmark } from "../brand/brand-wordmark";
-import styles from "./onboarding.module.css";
 
 type View = "source" | "upload" | "profile";
 type LocalFailure = { id: string; fileName: string; message: string };
@@ -58,6 +86,13 @@ const emptyProfile: OnboardingProfile = {
   boundaries: [],
 };
 
+const stepOrder: View[] = ["source", "upload", "profile"];
+const stepTitles: Record<View, string> = {
+  source: "Add your sources",
+  upload: "Review your sources",
+  profile: "Confirm your profile",
+};
+
 function initialView(state: OnboardingState): View {
   if (state.step === "profile" && state.profile) return "profile";
   if (state.step === "upload") return "upload";
@@ -87,28 +122,61 @@ function parseList(value: string): string[] {
     .filter(Boolean);
 }
 
+function assetVisual(mimeType: string) {
+  if (mimeType.startsWith("video/")) return FileVideoIcon;
+  if (mimeType.startsWith("audio/")) return FileAudioIcon;
+  if (mimeType.startsWith("image/")) return FileImageIcon;
+  if (mimeType === "application/pdf" || mimeType.startsWith("text/")) return FileTextIcon;
+  return FileIcon;
+}
+
 function ProgressHeader({ view }: { view: View }) {
-  const progress = view === "source" ? 33 : view === "upload" ? 50 : 67;
-  const step = view === "source" ? 2 : view === "upload" ? 3 : 4;
-  const title =
-    view === "source"
-      ? "Creonome"
-      : view === "upload"
-        ? "Import files"
-        : "Your creative profile";
+  const stepIndex = stepOrder.indexOf(view);
+  const progress = ((stepIndex + 1) / stepOrder.length) * 100;
   return (
-    <header className={styles.panelHeader}>
-      <BrandWordmark />
-      <strong>{title}</strong>
-      <div className={styles.progressGroup}>
-        <span className={styles.progressTrack} aria-hidden="true">
-          <span style={{ width: `${progress}%` }} />
+    <header className="flex flex-col gap-3 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:gap-4 sm:px-8">
+      <div className="flex items-center gap-3">
+        <BrandWordmark />
+        <span className="border-l border-border pl-3 text-sm font-semibold text-foreground">
+          {stepTitles[view]}
         </span>
-        <span>
-          {progress}% · step {step} of 6
+      </div>
+      <div className="flex flex-1 items-center gap-3 sm:justify-end">
+        <Progress value={progress} className="h-1.5 max-w-[200px]" />
+        <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">
+          Step {stepIndex + 1} of {stepOrder.length}
         </span>
       </div>
     </header>
+  );
+}
+
+function AssetStatusBadge({ status }: { status: OnboardingAsset["status"] }) {
+  if (status === "analyzing") {
+    return (
+      <Badge className="border-transparent bg-accent-soft text-accent-soft-foreground">
+        <Loader2Icon className="animate-spin" /> Analyzing
+      </Badge>
+    );
+  }
+  if (status === "ready") {
+    return (
+      <Badge variant="success">
+        <CircleCheckIcon /> Analyzed
+      </Badge>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <Badge variant="destructive">
+        <TriangleAlertIcon /> Failed
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline">
+      <UploadCloudIcon /> Needs analysis
+    </Badge>
   );
 }
 
@@ -372,11 +440,18 @@ export function OnboardingWorkspace({
     }
   }
 
+  const footerHint =
+    state.readyCount === 0
+      ? "Analyze at least one source to continue."
+      : state.readyCount < 3
+        ? "You can continue now — three sources gives a noticeably sharper profile."
+        : "Great coverage. Ready when you are.";
+
   return (
-    <main className={styles.page}>
+    <main className="grid min-h-svh place-items-center bg-card p-0 sm:bg-background sm:p-6 lg:p-10">
       <input
         ref={input}
-        className={styles.fileInput}
+        className="sr-only"
         type="file"
         aria-label="Upload source files"
         multiple
@@ -386,7 +461,7 @@ export function OnboardingWorkspace({
         }}
       />
       <section
-        className={styles.panel}
+        className="min-h-svh w-full overflow-hidden bg-card sm:min-h-0 sm:max-w-[900px] sm:rounded-panel sm:border sm:border-border sm:shadow-lg"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
@@ -396,74 +471,107 @@ export function OnboardingWorkspace({
         <ProgressHeader view={view} />
 
         {view === "source" ? (
-          <div className={styles.sourceBody}>
-            <div className={styles.intro}>
-              <span>YOUR CREATIVE OPERATING SYSTEM</span>
-              <h1>Let’s start with what already sounds like you.</h1>
-              <p>
-                Pick any route. Every source stays private, and you can add more
-                later.
+          <div className="space-y-8 px-6 py-8 sm:px-8 sm:py-10">
+            <div className="max-w-xl space-y-3">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Your creative operating system
+              </span>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Let’s start with what already sounds like you.
+              </h1>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Pick any route. Every source stays private, and you can add
+                more later.
               </p>
             </div>
-            <div className={styles.sourceGrid}>
-              <button
-                type="button"
-                className={styles.comingSoonCard}
-                disabled
-                aria-label="TikTok · Coming soon"
-              >
-                <span className={styles.sourceIcon}>T</span>
-                <strong>TikTok</strong>
-                <em>Coming soon</em>
-                <p>Your own recent videos, read once to learn your patterns.</p>
-              </button>
-              <button
-                type="button"
-                className={styles.comingSoonCard}
-                disabled
-                aria-label="Instagram · Coming soon"
-              >
-                <span className={styles.sourceIcon}>I</span>
-                <strong>Instagram</strong>
-                <em>Coming soon</em>
-                <p>Your own Reels and available insights.</p>
-              </button>
-              <article className={styles.importCard}>
-                <div className={styles.cardTitle}>
-                  <span className={styles.sourceIcon}>＋</span>
-                  <strong>Import files</strong>
-                  <em>Fastest</em>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-3 rounded-card border border-accent/50 bg-accent-soft p-5">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-control bg-card text-accent shadow-sm">
+                    <UploadCloudIcon className="size-[18px]" />
+                  </span>
+                  <div className="flex flex-1 items-center justify-between gap-2">
+                    <strong className="text-sm font-semibold text-foreground">
+                      Import files
+                    </strong>
+                    <Badge variant="accent">Fastest</Badge>
+                  </div>
                 </div>
-                <p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
                   Drop videos, voice notes, stems, lyrics or references. No
                   social account needed.
                 </p>
-                <small>MP4 · MOV · MP3 · WAV · PDF · TXT</small>
-                <button type="button" onClick={() => input.current?.click()}>
-                  Choose files
-                </button>
-              </article>
-              <article className={styles.manualCard}>
-                <div className={styles.cardTitle}>
-                  <span className={styles.sourceIcon}>✎</span>
-                  <strong>Describe myself instead</strong>
-                </div>
-                <p>
-                  Fill the profile by hand. It sharpens as you accept or reject
-                  work.
+                <p className="text-[11px] font-medium text-accent-soft-foreground">
+                  MP4 · MOV · MP3 · WAV · PDF · TXT
                 </p>
-                <button
+                <Button
                   type="button"
+                  className="mt-auto"
+                  onClick={() => input.current?.click()}
+                >
+                  Choose files
+                </Button>
+              </div>
+
+              <div className="flex flex-col gap-3 rounded-card border border-dashed border-border p-5">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-control bg-secondary text-muted-foreground">
+                    <PencilLineIcon className="size-[18px]" />
+                  </span>
+                  <strong className="text-sm font-semibold text-foreground">
+                    Describe myself instead
+                  </strong>
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Fill the profile by hand. It sharpens as you accept or
+                  reject work.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-auto"
                   onClick={() => {
                     setProfile(emptyProfile);
                     setView("profile");
                   }}
                 >
                   Continue manually
-                </button>
-              </article>
+                </Button>
+              </div>
             </div>
-            <p className={styles.privacyNote}>
+
+            <div className="flex flex-col gap-3 rounded-card border border-dashed border-border bg-secondary/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                Prefer to connect an account? Social import is on its way.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  aria-label="TikTok · Coming soon"
+                  className="gap-1.5 text-muted-foreground"
+                >
+                  <Music2Icon /> TikTok
+                  <Badge variant="outline">Soon</Badge>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  aria-label="Instagram · Coming soon"
+                  className="gap-1.5 text-muted-foreground"
+                >
+                  <CameraIcon /> Instagram
+                  <Badge variant="outline">Soon</Badge>
+                </Button>
+              </div>
+            </div>
+
+            <p className="max-w-xl text-[11px] leading-relaxed text-muted-foreground/80">
               Imported media builds your profile and nothing else. Delete a
               source and its derived evidence goes with it.
             </p>
@@ -471,162 +579,256 @@ export function OnboardingWorkspace({
         ) : null}
 
         {view === "upload" ? (
-          <div className={styles.uploadBody}>
+          <div className="space-y-5 px-6 py-8 sm:px-8 sm:py-10">
             <button
               type="button"
-              className={styles.dropzone}
               onClick={() => input.current?.click()}
+              className="flex w-full items-center gap-4 rounded-panel border border-dashed border-border bg-secondary/40 p-5 text-left transition-colors hover:border-accent/60 hover:bg-accent-soft/40"
             >
-              <span>＋</span>
-              <div>
-                <strong>Drop more anywhere on this panel</strong>
-                <small>MP4 MOV WEBM MP3 WAV PNG JPG PDF TXT · up to 8</small>
+              <span className="grid size-11 shrink-0 place-items-center rounded-control bg-card text-muted-foreground shadow-sm">
+                <UploadCloudIcon className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <strong className="block text-sm font-semibold text-foreground">
+                  Drop more anywhere on this panel
+                </strong>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  MP4 MOV WEBM MP3 WAV PNG JPG PDF TXT · up to 8
+                </span>
               </div>
-              <em>Browse</em>
+              <span className="hidden shrink-0 rounded-control border border-input bg-card px-3.5 py-2 text-xs font-semibold text-foreground sm:inline-flex">
+                Browse
+              </span>
             </button>
 
             {activeUploads > 0 ? (
-              <p className={styles.inlineStatus} role="status">
-                <span /> Uploading and analyzing {activeUploads} source
+              <p
+                role="status"
+                className="flex items-center gap-2 text-xs font-medium text-muted-foreground"
+              >
+                <Loader2Icon className="size-3.5 animate-spin text-accent" />
+                Uploading and analyzing {activeUploads} source
                 {activeUploads === 1 ? "" : "s"}…
               </p>
             ) : null}
-            <div className={styles.queue}>
-              {state.assets.map((asset) => (
-                <article
-                  key={asset.id}
-                  className={styles.assetRow}
-                  data-status={asset.status}
-                >
-                  <span className={styles.fileVisual}>
-                    {fileExtension(asset.fileName).slice(0, 4).toUpperCase()}
-                  </span>
-                  <div className={styles.assetDetails}>
-                    <strong>{asset.fileName}</strong>
-                    <span>
-                      {formatBytes(asset.byteSize)} · {asset.status}
-                      {asset.status === "analyzing" ? "…" : ""}
-                    </span>
-                    {asset.status === "analyzing" ? (
-                      <span className={styles.analysisBar} aria-hidden="true">
-                        <span />
-                      </span>
-                    ) : null}
-                    {asset.errorMessage ? <p>{asset.errorMessage}</p> : null}
-                    {asset.analysis ? (
-                      <details className={styles.evidence} open>
-                        <summary>{asset.analysis.summary}</summary>
-                        <ul>
-                          {asset.analysis.evidence.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      </details>
-                    ) : null}
-                  </div>
-                  {asset.status === "ready" ? (
-                    <div className={styles.representation}>
-                      {(
-                        Object.keys(
-                          representationLabels,
-                        ) as OnboardingRepresentativeness[]
-                      ).map((value) => (
-                        <button
-                          type="button"
-                          key={value}
-                          aria-pressed={asset.representativeness === value}
-                          disabled={busyAsset === asset.id}
-                          onClick={() =>
-                            void updateRepresentation(asset.id, value)
-                          }
-                        >
-                          {representationLabels[value]}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                  {asset.status === "uploaded" || asset.status === "failed" ? (
-                    <button
-                      type="button"
-                      className={styles.retryButton}
-                      disabled={busyAsset === asset.id}
-                      onClick={() => void retryAnalysis(asset.id)}
-                    >
-                      Try analysis again
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className={styles.removeAssetButton}
-                    disabled={busyAsset === asset.id}
-                    onClick={() => void removeAsset(asset.id)}
+
+            <div className="space-y-2.5">
+              {state.assets.map((asset) => {
+                const Visual = assetVisual(asset.mimeType);
+                return (
+                  <article
+                    key={asset.id}
+                    data-status={asset.status}
+                    className={cn(
+                      "flex flex-col gap-3 rounded-card border border-border bg-card p-4 sm:flex-row sm:items-start",
+                      asset.status === "failed" &&
+                        "border-destructive/40 bg-destructive/5",
+                    )}
                   >
-                    Remove source
-                  </button>
-                </article>
-              ))}
+                    <span className="grid size-11 shrink-0 place-items-center rounded-control bg-secondary text-muted-foreground">
+                      <Visual className="size-5" />
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <strong className="truncate text-sm font-semibold text-foreground">
+                          {asset.fileName}
+                        </strong>
+                        <AssetStatusBadge status={asset.status} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatBytes(asset.byteSize)} ·{" "}
+                        {fileExtension(asset.fileName).toUpperCase()}
+                      </p>
+                      {asset.status === "analyzing" ? (
+                        <div
+                          aria-hidden="true"
+                          className="h-1 w-full max-w-[220px] overflow-hidden rounded-full bg-secondary"
+                        >
+                          <div className="h-full w-2/3 animate-pulse rounded-full bg-accent" />
+                        </div>
+                      ) : null}
+                      {asset.errorMessage ? (
+                        <p className="text-xs text-destructive">
+                          {asset.errorMessage}
+                        </p>
+                      ) : null}
+                      {asset.analysis ? (
+                        <Accordion
+                          type="single"
+                          collapsible
+                          defaultValue="evidence"
+                          className="rounded-control border border-border bg-secondary/40 px-3"
+                        >
+                          <AccordionItem value="evidence" className="border-b-0">
+                            <AccordionTrigger className="py-2.5 text-xs font-medium text-foreground">
+                              {asset.analysis.summary}
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-2.5">
+                              <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+                                {asset.analysis.evidence.map((item) => (
+                                  <li key={item}>{item}</li>
+                                ))}
+                              </ul>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                      {asset.status === "ready" ? (
+                        <div className="flex flex-wrap justify-end gap-1.5">
+                          {(
+                            Object.keys(
+                              representationLabels,
+                            ) as OnboardingRepresentativeness[]
+                          ).map((value) => (
+                            <Button
+                              type="button"
+                              key={value}
+                              variant="outline"
+                              size="sm"
+                              aria-pressed={asset.representativeness === value}
+                              disabled={busyAsset === asset.id}
+                              className={cn(
+                                "h-7 rounded-full px-3 text-[11px] font-medium",
+                                asset.representativeness === value &&
+                                  "border-transparent bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft",
+                              )}
+                              onClick={() =>
+                                void updateRepresentation(asset.id, value)
+                              }
+                            >
+                              {representationLabels[value]}
+                            </Button>
+                          ))}
+                        </div>
+                      ) : null}
+                      <div className="flex justify-end gap-1.5">
+                        {asset.status === "uploaded" ||
+                        asset.status === "failed" ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={busyAsset === asset.id}
+                            onClick={() => void retryAnalysis(asset.id)}
+                          >
+                            {busyAsset === asset.id ? (
+                              <Loader2Icon className="animate-spin" />
+                            ) : (
+                              <RotateCcwIcon />
+                            )}
+                            Try analysis again
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive"
+                          disabled={busyAsset === asset.id}
+                          onClick={() => void removeAsset(asset.id)}
+                        >
+                          {busyAsset === asset.id ? (
+                            <Loader2Icon className="animate-spin" />
+                          ) : (
+                            <Trash2Icon />
+                          )}
+                          Remove source
+                        </Button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
               {failures.map((failure) => (
-                <article key={failure.id} className={styles.failedRow}>
-                  <span className={styles.fileVisual}>
-                    {fileExtension(failure.fileName).slice(0, 4).toUpperCase()}
+                <div
+                  key={failure.id}
+                  className="flex items-start gap-3 rounded-card border border-destructive/30 bg-destructive/5 p-4"
+                >
+                  <span className="grid size-11 shrink-0 place-items-center rounded-control bg-card text-destructive">
+                    <TriangleAlertIcon className="size-5" />
                   </span>
-                  <div>
-                    <strong>{failure.fileName}</strong>
-                    <p>{failure.message}</p>
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate text-sm font-semibold text-foreground">
+                      {failure.fileName}
+                    </strong>
+                    <p className="mt-0.5 text-xs text-destructive">
+                      {failure.message}
+                    </p>
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() =>
                       setFailures((current) =>
                         current.filter(({ id }) => id !== failure.id),
                       )
                     }
                   >
-                    Remove
-                  </button>
-                </article>
+                    <XIcon /> Remove
+                  </Button>
+                </div>
               ))}
             </div>
 
-            <footer className={styles.queueFooter}>
+            <footer className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <strong>
+                <strong className="block text-sm font-semibold text-foreground">
                   {Math.min(state.readyCount, 3)} of 3 sources analyzed
                 </strong>
-                <span>Three gives a noticeably sharper first profile.</span>
+                <span className="text-xs text-muted-foreground">
+                  {footerHint}
+                </span>
               </div>
-              <button
+              <Button
                 type="button"
-                disabled={state.readyCount < 3 || buildingProfile}
+                disabled={state.readyCount < 1 || buildingProfile}
                 onClick={() => void buildProfile()}
               >
-                {buildingProfile ? "Building profile…" : "Review my profile"}
-              </button>
+                {buildingProfile ? (
+                  <>
+                    <Loader2Icon className="animate-spin" /> Building
+                    profile…
+                  </>
+                ) : (
+                  "Review my profile"
+                )}
+              </Button>
             </footer>
           </div>
         ) : null}
 
         {view === "profile" ? (
           <form
-            className={styles.profileBody}
+            className="space-y-6 px-6 py-8 sm:px-8 sm:py-10"
             onSubmit={(event) => {
               event.preventDefault();
               void completeProfile();
             }}
           >
-            <div className={styles.draftNotice}>
-              <span />
-              <p>
+            <Alert variant="accent">
+              <SparklesIcon />
+              <AlertDescription>
                 {state.profile
-                  ? `Prefilled from ${state.readyCount} analyzed sources.`
+                  ? `Prefilled from ${state.readyCount} analyzed source${state.readyCount === 1 ? "" : "s"}.`
                   : "Starting from your own description."}{" "}
-                Every field is a draft — corrections become declared evidence.
-              </p>
-            </div>
-            <div className={styles.profileGrid}>
-              <label>
-                <span>Stage name · declared</span>
-                <input
+                Every field is a draft — corrections become declared
+                evidence.
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="stageName">
+                  Stage name{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · declared
+                  </span>
+                </Label>
+                <Input
+                  id="stageName"
                   required
                   value={profile.stageName}
                   onChange={(event) =>
@@ -636,10 +838,17 @@ export function OnboardingWorkspace({
                     }))
                   }
                 />
-              </label>
-              <label>
-                <span>Disciplines & media · observed</span>
-                <input
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="disciplines">
+                  Disciplines & media{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · observed
+                  </span>
+                </Label>
+                <Input
+                  id="disciplines"
                   required
                   value={profile.disciplines.join(", ")}
                   onChange={(event) =>
@@ -649,11 +858,20 @@ export function OnboardingWorkspace({
                     }))
                   }
                 />
-                <small>Separate items with commas.</small>
-              </label>
-              <label>
-                <span>Music genres · observed</span>
-                <input
+                <p className="text-xs text-muted-foreground">
+                  Separate items with commas.
+                </p>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="genres">
+                  Music genres{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · observed
+                  </span>
+                </Label>
+                <Input
+                  id="genres"
                   required
                   value={profile.genres.join(", ")}
                   onChange={(event) =>
@@ -663,10 +881,17 @@ export function OnboardingWorkspace({
                     }))
                   }
                 />
-              </label>
-              <label className={styles.wideField}>
-                <span>Creative signature · observed</span>
-                <textarea
+              </div>
+
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label htmlFor="creativeSignature">
+                  Creative signature{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · observed
+                  </span>
+                </Label>
+                <Textarea
+                  id="creativeSignature"
                   aria-label="Creative signature"
                   required
                   minLength={8}
@@ -678,10 +903,17 @@ export function OnboardingWorkspace({
                     }))
                   }
                 />
-              </label>
-              <label>
-                <span>Themes · to confirm</span>
-                <input
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="themes">
+                  Themes{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · to confirm
+                  </span>
+                </Label>
+                <Input
+                  id="themes"
                   required
                   value={profile.themes.join(", ")}
                   onChange={(event) =>
@@ -691,10 +923,12 @@ export function OnboardingWorkspace({
                     }))
                   }
                 />
-              </label>
-              <label>
-                <span>Target audience</span>
-                <textarea
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="targetAudience">Target audience</Label>
+                <Textarea
+                  id="targetAudience"
                   required
                   minLength={8}
                   value={profile.targetAudience}
@@ -705,10 +939,18 @@ export function OnboardingWorkspace({
                     }))
                   }
                 />
-              </label>
-              <label className={`${styles.wideField} ${styles.boundaryField}`}>
-                <span>Limits & counter-references · hard rules</span>
-                <input
+              </div>
+
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label htmlFor="boundaries" className="gap-1.5">
+                  <BanIcon className="size-3.5 text-muted-foreground" />
+                  Limits & counter-references{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · hard rules
+                  </span>
+                </Label>
+                <Input
+                  id="boundaries"
                   value={profile.boundaries.join(", ")}
                   onChange={(event) =>
                     setProfile((current) => ({
@@ -717,37 +959,61 @@ export function OnboardingWorkspace({
                     }))
                   }
                 />
-              </label>
+                <p className="text-xs text-muted-foreground">
+                  The AI treats these as non-negotiable — separate with
+                  commas.
+                </p>
+              </div>
             </div>
-            <footer className={styles.profileFooter}>
-              <span>
+
+            <footer className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center">
+              <span className="text-xs text-muted-foreground sm:flex-1">
                 You can refine every dimension later from Creator DNA.
               </span>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() =>
-                  setView(state.assets.length ? "upload" : "source")
-                }
-              >
-                Back
-              </button>
-              <button type="submit" disabled={savingProfile}>
-                {savingProfile ? "Saving…" : "Confirm profile"}
-              </button>
+              <div className="flex gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setView(state.assets.length ? "upload" : "source")
+                  }
+                >
+                  Back
+                </Button>
+                <Button type="submit" disabled={savingProfile}>
+                  {savingProfile ? (
+                    <>
+                      <Loader2Icon className="animate-spin" /> Saving…
+                    </>
+                  ) : (
+                    "Confirm profile"
+                  )}
+                </Button>
+              </div>
             </footer>
           </form>
         ) : null}
 
         {error ? (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
+          <div className="px-6 pb-6 sm:px-8 sm:pb-8">
+            <Alert variant="destructive" role="alert">
+              <TriangleAlertIcon />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </div>
         ) : null}
         {notice ? (
-          <p className={styles.notice} role="status">
-            {notice}
-          </p>
+          <div className="px-6 pb-6 sm:px-8 sm:pb-8">
+            <Alert
+              role="status"
+              className="border-success/25 bg-success/8 text-success [&>svg]:text-success"
+            >
+              <CircleCheckIcon />
+              <AlertDescription className="text-success">
+                {notice}
+              </AlertDescription>
+            </Alert>
+          </div>
         ) : null}
       </section>
     </main>

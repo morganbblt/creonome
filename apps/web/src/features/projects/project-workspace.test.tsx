@@ -1,5 +1,6 @@
 import type { ProjectDetail } from "@creonome/contracts";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectWorkspace } from "./project-workspace";
 
@@ -94,7 +95,8 @@ describe("ProjectWorkspace", () => {
     ).toBe("true");
   });
 
-  it("opens the latest deliverable first and navigates older tabs", () => {
+  it("opens the latest deliverable first and navigates older tabs", async () => {
+    const user = userEvent.setup();
     render(<ProjectWorkspace project={project} />);
 
     expect(
@@ -110,7 +112,7 @@ describe("ProjectWorkspace", () => {
     expect(
       screen.getAllByRole("heading", { name: "Visual sequence" }),
     ).toHaveLength(1);
-    fireEvent.click(screen.getByRole("tab", { name: "Script" }));
+    await user.click(screen.getByRole("tab", { name: "Script" }));
     expect(screen.getByText(project.script!.hook)).toBeTruthy();
     expect(screen.getAllByTestId("script-segment")).toHaveLength(3);
     expect(screen.queryByRole("heading", { name: "01 · Silence" })).toBeNull();
@@ -121,7 +123,8 @@ describe("ProjectWorkspace", () => {
     ).toBeTruthy();
   });
 
-  it("opens a generated MVP video first and keeps storyboard history available", () => {
+  it("opens a generated MVP video first and keeps storyboard history available", async () => {
+    const user = userEvent.setup();
     render(
       <ProjectWorkspace
         project={{
@@ -155,7 +158,7 @@ describe("ProjectWorkspace", () => {
         .getByRole("link", { name: /download video/i })
         .getAttribute("href"),
     ).toBe("/demo/creonome-vertical-demo.mp4?download=1");
-    fireEvent.click(screen.getByRole("tab", { name: "Storyboard" }));
+    await user.click(screen.getByRole("tab", { name: "Storyboard" }));
     expect(screen.getByRole("heading", { name: "01 · Silence" })).toBeTruthy();
   });
 

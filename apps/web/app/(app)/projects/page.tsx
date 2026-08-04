@@ -3,7 +3,6 @@ import { ProjectIndex } from "../../../src/features/projects/project-index";
 import { loadProjects } from "../../../src/features/projects/projects-data";
 import { UnavailableState } from "../../../src/features/management/unavailable-state";
 import { createServerApiClient } from "../../../src/lib/api/server-client";
-import styles from "../management.module.css";
 
 export const metadata: Metadata = { title: "Projects" };
 
@@ -14,14 +13,22 @@ export default async function ProjectsPage() {
   ).length;
 
   return (
-    <main className={styles.page}>
-      <header className={styles.titleRow}>
+    <main className="mx-auto w-full max-w-[1180px] px-5 pt-8 pb-16 max-[680px]:px-3.5 max-[680px]:pt-6 max-[680px]:pb-12">
+      <header className="mb-5 flex items-end justify-between gap-6 max-[680px]:flex-col max-[680px]:items-start">
         <div>
-          <p className={styles.eyebrow}>CREATIVE PIPELINE</p>
-          <h1>Projects</h1>
-          <p>Saved ideas and their latest creative deliverables.</p>
+          <p className="mb-2 font-mono text-[10.5px] font-medium tracking-[0.1em] text-muted-foreground uppercase">
+            Creative pipeline
+          </p>
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+            Projects
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Saved ideas and their latest creative deliverables.
+          </p>
         </div>
-        <span className={styles.meta}>newest first · {activeCount} active</span>
+        <span className="shrink-0 font-mono text-[11px] text-muted-foreground uppercase">
+          newest first · {activeCount} active
+        </span>
       </header>
 
       {source === "unavailable" ? (

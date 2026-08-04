@@ -6,7 +6,8 @@ import {
 } from "@creonome/contracts";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import styles from "./today.module.css";
+import { Button } from "@/src/components/ui/button";
+import { cn } from "@/src/lib/utils";
 
 const directions = [
   "Closer to my DNA",
@@ -92,14 +93,16 @@ export function TodayBatchGenerator({
 
   return (
     <>
-      <div className={styles.batchFilters} aria-label="Opportunity filters">
+      <div
+        className="flex flex-wrap gap-1.5"
+        aria-label="Opportunity filters"
+      >
         {directions.map((item) => {
           const selected = selectedDirections.includes(item);
           return (
             <button
               type="button"
               aria-pressed={selected}
-              className={selected ? styles.selectedDirection : undefined}
               key={item}
               onClick={() =>
                 setSelectedDirections((current) =>
@@ -108,25 +111,33 @@ export function TodayBatchGenerator({
                     : [...current, item],
                 )
               }
+              className={cn(
+                "rounded-full border px-3 py-2 text-xs font-medium transition-colors",
+                selected
+                  ? "border-foreground bg-secondary text-foreground"
+                  : "border-input text-muted-foreground hover:bg-secondary",
+              )}
             >
               {item}
             </button>
           );
         })}
       </div>
-      <button type="button" disabled={pending} onClick={generate}>
+      <Button type="button" disabled={pending} onClick={() => void generate()}>
         {pending
           ? "Generating 3 opportunities…"
           : preview
             ? "Try live generation · 3 credits"
             : "+ 3 new opportunities · 3 credits"}
-      </button>
+      </Button>
       {error ? (
-        <p className={styles.batchError} role="alert">
+        <p className="m-0 ml-auto max-w-70 text-right text-xs text-destructive" role="alert">
           {error}
         </p>
       ) : (
-        <p>previous batch stays in Projects</p>
+        <p className="m-0 ml-auto text-right font-mono text-[11px] text-muted-foreground">
+          previous batch stays in Projects
+        </p>
       )}
     </>
   );

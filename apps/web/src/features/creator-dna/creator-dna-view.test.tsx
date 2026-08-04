@@ -50,7 +50,8 @@ describe("CreatorDnaView", () => {
     expect(screen.getByText("Direction artistique")).toBeTruthy();
     expect(screen.getByText("94% confidence")).toBeTruthy();
     expect(screen.getByText("representative uploads")).toBeTruthy();
-    expect(screen.getByText("Confirmed · version 2")).toBeTruthy();
+    expect(screen.getByText("Confirmed")).toBeTruthy();
+    expect(screen.getByText("Version 2")).toBeTruthy();
     expect(screen.getByText("Prefer implicit calls to action.")).toBeTruthy();
   });
 
@@ -138,9 +139,7 @@ describe("CreatorDnaView", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Save correction" }));
 
-    await waitFor(() =>
-      expect(screen.getByText(/Confirmed · version\s+3/)).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText("Version 3")).toBeTruthy());
     expect(screen.getByText("Precise, intimate and understated.")).toBeTruthy();
     expect(request).toHaveBeenCalledWith(
       `/api/creonome/creator-dna/traits/${dna.traits[0]!.id}`,

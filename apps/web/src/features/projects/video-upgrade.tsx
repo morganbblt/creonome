@@ -6,9 +6,18 @@ import {
 } from "@creonome/contracts";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { Button } from "@/src/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/src/components/ui/dialog";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
-import styles from "./projects.module.css";
 
 function videoErrorMessage(status: number): string {
   if (status === 401 || status === 403) {
@@ -37,14 +46,14 @@ function createIdempotencyKey(projectId: string): string {
 export function VideoUpgrade({ projectId }: { projectId: string }) {
   const router = useRouter();
   const key = useRef<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
+  const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<UpgradeVideoResult | null>(null);
 
   async function generateVideo() {
+    setOpen(false);
     setPending(true);
-    setConfirming(false);
     setError(null);
     key.current ??= createIdempotencyKey(projectId);
 
@@ -93,42 +102,38 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
   }
 
   return (
-    <>
-      <section className={styles.upgradeCard} aria-label="Video generation">
-        <div>
-          <p>READY FOR LEVEL 04</p>
-          <h2>Turn this storyboard into a vertical motion preview.</h2>
-          <span>
-            Creonome attempts a real 9:16 Veo render first, with the resilient
-            deterministic preview ready if the provider is unavailable.
-          </span>
-        </div>
-
-        {!confirming ? (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => setConfirming(true)}
-          >
+    <div className="flex flex-col items-end gap-3">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button type="button" disabled={pending}>
             {pending ? "Rendering…" : "Generate video · 12 cr"}
-          </button>
-        ) : (
-          <div className={styles.upgradeConfirmation}>
-            <p>
-              12 credits will be reserved. They are only charged if the video
-              preview is rendered.
-            </p>
-            <div>
-              <button type="button" onClick={generateVideo}>
-                Confirm and generate
-              </button>
-              <button type="button" onClick={() => setConfirming(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
+          </Button>
+        </DialogTrigger>
+        <DialogContent aria-label="Video generation">
+          <DialogHeader>
+            <DialogTitle>
+              Turn this storyboard into a vertical motion preview
+            </DialogTitle>
+            <DialogDescription>
+              Creonome attempts a real 9:16 Veo render first, with the
+              resilient deterministic preview ready if the provider is
+              unavailable.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            12 credits will be reserved. They are only charged if the video
+            preview is rendered.
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={generateVideo}>
+              Confirm and generate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {pending ? (
         <GenerationToast
@@ -160,6 +165,6 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
           onDismiss={() => setError(null)}
         />
       ) : null}
-    </>
+    </div>
   );
 }

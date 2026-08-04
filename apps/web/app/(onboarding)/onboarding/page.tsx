@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { UnavailableState } from "@/src/features/management/unavailable-state";
 import { OnboardingWorkspace } from "@/src/features/onboarding/onboarding-workspace";
 import { createServerApiClient } from "@/src/lib/api/server-client";
-import onboardingStyles from "@/src/features/onboarding/onboarding.module.css";
 
 export const metadata: Metadata = { title: "Build your Creator DNA" };
 export const dynamic = "force-dynamic";
@@ -15,8 +14,8 @@ export default async function OnboardingPage() {
 
   if (!state) {
     return (
-      <main className={onboardingStyles.page}>
-        <div className={onboardingStyles.unavailablePanel}>
+      <main className="grid min-h-svh place-items-center bg-background p-6 sm:p-10">
+        <div className="w-full max-w-md">
           <UnavailableState
             title="Your setup is still intact."
             description="We couldn't reconnect to your private workspace. No file was changed."

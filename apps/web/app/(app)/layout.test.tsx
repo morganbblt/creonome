@@ -22,6 +22,7 @@ vi.mock("../../src/lib/auth/server", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/today",
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
 import AppLayout, { dynamic } from "./layout";

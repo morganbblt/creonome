@@ -1,41 +1,33 @@
 "use client";
 
+import { MoonIcon, SunIcon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { MoonIcon, SunIcon } from "@/src/features/icons/icons";
-
-type Theme = "light" | "dark";
-
-function currentTheme(): Theme {
-  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-}
+import { Button } from "@/src/components/ui/button";
+import { cn } from "@/src/lib/utils";
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const [theme, setTheme] = useState<Theme | null>(null);
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setTheme(currentTheme()), []);
+  useEffect(() => setMounted(true), []);
 
-  function toggleTheme() {
-    const next = currentTheme() === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    window.localStorage.setItem("creonome-theme", next);
-    setTheme(next);
-  }
+  // resolvedTheme is only known once mounted client-side (it comes from
+  // localStorage), so the server always renders "light" — rendering that
+  // same fallback until mount avoids a hydration mismatch on the icon.
+  const dark = mounted && resolvedTheme === "dark";
 
-  const dark = theme === "dark";
   return (
-    <button
-      className={className}
+    <Button
       type="button"
+      variant="ghost"
+      size="icon-sm"
       aria-label={`Switch to ${dark ? "light" : "dark"} mode`}
       title={`Switch to ${dark ? "light" : "dark"} mode`}
-      onClick={toggleTheme}
+      onClick={() => setTheme(dark ? "light" : "dark")}
+      className={cn("rounded-full text-muted-foreground hover:text-foreground", className)}
     >
-      {dark ? (
-        <SunIcon width={16} height={16} />
-      ) : (
-        <MoonIcon width={16} height={16} />
-      )}
-      <span>{dark ? "Light mode" : "Dark mode"}</span>
-    </button>
+      {dark ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+    </Button>
   );
 }

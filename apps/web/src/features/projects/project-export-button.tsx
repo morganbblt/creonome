@@ -2,7 +2,7 @@
 
 import { ProjectExportSchema } from "@creonome/contracts";
 import { useState } from "react";
-import styles from "./projects.module.css";
+import { Button } from "@/src/components/ui/button";
 
 type ExportState = "idle" | "preparing" | "downloaded" | "error";
 
@@ -37,11 +37,19 @@ export function ProjectExportButton({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className={styles.exportAction}>
-      <button type="button" onClick={download} disabled={state === "preparing"}>
+    <div className="flex flex-col items-end gap-1.5">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={download}
+        disabled={state === "preparing"}
+      >
         {state === "preparing" ? "Preparing…" : "Download Markdown"}
-      </button>
-      <p aria-live="polite">
+      </Button>
+      <p
+        className="min-h-4 text-right font-mono text-[11px] text-muted-foreground"
+        aria-live="polite"
+      >
         {state === "downloaded" ? "Markdown downloaded." : null}
         {state === "error"
           ? "The export could not be prepared. Your project is unchanged."

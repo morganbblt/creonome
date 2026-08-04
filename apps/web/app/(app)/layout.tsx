@@ -1,12 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BrandWordmark } from "../../src/features/brand/brand-wordmark";
+import { AccountMenu } from "../../src/features/navigation/account-menu";
 import { AppNavigation } from "../../src/features/navigation/app-navigation";
 import { CreditBalance } from "../../src/features/navigation/credit-balance";
-import { ThemeToggle } from "../../src/features/theme/theme-toggle";
 import { createServerApiClient } from "../../src/lib/api/server-client";
 import { getAuth } from "../../src/lib/auth/server";
-import styles from "./shell.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -53,56 +52,19 @@ export default async function AppLayout({
   ]);
 
   return (
-    <div className={styles.shell}>
-      <header className={styles.header}>
-        <Link href="/today" className={styles.brand} aria-label="Creonome home">
-          <BrandWordmark />
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-50 flex min-h-17 items-center gap-7 border-b border-border bg-background/85 px-5.5 backdrop-blur-lg max-[760px]:min-h-15 max-[760px]:gap-4.5 max-[760px]:px-3.5">
+        <Link
+          href="/today"
+          aria-label="Creonome home"
+          className="flex items-center max-[520px]:w-[29px] max-[520px]:shrink-0 max-[520px]:overflow-hidden"
+        >
+          <BrandWordmark className="max-[520px]:w-[134px] max-[520px]:max-w-none" />
         </Link>
-        <AppNavigation
-          className={styles.primaryNav}
-          itemClassName={styles.navItem}
-          activeItemClassName={styles.activeNavItem}
-          progressClassName={styles.routeProgress}
-        />
-        <div className={styles.accountActions}>
-          <CreditBalance
-            className={styles.credits}
-            initialAvailable={availableCredits}
-          />
-          <details className={styles.accountMenu}>
-            <summary
-              className={styles.avatar}
-              aria-label={identity.name}
-              title={identity.name}
-            >
-              {identity.initials}
-            </summary>
-            <div className={styles.accountMenuPanel} role="menu">
-              <p className={styles.accountMenuName}>{identity.name}</p>
-              <Link
-                href="/credits"
-                className={styles.accountMenuLink}
-                role="menuitem"
-              >
-                Credits
-              </Link>
-              <Link
-                href="/settings/integrations"
-                className={styles.accountMenuLink}
-                role="menuitem"
-              >
-                Integrations
-              </Link>
-              <Link
-                href="/settings/privacy"
-                className={styles.accountMenuLink}
-                role="menuitem"
-              >
-                Privacy
-              </Link>
-              <ThemeToggle className={styles.accountMenuThemeToggle} />
-            </div>
-          </details>
+        <AppNavigation />
+        <div className="ml-auto flex items-center gap-2">
+          <CreditBalance initialAvailable={availableCredits} />
+          <AccountMenu name={identity.name} initials={identity.initials} />
         </div>
       </header>
       {children}

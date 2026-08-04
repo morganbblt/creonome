@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
-import "@neondatabase/auth-ui/css";
+import "@neondatabase/auth-ui/tailwind";
 import { AuthProvider } from "@/src/features/auth/auth-provider";
+import { Toaster } from "@/src/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,8 +27,6 @@ export const metadata: Metadata = {
     "A creative operating system for artists and creators building a high-volume stream of on-DNA vertical content.",
 };
 
-const themeBootstrap = `(()=>{try{const saved=localStorage.getItem("creonome-theme");const system=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=saved==="dark"||saved==="light"?saved:system}catch{document.documentElement.dataset.theme="light"}})()`;
-
 export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
@@ -37,11 +36,18 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
-      </head>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        {/*
+          AuthProvider renders NeonAuthUIProvider, which internally mounts its
+          own next-themes ThemeProvider (attribute="class", enableSystem) around
+          `children`. next-themes doesn't support nesting two independent
+          providers targeting the same <html> element, so this is the single
+          theme provider for the whole app — do not add another one here.
+        */}
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

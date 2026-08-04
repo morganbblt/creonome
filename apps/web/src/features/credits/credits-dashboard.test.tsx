@@ -41,6 +41,7 @@ describe("CreditsDashboard", () => {
     expect(screen.getByText("4 full videos")).toBeTruthy();
     expect(screen.queryByText("Full video · coming later")).toBeNull();
     expect(screen.getByText("Refunded")).toBeTruthy();
+    expect(screen.getByText("Spent")).toBeTruthy();
     expect(screen.getByText(/failed storyboard generation/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Export CSV" })).toBeTruthy();
     expect(screen.getByText("Plans coming later")).toBeTruthy();

@@ -11,8 +11,27 @@ import {
   UpdateCreatorDnaTraitInputSchema,
   UploadSignResponseSchema,
 } from "@creonome/contracts";
+import {
+  DownloadIcon,
+  ImageIcon,
+  PencilIcon,
+  TriangleAlertIcon,
+  UploadIcon,
+} from "lucide-react";
 import { useRef, useState } from "react";
-import styles from "./creator-dna.module.css";
+import { Alert, AlertDescription } from "@/src/components/ui/alert";
+import { Avatar, AvatarImage } from "@/src/components/ui/avatar";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/src/components/ui/card";
+import { Progress } from "@/src/components/ui/progress";
+import { Textarea } from "@/src/components/ui/textarea";
 import { MemoryControl } from "./memory-control";
 
 function categoryLabel(value: string): string {
@@ -188,53 +207,72 @@ export function CreatorDnaView({
   }
 
   return (
-    <main className={styles.page}>
-      <section className={styles.panel}>
-        <header className={styles.header}>
-          <div>
-            <p>ARTISTIC &amp; CREATIVE MODEL</p>
-            <h1>Creator DNA</h1>
-            <span>
-              {currentDna.confirmed ? "Confirmed" : "Review required"} · version{" "}
-              {currentDna.version}
+    <main className="mx-auto w-full max-w-[1180px] px-5.5 pt-8 pb-16 max-[620px]:px-3.5 max-[620px]:pt-6 max-[620px]:pb-12">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground max-[620px]:text-2xl">
+            Creator DNA
+          </h1>
+          <p className="mt-1.5 max-w-lg text-sm text-muted-foreground">
+            The evidence-backed traits, guardrails and memory that shape every
+            generation Creonome makes for you.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Badge variant={currentDna.confirmed ? "success" : "outline"}>
+              {currentDna.confirmed ? "Confirmed" : "Review required"}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              Version {currentDna.version}
             </span>
           </div>
-          <button type="button" onClick={exportJson}>
+          <Button onClick={exportJson} size="sm" type="button" variant="outline">
+            <DownloadIcon />
             Export JSON
-          </button>
-        </header>
+          </Button>
+        </div>
+      </div>
 
-        <div className={styles.content}>
-          <section className={styles.summary} aria-label="Creator DNA summary">
-            <span>MODEL SUMMARY</span>
-            <blockquote>{currentDna.summary}</blockquote>
-            <div>
-              <strong>{currentDna.traits.length}</strong>
-              <small>evidence-backed traits</small>
-            </div>
-          </section>
+      <Card className="mt-6">
+        <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <p className="flex-1 text-xl leading-snug font-medium tracking-tight text-foreground">
+            {currentDna.summary}
+          </p>
+          <div className="flex shrink-0 items-baseline gap-2 border-t border-border pt-4 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6">
+            <span className="font-mono text-3xl font-semibold text-foreground">
+              {currentDna.traits.length}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              evidence-backed traits
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
-          <section
-            className={styles.referencePanel}
-            aria-labelledby="reference-title"
-          >
-            <div className={styles.referenceCopy}>
-              <span>VEO PEOPLE REFERENCE</span>
-              <h2 id="reference-title">Keep the creator recognisable.</h2>
-              <p>
-                Add one clear portrait. Veo uses it as a private appearance
-                reference when a generation includes the creator.
-              </p>
-            </div>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Veo people reference</CardTitle>
+          <CardDescription>
+            Add one clear portrait. Veo uses it as a private appearance
+            reference when a generation includes the creator.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {currentDna.peopleReferenceImage ? (
-              <div className={styles.referencePreview}>
-                <img
-                  src={`/api/creonome/assets/${currentDna.peopleReferenceImage.id}/content`}
-                  alt={`People reference: ${currentDna.peopleReferenceImage.fileName}`}
-                />
-                <div>
-                  <strong>{currentDna.peopleReferenceImage.fileName}</strong>
-                  <small>
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar className="size-14 border border-border">
+                  <AvatarImage
+                    alt={`People reference: ${currentDna.peopleReferenceImage.fileName}`}
+                    src={`/api/creonome/assets/${currentDna.peopleReferenceImage.id}/content`}
+                  />
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {currentDna.peopleReferenceImage.fileName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
                     {Math.max(
                       1,
                       Math.round(
@@ -242,15 +280,21 @@ export function CreatorDnaView({
                       ),
                     )}{" "}
                     KB · private workspace asset
-                  </small>
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className={styles.referenceEmpty}>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span
+                  aria-hidden="true"
+                  className="grid size-14 shrink-0 place-items-center rounded-full border border-dashed border-border bg-secondary/60"
+                >
+                  <ImageIcon className="size-5" />
+                </span>
                 No reference image yet.
               </div>
             )}
-            <div className={styles.referenceActions}>
+            <div className="flex shrink-0 items-center gap-2">
               <input
                 ref={referenceInput}
                 accept="image/jpeg,image/png,image/webp"
@@ -262,129 +306,153 @@ export function CreatorDnaView({
                 }}
                 type="file"
               />
-              <button
+              <Button
                 disabled={referenceBusy}
                 onClick={() => referenceInput.current?.click()}
+                size="sm"
                 type="button"
+                variant="outline"
               >
+                <UploadIcon />
                 {referenceBusy
                   ? "Saving…"
                   : currentDna.peopleReferenceImage
                     ? "Replace image"
                     : "Upload image"}
-              </button>
+              </Button>
               {currentDna.peopleReferenceImage ? (
-                <button
-                  className={styles.referenceRemove}
+                <Button
                   disabled={referenceBusy}
                   onClick={() => void clearReferenceImage()}
+                  size="sm"
                   type="button"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-destructive"
                 >
                   Remove
-                </button>
+                </Button>
               ) : null}
             </div>
-            {referenceError ? (
-              <p className={styles.referenceError} role="alert">
-                {referenceError}
-              </p>
-            ) : null}
-          </section>
-
-          <div className={styles.legend}>
-            <span>LIVE TRAITS · NEON</span>
-            <p>
-              Confidence measures the strength of current evidence, not creative
-              quality.
-            </p>
           </div>
+          {referenceError ? (
+            <Alert variant="destructive">
+              <TriangleAlertIcon />
+              <AlertDescription>{referenceError}</AlertDescription>
+            </Alert>
+          ) : null}
+        </CardContent>
+      </Card>
 
-          <div className={styles.grid}>
-            {currentDna.traits.map((trait, index) => {
-              const confidence =
-                trait.confidence === null
-                  ? null
-                  : Math.round(trait.confidence * 100);
-              const evidence = evidenceLabels(trait.evidence);
-              return (
-                <article className={styles.card} key={trait.id}>
-                  <header>
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                    <div className={styles.cardHeaderActions}>
-                      <em>{categoryLabel(trait.category)}</em>
-                      <button
-                        className={styles.editButton}
+      <div className="mt-8 mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-lg font-semibold tracking-tight text-foreground">
+          Traits
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Confidence measures the strength of current evidence, not creative
+          quality.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {currentDna.traits.map((trait) => {
+          const confidence =
+            trait.confidence === null
+              ? null
+              : Math.round(trait.confidence * 100);
+          const evidence = evidenceLabels(trait.evidence);
+          const isEditing = editingTraitId === trait.id;
+          return (
+            <Card key={trait.id}>
+              <CardContent className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Badge variant="outline">{categoryLabel(trait.category)}</Badge>
+                  <Button
+                    className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    disabled={traitBusy}
+                    onClick={() => startTraitEdit(trait)}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <PencilIcon className="size-3.5" />
+                    Edit
+                  </Button>
+                </div>
+                <h3 className="text-[15px] leading-tight font-semibold tracking-tight text-foreground">
+                  {trait.label}
+                </h3>
+                {isEditing ? (
+                  <div className="flex flex-col gap-2">
+                    <Textarea
+                      aria-label={`Edit ${trait.label}`}
+                      autoFocus
+                      maxLength={500}
+                      onChange={(event) => setTraitDraft(event.target.value)}
+                      value={traitDraft}
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
                         disabled={traitBusy}
-                        onClick={() => startTraitEdit(trait)}
+                        onClick={() => void saveTraitEdit(trait.id)}
+                        size="sm"
                         type="button"
                       >
-                        Edit
-                      </button>
+                        {traitBusy ? "Saving…" : "Save correction"}
+                      </Button>
+                      <Button
+                        disabled={traitBusy}
+                        onClick={cancelTraitEdit}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  </header>
-                  <h2>{trait.label}</h2>
-                  {editingTraitId === trait.id ? (
-                    <div className={styles.traitEditor}>
-                      <textarea
-                        aria-label={`Edit ${trait.label}`}
-                        autoFocus
-                        maxLength={500}
-                        onChange={(event) => setTraitDraft(event.target.value)}
-                        value={traitDraft}
-                      />
-                      <div className={styles.traitEditorActions}>
-                        <button
-                          disabled={traitBusy}
-                          onClick={() => void saveTraitEdit(trait.id)}
-                          type="button"
-                        >
-                          {traitBusy ? "Saving…" : "Save correction"}
-                        </button>
-                        <button
-                          className={styles.traitCancel}
-                          disabled={traitBusy}
-                          onClick={cancelTraitEdit}
-                          type="button"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                      {traitError ? (
-                        <p className={styles.traitError} role="alert">
-                          {traitError}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <p>{trait.value}</p>
-                  )}
-                  <div className={styles.confidence}>
-                    <span style={{ width: `${confidence ?? 0}%` }} />
+                    {traitError ? (
+                      <p className="text-xs text-destructive" role="alert">
+                        {traitError}
+                      </p>
+                    ) : null}
                   </div>
-                  <strong>
+                ) : (
+                  <p className="min-h-[3.4em] text-sm leading-relaxed text-muted-foreground">
+                    {trait.value}
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-1.5">
+                  <Progress className="h-1" value={confidence ?? 0} />
+                  <span className="text-xs font-medium text-muted-foreground">
                     {confidence === null
                       ? "Unscored"
                       : `${confidence}% confidence`}
-                  </strong>
-                  {evidence.length ? (
-                    <ul aria-label={`Evidence for ${trait.label}`}>
-                      {evidence.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <small>
-                      Evidence is stored as structured workspace metadata.
-                    </small>
-                  )}
-                </article>
-              );
-            })}
-          </div>
+                  </span>
+                </div>
 
-          <MemoryControl initialMemories={memories} />
-        </div>
-      </section>
+                {evidence.length ? (
+                  <div
+                    aria-label={`Evidence for ${trait.label}`}
+                    className="flex flex-wrap gap-1.5"
+                  >
+                    {evidence.map((item) => (
+                      <Badge className="font-normal" key={item}>
+                        {item}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Evidence is stored as structured workspace metadata.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <MemoryControl initialMemories={memories} />
     </main>
   );
 }

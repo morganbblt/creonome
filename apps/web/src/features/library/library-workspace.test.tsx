@@ -160,8 +160,15 @@ describe("LibraryWorkspace", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(
       /could not be deleted.*still intact/i,
     );
+    // The confirmation dialog stays open on failure (so the error is visible
+    // in context), which makes the underlying list inert to the a11y tree —
+    // query with `hidden: true` to confirm the source itself wasn't dropped
+    // from state rather than merely hidden behind the modal.
     expect(
-      screen.getByRole("heading", { name: "private-rush.mov" }),
+      screen.getByRole("heading", {
+        name: "private-rush.mov",
+        hidden: true,
+      }),
     ).toBeTruthy();
   });
 });

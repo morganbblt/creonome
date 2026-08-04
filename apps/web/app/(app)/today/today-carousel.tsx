@@ -1,12 +1,13 @@
 "use client";
 
 import type { OpportunityBatch } from "@creonome/contracts";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/src/components/ui/button";
 import type { DemoOpportunity } from "../../../src/features/opportunities/demo-opportunities";
 import { presentOpportunity } from "../../../src/features/opportunities/today-data";
 import { TodayBatchGenerator } from "./today-batch-generator";
 import { TodayOpportunityCard } from "./today-opportunity-card";
-import styles from "./today.module.css";
 
 type CarouselEntry = {
   opportunity: DemoOpportunity;
@@ -68,36 +69,52 @@ export function TodayCarousel({
 
   return (
     <>
-      <section className={styles.carousel} aria-label="Creative opportunities">
-        <div className={styles.carouselControls}>
-          <span>{entries.length} opportunities</span>
-          <button
+      <section
+        className="min-w-0"
+        aria-label="Creative opportunities"
+      >
+        <div className="mb-2.5 flex items-center justify-end gap-1.5">
+          <span className="mr-1 font-mono text-[10px] text-muted-foreground">
+            {entries.length} opportunities
+          </span>
+          <Button
             type="button"
+            variant="outline"
+            size="icon-sm"
             aria-label="Previous opportunities"
             onClick={() => move(-1)}
           >
-            ←
-          </button>
-          <button
+            <ArrowLeftIcon className="size-4" />
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="icon-sm"
             aria-label="Next opportunities"
             onClick={() => move(1)}
           >
-            →
-          </button>
+            <ArrowRightIcon className="size-4" />
+          </Button>
         </div>
-        <div className={styles.carouselTrack} ref={track}>
+        <div
+          className="grid snap-x snap-mandatory grid-flow-col items-start gap-5 overflow-x-auto px-0.5 pt-0.5 pb-4.5 [grid-auto-columns:calc((100%-40px)/3)] max-[980px]:[grid-auto-columns:calc((100%-20px)/2)] max-[620px]:[grid-auto-columns:min(88vw,360px)]"
+          ref={track}
+        >
           {entries.map(({ opportunity, preview: entryPreview }) => (
-            <TodayOpportunityCard
-              key={opportunity.id}
-              opportunity={opportunity}
-              preview={entryPreview}
-            />
+            <div key={opportunity.id} className="h-full snap-start">
+              <TodayOpportunityCard
+                opportunity={opportunity}
+                preview={entryPreview}
+              />
+            </div>
           ))}
         </div>
       </section>
 
-      <section className={styles.newBatch} aria-label="Generate another batch">
+      <section
+        className="mt-5 flex flex-wrap items-center gap-3.5 rounded-panel border border-dashed border-input p-4 max-[980px]:flex-col max-[980px]:items-start"
+        aria-label="Generate another batch"
+      >
         <TodayBatchGenerator preview={preview} onGenerated={appendBatch} />
       </section>
     </>

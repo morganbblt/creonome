@@ -6,8 +6,12 @@ import {
   type PendingMemoryCandidate,
   type ReviewedMemoryCandidate,
 } from "@creonome/contracts";
+import { CheckIcon, InboxIcon, XIcon } from "lucide-react";
 import { useState } from "react";
-import styles from "./creator-dna.module.css";
+import { Alert, AlertDescription } from "@/src/components/ui/alert";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import { Card, CardContent } from "@/src/components/ui/card";
 
 type MemoryDecision = "approve" | "reject";
 
@@ -65,98 +69,150 @@ export function MemoryControl({
 
   if (!memories) {
     return (
-      <aside className={styles.memory}>
-        <div className={styles.memoryHeader}>
-          <div>
-            <span>MEMORY CONTROL</span>
-            <h2>Memory review is temporarily unavailable.</h2>
-          </div>
-          <strong>Nothing was changed</strong>
-        </div>
-        <p>Your Creator DNA remains available and intact.</p>
-      </aside>
+      <section aria-label="Memory control" className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
+          Memory control
+        </h2>
+        <Card>
+          <CardContent className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground"
+            >
+              <InboxIcon className="size-4" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Memory review is temporarily unavailable.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Your Creator DNA remains available and intact.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     );
   }
 
   return (
-    <aside className={styles.memory} aria-label="Memory control">
-      <div className={styles.memoryHeader}>
+    <section aria-label="Memory control" className="mt-8">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <span>MEMORY CONTROL</span>
-          <h2>Nothing enters long-term memory without approval.</h2>
-          <p>Review inferred preferences before they can influence new work.</p>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            Memory control
+          </h2>
+          <p className="mt-1 max-w-lg text-xs text-muted-foreground">
+            Nothing enters long-term memory without approval. Review inferred
+            preferences before they can influence new work.
+          </p>
         </div>
-        <strong>{memories.pendingCount} pending</strong>
+        <Badge variant={memories.pendingCount > 0 ? "accent" : "outline"}>
+          {memories.pendingCount} pending
+        </Badge>
       </div>
 
       {error ? (
-        <p className={styles.memoryError} role="alert">
-          {error}
-        </p>
+        <Alert className="mb-4" variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
 
-      <div className={styles.memoryColumns}>
-        <section className={styles.memoryQueue}>
-          <h3>Proposed memory</h3>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.3fr_1fr]">
+        <div className="flex flex-col gap-3">
+          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Proposed memory
+          </h3>
           {memories.pending.length ? (
-            memories.pending.map((candidate) => (
-              <article className={styles.memoryCard} key={candidate.id}>
-                <div className={styles.memoryMeta}>
-                  <span>{candidate.scope ?? candidate.kind}</span>
-                  <span>{sourceLabel(candidate.source)}</span>
-                </div>
-                <p>{candidate.content}</p>
-                <div className={styles.memoryActions}>
-                  <button
-                    className={styles.accept}
-                    disabled={pendingId !== null}
-                    onClick={() => review(candidate, "approve")}
-                    type="button"
-                  >
-                    {pendingId === candidate.id ? "Saving…" : "Accept memory"}
-                  </button>
-                  <button
-                    className={styles.reject}
-                    disabled={pendingId !== null}
-                    onClick={() => review(candidate, "reject")}
-                    type="button"
-                  >
-                    Reject memory
-                  </button>
-                </div>
-              </article>
-            ))
+            <div className="flex flex-col gap-3">
+              {memories.pending.map((candidate) => (
+                <Card key={candidate.id}>
+                  <CardContent className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <span className="tracking-wide uppercase">
+                        {candidate.scope ?? candidate.kind}
+                      </span>
+                      <span>{sourceLabel(candidate.source)}</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground">
+                      {candidate.content}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        disabled={pendingId !== null}
+                        onClick={() => review(candidate, "approve")}
+                        size="sm"
+                        type="button"
+                      >
+                        <CheckIcon />
+                        {pendingId === candidate.id
+                          ? "Saving…"
+                          : "Accept memory"}
+                      </Button>
+                      <Button
+                        disabled={pendingId !== null}
+                        onClick={() => review(candidate, "reject")}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        <XIcon />
+                        Reject memory
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : (
-            <p className={styles.memoryEmpty}>No memory awaiting review.</p>
+            <p className="rounded-control border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+              No memory awaiting review.
+            </p>
           )}
-        </section>
+        </div>
 
-        <section className={styles.memoryHistory}>
-          <h3>Change history</h3>
+        <div className="flex flex-col gap-3 lg:border-l lg:border-border lg:pl-5">
+          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Change history
+          </h3>
           {memories.history.length ? (
-            <ol>
+            <ol className="flex flex-col gap-3">
               {memories.history.map((candidate) => (
-                <li key={candidate.id}>
-                  <div>
-                    <strong data-status={candidate.status}>
+                <li
+                  className="border-t border-border pt-3 first:border-t-0 first:pt-0"
+                  key={candidate.id}
+                >
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <Badge
+                      variant={
+                        candidate.status === "approved" ? "success" : "outline"
+                      }
+                    >
                       {reviewLabel(candidate.status)}
-                    </strong>
-                    <time dateTime={candidate.reviewedAt}>
+                    </Badge>
+                    <time
+                      className="text-xs text-muted-foreground"
+                      dateTime={candidate.reviewedAt}
+                    >
                       {new Intl.DateTimeFormat("en", {
                         day: "numeric",
                         month: "short",
                       }).format(new Date(candidate.reviewedAt))}
                     </time>
                   </div>
-                  <p>{candidate.content}</p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {candidate.content}
+                  </p>
                 </li>
               ))}
             </ol>
           ) : (
-            <p className={styles.memoryEmpty}>No decisions yet.</p>
+            <p className="rounded-control border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+              No decisions yet.
+            </p>
           )}
-        </section>
+        </div>
       </div>
-    </aside>
+    </section>
   );
 }

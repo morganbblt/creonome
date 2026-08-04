@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import styles from "../../management.module.css";
+import { Avatar, AvatarFallback } from "@/src/components/ui/avatar";
+import { Badge } from "@/src/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/src/components/ui/card";
 
 export const metadata: Metadata = { title: "Integrations" };
 
@@ -20,37 +22,37 @@ const providers = [
 
 export default function IntegrationsPage() {
   return (
-    <main className={styles.compactPage}>
-      <section className={styles.panel}>
-        <div className={styles.toolbar}>
-          <h1>Integrations</h1>
-        </div>
-        <div className={styles.providerList}>
-          {providers.map((provider) => (
-            <article className={styles.providerCard} key={provider.name}>
-              <div className={styles.providerHead}>
-                <span className={styles.providerIcon}>{provider.mark}</span>
-                <div>
-                  <h2>{provider.name}</h2>
-                  <span className={styles.providerMeta}>
-                    Optional social connection
-                  </span>
-                </div>
-                <span className={styles.status}>Coming soon</span>
+    <main className="mx-auto w-full max-w-[720px] px-5.5 py-8.5 pb-14">
+      <h1 className="mb-5.5 text-3xl font-semibold tracking-tight sm:text-4xl">
+        Integrations
+      </h1>
+      <div className="flex flex-col gap-3">
+        {providers.map((provider) => (
+          <Card key={provider.name} className="gap-3">
+            <CardHeader className="flex-row items-center gap-3.5">
+              <Avatar className="rounded-control">
+                <AvatarFallback className="rounded-control font-mono text-[11px]">
+                  {provider.mark}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-semibold text-foreground">
+                  {provider.name}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Optional social connection
+                </p>
               </div>
-              <p>{provider.description}</p>
-              <div className={styles.actions}>
-                <button className={styles.buttonPrimary} type="button" disabled>
-                  Connect
-                </button>
-                <span className={styles.hint}>
-                  Not included in the current MVP.
-                </span>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+              <Badge variant="accent">Coming soon</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {provider.description}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </main>
   );
 }

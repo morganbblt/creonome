@@ -1,21 +1,22 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GenerationToast } from "./generation-toast";
 
 describe("GenerationToast", () => {
   it("lets pointer input pass through the toast surface except for dismiss", () => {
-    const styles = readFileSync(
-      resolve(
-        process.cwd(),
-        "src/features/generation/generation-toast.module.css",
-      ),
-      "utf8",
+    render(
+      <GenerationToast
+        state="success"
+        title="Video ready"
+        detail="The simulated render is saved in this project."
+        onDismiss={() => {}}
+      />,
     );
 
-    expect(styles).toMatch(/\.toast\s*\{[^}]*pointer-events:\s*none/s);
-    expect(styles).toMatch(/\.heading button\s*\{[^}]*pointer-events:\s*auto/s);
+    expect(screen.getByRole("status").className).toMatch(/pointer-events-none/);
+    expect(
+      screen.getByRole("button", { name: "Dismiss" }).className,
+    ).toMatch(/pointer-events-auto/);
   });
 
   it("shows non-blocking progress and its reserved credit amount", () => {
