@@ -4,6 +4,7 @@ packages:
 
 catalog:
   "@google-cloud/storage": 7.21.0
+  "@google-cloud/tasks": 6.2.0
   "@google/genai": 2.15.0
   "@neondatabase/auth": 0.4.2-beta
   "@neondatabase/auth-ui": 0.2.1-beta

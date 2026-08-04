@@ -49,6 +49,27 @@ The Cloud Run service account needs:
 
 No downloaded service-account JSON is used. See [`../architecture/video-rendering.md`](../architecture/video-rendering.md) for failure and credit semantics.
 
+## Asynchronous generation (Cloud Tasks)
+
+Opportunity batch generation, script upgrades, storyboard upgrades and video
+rendering all reserve credits synchronously, then hand the actual generation
+work off to the `creonome-generation` Cloud Tasks queue (`GCP_TASKS_LOCATION`,
+`GCP_TASKS_QUEUE`) instead of running inline, so requests never risk the
+Cloud Run timeout. The queued task calls back into this same API's internal
+handler endpoints (`/api/v1/internal/opportunity-jobs/:jobId/execute` and
+`/api/v1/internal/project-jobs/:jobId/execute`) at `WORKER_BASE_URL` (falls
+back to `API_URL`), authenticated with `INTERNAL_JOB_TOKEN` the same way as
+`POST /api/v1/privacy/account-deletion/execute-due`. Clients poll
+`GET /api/v1/jobs/:id` until the job reaches a terminal status
+(`succeeded`, `failed_retryable`, `failed_final`, `cancelled`), then re-fetch
+the parent opportunity/project for the finished content.
+
+If `GOOGLE_CLOUD_PROJECT`, `GCP_TASKS_LOCATION`, `GCP_TASKS_QUEUE`,
+`WORKER_BASE_URL`/`API_URL` or `INTERNAL_JOB_TOKEN` are not configured (e.g.
+local dev without GCP credentials), enqueueing fails fast with a clear 503
+instead of the request hanging or the process crashing, and any reserved
+credits are released.
+
 ## Neon Auth
 
 The production branch has email/password enabled without mandatory verification, Google enabled through Neon shared credentials, localhost enabled, and both `https://www.creonome.com` and `https://creonome.vercel.app` in its trusted-domain whitelist. The Next.js server obtains the Neon Auth JWT and forwards it to the NestJS API.

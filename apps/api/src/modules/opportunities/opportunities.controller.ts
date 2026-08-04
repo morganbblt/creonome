@@ -19,6 +19,7 @@ import type {
   OpportunityFeedbackResult,
   OpportunityRevision,
   Project,
+  QueuedGenerationJob,
   UpgradeOpportunityResult,
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
@@ -86,13 +87,16 @@ export class OpportunitiesController {
   }
 
   @Post(":id/upgrade")
-  @ApiOperation({ summary: "Confirm credits and upgrade an idea to a script" })
+  @ApiOperation({
+    summary:
+      "Confirm credits and queue an idea-to-script generation job; poll GET /jobs/:id for completion",
+  })
   upgrade(
     @CurrentUser() principal: AuthPrincipal,
     @Param("id") opportunityId: string,
     @Headers("idempotency-key") idempotencyKey: string,
     @Body() input: UpgradeOpportunityDto,
-  ): Promise<UpgradeOpportunityResult> {
+  ): Promise<UpgradeOpportunityResult | QueuedGenerationJob> {
     return this.workflow.upgrade(
       principal,
       opportunityId,
@@ -111,12 +115,15 @@ export class OpportunitiesController {
   }
 
   @Post("batches")
-  @ApiOperation({ summary: "Generate an idempotent three-opportunity batch" })
+  @ApiOperation({
+    summary:
+      "Queue an idempotent three-opportunity batch generation job; poll GET /jobs/:id for completion",
+  })
   generate(
     @CurrentUser() principal: AuthPrincipal,
     @Headers("idempotency-key") idempotencyKey: string,
     @Body() input: CreateOpportunityBatchDto,
-  ): Promise<OpportunityBatch> {
+  ): Promise<OpportunityBatch | QueuedGenerationJob> {
     return this.generation.generate(
       principal,
       idempotencyKey ?? "",

@@ -40,9 +40,16 @@ export class CreditsService {
 
   async getAccount(principal: AuthPrincipal): Promise<CreditsResponse> {
     const context = await this.workspaces.resolve(principal);
-    return this.toContract(
-      await this.repository.getAccount(context.workspaceId),
-    );
+    return this.getAccountForWorkspace(context.workspaceId);
+  }
+
+  /**
+   * Same lookup as {@link getAccount}, for callers that already have a
+   * workspace id and no end-user `AuthPrincipal` — e.g. an internal
+   * generation-job handler invoked by Cloud Tasks.
+   */
+  async getAccountForWorkspace(workspaceId: string): Promise<CreditsResponse> {
+    return this.toContract(await this.repository.getAccount(workspaceId));
   }
 
   async listLedger(principal: AuthPrincipal): Promise<CreditLedger> {

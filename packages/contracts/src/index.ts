@@ -34,8 +34,10 @@ export {
 export {
   GenerationJobSchema,
   GenerationJobStatusSchema,
+  QueuedGenerationJobSchema,
   type GenerationJob,
   type GenerationJobStatus,
+  type QueuedGenerationJob,
 } from "./generation-job.js";
 export {
   IntegrationStatusSchema,

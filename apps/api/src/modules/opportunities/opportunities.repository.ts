@@ -180,6 +180,12 @@ export type CreateScriptUpgradeInput = {
   provider: string;
   model: string;
   generated: GeneratedScript;
+  /**
+   * The generation_jobs row already inserted as "queued" by the public
+   * controller action before the Cloud Tasks task ran. When provided, this
+   * method updates that row to "succeeded" instead of inserting a new one.
+   */
+  jobId?: string;
 };
 
 export type ScriptRecord = GeneratedScript & {

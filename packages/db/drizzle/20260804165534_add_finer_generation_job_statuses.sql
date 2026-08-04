@@ -1,0 +1,2 @@
+ALTER TABLE "generation_jobs" DROP CONSTRAINT "generation_jobs_status_check";--> statement-breakpoint
+ALTER TABLE "generation_jobs" ADD CONSTRAINT "generation_jobs_status_check" CHECK ("generation_jobs"."status" in ('queued', 'running', 'succeeded', 'failed', 'failed_retryable', 'failed_final', 'cancelled'));

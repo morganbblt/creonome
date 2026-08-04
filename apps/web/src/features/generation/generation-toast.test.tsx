@@ -35,6 +35,33 @@ describe("GenerationToast", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("renders a distinct queued state before the handler starts running", () => {
+    render(
+      <GenerationToast
+        state="queued"
+        title="Building the storyboard"
+        detail="Waiting for the generation queue to pick this up."
+      />,
+    );
+
+    expect(screen.getByRole("status").dataset.state).toBe("queued");
+    expect(screen.getByText("Queued")).toBeTruthy();
+    expect(screen.getByRole("progressbar")).toBeTruthy();
+  });
+
+  it("renders a running state distinct from queued once the handler starts", () => {
+    render(
+      <GenerationToast
+        state="running"
+        title="Building the storyboard"
+        detail="Structuring scenes and edit notes."
+      />,
+    );
+
+    expect(screen.getByRole("status").dataset.state).toBe("running");
+    expect(screen.getAllByText("Generation in progress")).toBeTruthy();
+  });
+
   it("can dismiss a completed generation", () => {
     const dismiss = vi.fn();
     render(

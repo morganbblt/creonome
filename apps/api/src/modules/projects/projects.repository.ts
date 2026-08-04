@@ -155,6 +155,12 @@ export type CreateStoryboardUpgradeInput = {
   provider: string;
   model: string;
   generated: GeneratedStoryboard;
+  /**
+   * The generation_jobs row already inserted as "queued" by the public
+   * controller action before the Cloud Tasks task ran. When provided, this
+   * method updates that row to "succeeded" instead of inserting a new one.
+   */
+  jobId?: string;
 };
 
 export type VideoUpgradeRecord = {
@@ -169,6 +175,12 @@ export type CreateVideoUpgradeInput = {
   projectId: string;
   idempotencyKey: string;
   artifact: import("./video/video-provider.js").GeneratedVideoArtifact;
+  /**
+   * The generation_jobs row already inserted as "queued" by the public
+   * controller action before the Cloud Tasks task ran. When provided, this
+   * method updates that row to "succeeded" instead of inserting a new one.
+   */
+  jobId?: string;
 };
 
 export interface ProjectsRepository {

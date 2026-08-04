@@ -1,7 +1,15 @@
+import { randomUUID } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../src/modules/ai/structured-generator.js";
 import type { AuthPrincipal } from "../src/modules/auth/auth-token-verifier.js";
 import type { CreditsService } from "../src/modules/credits/credits.service.js";
+import { GenerationJobEnqueueService } from "../src/modules/jobs/generation-job-enqueue.service.js";
+import type { GenerationQueue } from "../src/modules/jobs/generation-queue.js";
+import type {
+  CreateJobInput,
+  InternalJobRecord,
+  JobsRepository,
+} from "../src/modules/jobs/jobs.repository.js";
 import { ProjectWorkflowService } from "../src/modules/projects/project-workflow.service.js";
 import type {
   ProjectsRepository,
@@ -90,8 +98,74 @@ const generatedStoryboard = {
   ],
 };
 
+/** Minimal in-memory JobsRepository so the enqueue → execute round trip can
+ * be exercised without a real Postgres connection. */
+function createInMemoryJobsRepository(): JobsRepository {
+  const jobsById = new Map<string, InternalJobRecord>();
+  return {
+    findById: vi.fn(),
+    cancel: vi.fn(),
+    retry: vi.fn(),
+    findByIdUnscoped: vi.fn(
+      async (jobId: string) => jobsById.get(jobId) ?? null,
+    ),
+    create: vi.fn(async (input: CreateJobInput) => {
+      const job: InternalJobRecord = {
+        id: randomUUID(),
+        kind: input.kind,
+        provider: input.provider,
+        model: input.model,
+        status: "queued",
+        progress: 0,
+        errorCode: null,
+        errorMessage: null,
+        createdAt: now,
+        updatedAt: now,
+        completedAt: null,
+        workspaceId: input.workspaceId,
+        projectId: input.projectId,
+        requestedByUserId: input.requestedByUserId,
+        idempotencyKey: input.idempotencyKey,
+        input: input.input,
+      };
+      jobsById.set(job.id, job);
+      return job;
+    }),
+    markRunning: vi.fn(async (jobId: string) => {
+      const job = jobsById.get(jobId);
+      if (!job || job.status !== "queued") return null;
+      const updated = { ...job, status: "running" };
+      jobsById.set(jobId, updated);
+      return updated;
+    }),
+    markSucceeded: vi.fn(
+      async (jobId: string, output: Record<string, unknown>) => {
+        const job = jobsById.get(jobId);
+        if (!job) return null;
+        const updated = { ...job, status: "succeeded", progress: 100, output };
+        jobsById.set(jobId, updated);
+        return updated;
+      },
+    ),
+    markFailed: vi.fn(
+      async (
+        jobId: string,
+        status: "failed_retryable" | "failed_final",
+        errorCode: string,
+        errorMessage: string,
+      ) => {
+        const job = jobsById.get(jobId);
+        if (!job) return null;
+        const updated = { ...job, status, errorCode, errorMessage };
+        jobsById.set(jobId, updated);
+        return updated;
+      },
+    ),
+  };
+}
+
 describe("Storyboard → Video workflow", () => {
-  it("keeps one credit ledger across a storyboard and resilient video render", async () => {
+  it("keeps one credit ledger across a queued storyboard and video job", async () => {
     let storyboardUpgrade: StoryboardUpgradeRecord | null = null;
     let videoUpgrade: VideoUpgradeRecord | null = null;
     const repository = {
@@ -207,6 +281,11 @@ describe("Storyboard → Video workflow", () => {
         reserved,
         available: balance,
       })),
+      getAccountForWorkspace: vi.fn(async () => ({
+        balance,
+        reserved,
+        available: balance - reserved,
+      })),
     } as unknown as CreditsService;
     const qualityGate = {
       evaluateScript: vi
@@ -219,6 +298,11 @@ describe("Storyboard → Video workflow", () => {
         .fn()
         .mockResolvedValue({ passed: true, violations: [] }),
     } as unknown as QualityGateService;
+    const jobsRepository = createInMemoryJobsRepository();
+    const queue: GenerationQueue = {
+      enqueue: vi.fn().mockResolvedValue(undefined),
+    };
+    const enqueue = new GenerationJobEnqueueService(jobsRepository, queue);
     const service = new ProjectWorkflowService(
       {
         resolve: vi.fn().mockResolvedValue(context),
@@ -230,27 +314,39 @@ describe("Storyboard → Video workflow", () => {
       } as unknown as StructuredGenerator,
       new DeterministicVideoProvider(),
       qualityGate,
+      enqueue,
+      jobsRepository,
     );
 
-    const storyboard = await service.upgrade(
+    const queuedStoryboardJob = await service.upgrade(
       principal,
       projectId,
       { targetLevel: "storyboard", confirmedCreditCost: true },
       "e2e-storyboard-generation",
     );
-    const video = await service.upgrade(
+    expect(queuedStoryboardJob).toMatchObject({ job: { status: "queued" } });
+    if (!("job" in queuedStoryboardJob))
+      throw new Error("expected a queued job");
+    await service.executeQueuedStoryboardUpgrade(queuedStoryboardJob.job.id);
+    expect(storyboardUpgrade).not.toBeNull();
+    expect(storyboardUpgrade!.project.currentLevel).toBe("storyboard");
+
+    const queuedVideoJob = await service.upgrade(
       principal,
       projectId,
       { targetLevel: "video", confirmedCreditCost: true },
       "e2e-video-generation",
     );
+    expect(queuedVideoJob).toMatchObject({ job: { status: "queued" } });
+    if (!("job" in queuedVideoJob)) throw new Error("expected a queued job");
+    await service.executeQueuedVideoUpgrade(queuedVideoJob.job.id);
 
-    expect(storyboard.project.currentLevel).toBe("storyboard");
-    expect(video).toMatchObject({
+    expect(videoUpgrade).toMatchObject({
       project: { currentLevel: "video" },
       video: { simulated: true, provider: "creonome" },
-      credits: { balance: 44, reserved: 0, available: 44 },
     });
+    expect(balance).toBe(44);
+    expect(reserved).toBe(0);
     expect(credits.reserve).toHaveBeenCalledTimes(2);
     expect(credits.commit).toHaveBeenCalledTimes(2);
     expect(credits.release).not.toHaveBeenCalled();
