@@ -1,4 +1,9 @@
-import { ArrowUpRightIcon, CheckIcon, TriangleAlertIcon, XIcon } from "lucide-react";
+import {
+  ArrowUpRightIcon,
+  CheckIcon,
+  TriangleAlertIcon,
+  XIcon,
+} from "lucide-react";
 import { cn } from "@/src/lib/utils";
 
 const stateCopy = {
@@ -55,7 +60,9 @@ export function GenerationToast({
           <strong className="truncate text-sm font-semibold text-foreground">
             {title}
           </strong>
-          <span className="text-xs text-muted-foreground">{stateCopy[state]}</span>
+          <span className="text-xs text-muted-foreground">
+            {stateCopy[state]}
+          </span>
         </div>
         {creditLabel ? (
           <em className="shrink-0 text-xs font-medium text-muted-foreground not-italic">

@@ -227,7 +227,12 @@ export function CreatorDnaView({
               Version {currentDna.version}
             </span>
           </div>
-          <Button onClick={exportJson} size="sm" type="button" variant="outline">
+          <Button
+            onClick={exportJson}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
             <DownloadIcon />
             Export JSON
           </Button>
@@ -365,7 +370,9 @@ export function CreatorDnaView({
             <Card key={trait.id}>
               <CardContent className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
-                  <Badge variant="outline">{categoryLabel(trait.category)}</Badge>
+                  <Badge variant="outline">
+                    {categoryLabel(trait.category)}
+                  </Badge>
                   <Button
                     className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
                     disabled={traitBusy}

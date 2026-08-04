@@ -29,7 +29,10 @@ const kindLabels: Record<CreditLedgerEntry["kind"], string> = {
 
 // Refunds are the one movement worth calling out — everything else stays
 // neutral so the signature accent isn't diluted into a general status color.
-const kindBadgeVariant: Record<CreditLedgerEntry["kind"], "accent" | "outline"> = {
+const kindBadgeVariant: Record<
+  CreditLedgerEntry["kind"],
+  "accent" | "outline"
+> = {
   grant: "outline",
   reservation: "outline",
   commit: "outline",
@@ -128,7 +131,9 @@ export function CreditsDashboard({
                 const count = Math.floor(account.available / cost);
                 return (
                   <Badge
-                    className={cn(!count && "border-dashed text-muted-foreground")}
+                    className={cn(
+                      !count && "border-dashed text-muted-foreground",
+                    )}
                     key={label}
                     variant={count ? "default" : "outline"}
                   >

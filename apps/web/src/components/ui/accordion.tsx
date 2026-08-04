@@ -3,7 +3,9 @@ import { ChevronDownIcon } from "lucide-react";
 import type * as React from "react";
 import { cn } from "@/src/lib/utils";
 
-function Accordion(props: React.ComponentProps<typeof AccordionPrimitive.Root>) {
+function Accordion(
+  props: React.ComponentProps<typeof AccordionPrimitive.Root>,
+) {
   return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
 }
 
@@ -55,7 +57,9 @@ function AccordionContent({
       className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
       {...props}
     >
-      <div className={cn("pb-4 text-muted-foreground", className)}>{children}</div>
+      <div className={cn("pb-4 text-muted-foreground", className)}>
+        {children}
+      </div>
     </AccordionPrimitive.Content>
   );
 }

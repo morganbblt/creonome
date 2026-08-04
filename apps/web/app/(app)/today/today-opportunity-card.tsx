@@ -105,7 +105,10 @@ export function TodayOpportunityCard({
     >
       <div className="flex items-center justify-between gap-3">
         <Badge className={strategyClasses[opportunity.strategy]}>
-          <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+          <span
+            aria-hidden="true"
+            className="size-1.5 rounded-full bg-current"
+          />
           {opportunity.badge}
         </Badge>
         <span className="flex items-center gap-2 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
@@ -171,7 +174,9 @@ export function TodayOpportunityCard({
             <span className="font-mono text-[11px] text-muted-foreground">
               HOOK
             </span>
-            <p className="mt-1 text-[13px] leading-[1.45]">{opportunity.hook}</p>
+            <p className="mt-1 text-[13px] leading-[1.45]">
+              {opportunity.hook}
+            </p>
           </div>
           <div className="border-t border-border pt-3.5">
             <div className="flex items-end gap-2">
@@ -231,7 +236,9 @@ export function TodayOpportunityCard({
             className="flex min-h-10 items-center justify-between gap-3 rounded-[6px] px-2.5 py-2 text-left text-[12.5px] font-medium text-muted-foreground opacity-60 disabled:cursor-not-allowed"
           >
             <span>Generate storyboard</span>
-            <span className="font-mono text-[10.5px] whitespace-nowrap">4 cr</span>
+            <span className="font-mono text-[10.5px] whitespace-nowrap">
+              4 cr
+            </span>
           </button>
           <button
             type="button"
@@ -245,10 +252,7 @@ export function TodayOpportunityCard({
               12 cr
             </span>
           </button>
-          <span
-            className="mx-1.5 my-1 h-px bg-border"
-            aria-hidden="true"
-          />
+          <span className="mx-1.5 my-1 h-px bg-border" aria-hidden="true" />
           {savedHref ? (
             <Link
               href={savedHref}
@@ -275,7 +279,10 @@ export function TodayOpportunityCard({
             </button>
           )}
           {saveError ? (
-            <p className="m-0 px-2 pt-1.5 pb-1 text-[11.5px] leading-[1.45] font-medium text-destructive" role="alert">
+            <p
+              className="m-0 px-2 pt-1.5 pb-1 text-[11.5px] leading-[1.45] font-medium text-destructive"
+              role="alert"
+            >
               {saveError}
             </p>
           ) : null}

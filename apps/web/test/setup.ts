@@ -1,6 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 
-if (typeof window !== "undefined" && typeof window.localStorage?.getItem !== "function") {
+if (
+  typeof window !== "undefined" &&
+  typeof window.localStorage?.getItem !== "function"
+) {
   const store = new Map<string, string>();
   const memoryStorage: Storage = {
     get length() {
@@ -23,14 +26,15 @@ if (typeof window !== "undefined" && typeof window.localStorage?.getItem !== "fu
 }
 
 if (typeof window !== "undefined" && !window.matchMedia) {
-  window.matchMedia = (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  }) as unknown as MediaQueryList;
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList;
 }

@@ -373,7 +373,10 @@ export function OpportunityWorkspace({
             <header>
               <div className="mb-3 flex flex-wrap items-center gap-3">
                 <Badge className="border-transparent bg-accent-soft text-accent-soft-foreground">
-                  <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+                  <span
+                    aria-hidden="true"
+                    className="size-1.5 rounded-full bg-current"
+                  />
                   {badgeByStrategy[opportunity.strategy]}
                 </Badge>
                 <span className="font-mono text-[11px] text-muted-foreground">
@@ -398,11 +401,17 @@ export function OpportunityWorkspace({
                 9:16
               </span>
               <span className="grid size-14 place-items-center rounded-full bg-foreground/90 text-background shadow-lg">
-                <PlayIcon aria-hidden="true" className="size-6 translate-x-0.5 fill-background" />
+                <PlayIcon
+                  aria-hidden="true"
+                  className="size-6 translate-x-0.5 fill-background"
+                />
               </span>
             </div>
 
-            <section className="flex flex-col gap-4" aria-label="Creative reasoning">
+            <section
+              className="flex flex-col gap-4"
+              aria-label="Creative reasoning"
+            >
               <div className="border-l-2 border-accent pl-3">
                 <span className="font-mono text-[11px] text-muted-foreground">
                   HOOK
@@ -520,14 +529,20 @@ export function OpportunityWorkspace({
                 <p className="text-xs text-muted-foreground" aria-live="polite">
                   {feedbackNotice}{" "}
                   {feedbackMemoryReady ? (
-                    <Link href="/creator-dna" className="font-semibold text-accent hover:underline">
+                    <Link
+                      href="/creator-dna"
+                      className="font-semibold text-accent hover:underline"
+                    >
                       Review memory →
                     </Link>
                   ) : null}
                 </p>
               ) : null}
               {feedbackError ? (
-                <p className="text-xs font-medium text-destructive" role="alert">
+                <p
+                  className="text-xs font-medium text-destructive"
+                  role="alert"
+                >
                   {feedbackError}
                 </p>
               ) : null}
@@ -572,7 +587,11 @@ export function OpportunityWorkspace({
                   </Link>
                 </Button>
               )}
-              <Button type="button" variant="outline" onClick={() => setPanel("modify")}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPanel("modify")}
+              >
                 Modify idea
               </Button>
             </div>
@@ -615,7 +634,9 @@ export function OpportunityWorkspace({
                     <strong
                       className={cn(
                         "block text-[13px] font-semibold",
-                        active ? "text-accent-soft-foreground" : "text-foreground",
+                        active
+                          ? "text-accent-soft-foreground"
+                          : "text-foreground",
                       )}
                     >
                       {label}
@@ -812,7 +833,11 @@ export function OpportunityWorkspace({
             </p>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPanel(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPanel(null)}
+            >
               Not now
             </Button>
             <Button type="button" disabled={pending} onClick={generateScript}>

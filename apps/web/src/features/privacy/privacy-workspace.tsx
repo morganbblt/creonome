@@ -33,7 +33,11 @@ const exportLabels: Record<PrivacyExportKind, string> = {
   everything: "Everything",
 };
 
-const exportKinds: PrivacyExportKind[] = ["creator_dna", "projects", "everything"];
+const exportKinds: PrivacyExportKind[] = [
+  "creator_dna",
+  "projects",
+  "everything",
+];
 
 function PreferenceToggle({
   label,
@@ -311,7 +315,9 @@ export function PrivacyWorkspace({
                 </strong>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   Recorded for{" "}
-                  {new Date(state.accountDeletion.scheduledFor).toLocaleString()}
+                  {new Date(
+                    state.accountDeletion.scheduledFor,
+                  ).toLocaleString()}
                   . Final deletion processing is not active in this MVP.
                 </p>
                 <Button

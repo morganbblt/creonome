@@ -13,9 +13,9 @@ describe("LandingPage", () => {
       }),
     ).toBeTruthy();
     expect(
-      screen.getAllByRole("link", { name: /get started free/i })[0]?.getAttribute(
-        "href",
-      ),
+      screen
+        .getAllByRole("link", { name: /get started free/i })[0]
+        ?.getAttribute("href"),
     ).toBe("/auth/sign-up");
     expect(
       screen.getAllByRole("link", { name: "Sign in" })[0]?.getAttribute("href"),

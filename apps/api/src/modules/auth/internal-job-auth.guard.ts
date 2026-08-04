@@ -31,9 +31,7 @@ function isEqual(provided: string, expected: string): boolean {
  */
 @Injectable()
 export class InternalJobAuthGuard implements CanActivate {
-  constructor(
-    @Inject(ConfigService) private readonly config: ConfigService,
-  ) {}
+  constructor(@Inject(ConfigService) private readonly config: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
     const token = this.config.get<string>("INTERNAL_JOB_TOKEN");

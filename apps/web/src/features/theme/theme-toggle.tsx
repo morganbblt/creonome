@@ -25,7 +25,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={`Switch to ${dark ? "light" : "dark"} mode`}
       title={`Switch to ${dark ? "light" : "dark"} mode`}
       onClick={() => setTheme(dark ? "light" : "dark")}
-      className={cn("rounded-full text-muted-foreground hover:text-foreground", className)}
+      className={cn(
+        "rounded-full text-muted-foreground hover:text-foreground",
+        className,
+      )}
     >
       {dark ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
     </Button>

@@ -30,7 +30,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/src/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/src/components/ui/accordion";
 import { Alert, AlertDescription } from "@/src/components/ui/alert";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
@@ -126,7 +131,8 @@ function assetVisual(mimeType: string) {
   if (mimeType.startsWith("video/")) return FileVideoIcon;
   if (mimeType.startsWith("audio/")) return FileAudioIcon;
   if (mimeType.startsWith("image/")) return FileImageIcon;
-  if (mimeType === "application/pdf" || mimeType.startsWith("text/")) return FileTextIcon;
+  if (mimeType === "application/pdf" || mimeType.startsWith("text/"))
+    return FileTextIcon;
   return FileIcon;
 }
 
@@ -480,8 +486,8 @@ export function OnboardingWorkspace({
                 Let’s start with what already sounds like you.
               </h1>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Pick any route. Every source stays private, and you can add
-                more later.
+                Pick any route. Every source stays private, and you can add more
+                later.
               </p>
             </div>
 
@@ -524,8 +530,8 @@ export function OnboardingWorkspace({
                   </strong>
                 </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Fill the profile by hand. It sharpens as you accept or
-                  reject work.
+                  Fill the profile by hand. It sharpens as you accept or reject
+                  work.
                 </p>
                 <Button
                   type="button"
@@ -659,7 +665,10 @@ export function OnboardingWorkspace({
                           defaultValue="evidence"
                           className="rounded-control border border-border bg-secondary/40 px-3"
                         >
-                          <AccordionItem value="evidence" className="border-b-0">
+                          <AccordionItem
+                            value="evidence"
+                            className="border-b-0"
+                          >
                             <AccordionTrigger className="py-2.5 text-xs font-medium text-foreground">
                               {asset.analysis.summary}
                             </AccordionTrigger>
@@ -789,8 +798,7 @@ export function OnboardingWorkspace({
               >
                 {buildingProfile ? (
                   <>
-                    <Loader2Icon className="animate-spin" /> Building
-                    profile…
+                    <Loader2Icon className="animate-spin" /> Building profile…
                   </>
                 ) : (
                   "Review my profile"
@@ -814,8 +822,7 @@ export function OnboardingWorkspace({
                 {state.profile
                   ? `Prefilled from ${state.readyCount} analyzed source${state.readyCount === 1 ? "" : "s"}.`
                   : "Starting from your own description."}{" "}
-                Every field is a draft — corrections become declared
-                evidence.
+                Every field is a draft — corrections become declared evidence.
               </AlertDescription>
             </Alert>
 
@@ -960,8 +967,7 @@ export function OnboardingWorkspace({
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  The AI treats these as non-negotiable — separate with
-                  commas.
+                  The AI treats these as non-negotiable — separate with commas.
                 </p>
               </div>
             </div>

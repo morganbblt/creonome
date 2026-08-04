@@ -88,7 +88,11 @@ export function LandingPage() {
     <div className="min-h-svh bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-lg">
         <div className="mx-auto flex h-16 w-full max-w-[1180px] items-center justify-between px-5.5 max-[620px]:px-3.5">
-          <Link href="/" aria-label="Creonome home" className="flex items-center">
+          <Link
+            href="/"
+            aria-label="Creonome home"
+            className="flex items-center"
+          >
             <BrandWordmark />
           </Link>
           <div className="flex items-center gap-2">
@@ -164,8 +168,7 @@ export function LandingPage() {
                   Silent studio: a beat built with zero voice
                 </h2>
                 <p className="mt-1.5 text-[13px] leading-[1.5] text-muted-foreground">
-                  Captions carry the whole narration while the room stays
-                  quiet.
+                  Captions carry the whole narration while the room stays quiet.
                 </p>
               </div>
               <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
@@ -220,7 +223,11 @@ export function LandingPage() {
               Creonome isn't{" "}
               {notThis.map((item, index) => (
                 <span key={item}>
-                  {index > 0 ? (index === notThis.length - 1 ? ", or " : ", ") : ""}
+                  {index > 0
+                    ? index === notThis.length - 1
+                      ? ", or "
+                      : ", "
+                    : ""}
                   <span className="font-medium text-foreground/80 line-through decoration-muted-foreground/60">
                     {item}
                   </span>
@@ -318,7 +325,11 @@ export function LandingPage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-4 px-5.5 py-8 max-[620px]:px-3.5">
-          <Link href="/" aria-label="Creonome home" className="flex items-center">
+          <Link
+            href="/"
+            aria-label="Creonome home"
+            className="flex items-center"
+          >
             <BrandWordmark className="w-[110px]" />
           </Link>
           <nav

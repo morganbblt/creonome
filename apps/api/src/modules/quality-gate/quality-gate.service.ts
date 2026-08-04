@@ -134,9 +134,9 @@ function escapeRegExp(value: string): string {
 }
 
 function joinText(parts: Array<string | null | undefined>): string {
-  return parts.filter((value): value is string => Boolean(value?.trim())).join(
-    "\n",
-  );
+  return parts
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join("\n");
 }
 
 /**
@@ -174,7 +174,12 @@ export class QualityGateService {
     violations.push(
       ...(await this.boundaryViolations(
         creatorProfileId,
-        joinText([script.hook, script.body, script.callToAction, script.caption]),
+        joinText([
+          script.hook,
+          script.body,
+          script.callToAction,
+          script.caption,
+        ]),
       )),
     );
 

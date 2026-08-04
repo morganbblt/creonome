@@ -93,10 +93,7 @@ export function TodayBatchGenerator({
 
   return (
     <>
-      <div
-        className="flex flex-wrap gap-1.5"
-        aria-label="Opportunity filters"
-      >
+      <div className="flex flex-wrap gap-1.5" aria-label="Opportunity filters">
         {directions.map((item) => {
           const selected = selectedDirections.includes(item);
           return (
@@ -131,7 +128,10 @@ export function TodayBatchGenerator({
             : "+ 3 new opportunities · 3 credits"}
       </Button>
       {error ? (
-        <p className="m-0 ml-auto max-w-70 text-right text-xs text-destructive" role="alert">
+        <p
+          className="m-0 ml-auto max-w-70 text-right text-xs text-destructive"
+          role="alert"
+        >
           {error}
         </p>
       ) : (

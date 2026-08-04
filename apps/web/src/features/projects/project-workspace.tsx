@@ -6,7 +6,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Card } from "@/src/components/ui/card";
 import { Progress } from "@/src/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/src/components/ui/tabs";
 import { buttonVariants } from "@/src/components/ui/button";
 import { cn } from "@/src/lib/utils";
 import { ProjectExportButton } from "./project-export-button";
@@ -92,8 +97,7 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
         <header className="mb-6 flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="mb-2 font-mono text-[10px] tracking-[0.1em] text-muted-foreground uppercase">
-              Project ·{" "}
-              {project.platform?.replace("_", " ") ?? "no platform"}
+              Project · {project.platform?.replace("_", " ") ?? "no platform"}
             </p>
             <h1 className="m-0 mb-2.5 max-w-3xl text-[42px] leading-[0.98] font-semibold tracking-[-0.03em] text-foreground max-[620px]:text-3xl">
               {project.title}
@@ -284,8 +288,7 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                           <em className="self-end not-italic">
                             {String(scene.startSeconds).padStart(2, "0")}s →{" "}
                             {String(
-                              scene.startSeconds +
-                                (scene.durationSeconds ?? 0),
+                              scene.startSeconds + (scene.durationSeconds ?? 0),
                             ).padStart(2, "0")}
                             s
                           </em>
@@ -442,7 +445,10 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
               </p>
               <div className="flex flex-col divide-y divide-border">
                 {project.versions.map((version, index) => (
-                  <article className="flex gap-2.5 py-2.5 first:pt-0 last:pb-0" key={version.version}>
+                  <article
+                    className="flex gap-2.5 py-2.5 first:pt-0 last:pb-0"
+                    key={version.version}
+                  >
                     <span
                       className={cn(
                         "mt-1 size-2.25 shrink-0 rounded-full border-2 border-card",

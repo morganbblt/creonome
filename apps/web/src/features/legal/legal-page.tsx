@@ -31,7 +31,10 @@ export function LegalPage({ document }: { document: LegalDocumentSlug }) {
         </p>
         <div className="mt-13.5 grid gap-5 border-t border-border pt-9">
           {content.sections.map((section) => (
-            <p key={section} className="text-[15px] leading-relaxed text-foreground">
+            <p
+              key={section}
+              className="text-[15px] leading-relaxed text-foreground"
+            >
               {section}
             </p>
           ))}

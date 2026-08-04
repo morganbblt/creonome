@@ -315,21 +315,28 @@ function setup(options?: {
   const videoRejection = {
     passed: false,
     violations: [
-      { code: "invalid_aspect_ratio", message: "Video must be rendered in 9:16." },
+      {
+        code: "invalid_aspect_ratio",
+        message: "Video must be rendered in 9:16.",
+      },
     ],
   };
   const qualityGate = {
     evaluateScript: vi.fn(),
-    evaluateStoryboard: vi.fn().mockResolvedValue(
-      options?.storyboardGateRejects
-        ? storyboardRejection
-        : { passed: true, violations: [] },
-    ),
-    evaluateVideo: vi.fn().mockResolvedValue(
-      options?.videoGateRejects
-        ? videoRejection
-        : { passed: true, violations: [] },
-    ),
+    evaluateStoryboard: vi
+      .fn()
+      .mockResolvedValue(
+        options?.storyboardGateRejects
+          ? storyboardRejection
+          : { passed: true, violations: [] },
+      ),
+    evaluateVideo: vi
+      .fn()
+      .mockResolvedValue(
+        options?.videoGateRejects
+          ? videoRejection
+          : { passed: true, violations: [] },
+      ),
   } as unknown as QualityGateService;
 
   return {
@@ -435,14 +442,14 @@ describe("ProjectWorkflowService", () => {
       .catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(UnprocessableEntityException);
-    expect((failure as UnprocessableEntityException).getResponse()).toMatchObject(
-      {
-        retryMode: "regenerate",
-        violations: expect.arrayContaining([
-          expect.objectContaining({ code: "invalid_aspect_ratio" }),
-        ]),
-      },
-    );
+    expect(
+      (failure as UnprocessableEntityException).getResponse(),
+    ).toMatchObject({
+      retryMode: "regenerate",
+      violations: expect.arrayContaining([
+        expect.objectContaining({ code: "invalid_aspect_ratio" }),
+      ]),
+    });
     expect(qualityGate.evaluateVideo).toHaveBeenCalledWith(
       context.creatorProfileId,
       expect.objectContaining({ width: expect.any(Number) }),
@@ -592,14 +599,14 @@ describe("ProjectWorkflowService", () => {
       .catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(UnprocessableEntityException);
-    expect((failure as UnprocessableEntityException).getResponse()).toMatchObject(
-      {
-        retryMode: "regenerate",
-        violations: expect.arrayContaining([
-          expect.objectContaining({ code: "forbidden_topic" }),
-        ]),
-      },
-    );
+    expect(
+      (failure as UnprocessableEntityException).getResponse(),
+    ).toMatchObject({
+      retryMode: "regenerate",
+      violations: expect.arrayContaining([
+        expect.objectContaining({ code: "forbidden_topic" }),
+      ]),
+    });
     expect(qualityGate.evaluateStoryboard).toHaveBeenCalledWith(
       context.creatorProfileId,
       expect.objectContaining({ durationSeconds: expect.any(Number) }),

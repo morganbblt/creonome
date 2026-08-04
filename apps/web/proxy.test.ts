@@ -41,7 +41,9 @@ describe("web proxy protection", () => {
     vi.stubEnv("NODE_ENV", "development");
     const { default: proxy } = await import("./proxy");
 
-    const response = await proxy(new NextRequest("http://localhost:3000/today"));
+    const response = await proxy(
+      new NextRequest("http://localhost:3000/today"),
+    );
 
     expect(getAuth).not.toHaveBeenCalled();
     expect(response.status).toBe(200);

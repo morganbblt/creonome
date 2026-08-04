@@ -5,8 +5,7 @@ import { NeonWorkspaceRepository } from "./neon-workspace.repository.js";
 
 describe("NeonWorkspaceRepository createPersonalWorkspace", () => {
   it("journals the initial signup credit grant through the credit ledger", async () => {
-    const writes: Array<{ table: string; value: Record<string, unknown> }> =
-      [];
+    const writes: Array<{ table: string; value: Record<string, unknown> }> = [];
     const fakeDatabase = {
       insert(table: Parameters<typeof getTableName>[0]) {
         return {

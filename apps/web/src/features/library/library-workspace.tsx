@@ -56,7 +56,10 @@ const filterLabels: Record<Filter, string> = {
 
 const FILTERS = Object.keys(filterLabels) as Filter[];
 
-const kindIcons: Record<LibraryItemKind, ComponentType<{ className?: string }>> = {
+const kindIcons: Record<
+  LibraryItemKind,
+  ComponentType<{ className?: string }>
+> = {
   video: VideoIcon,
   audio: Music2Icon,
   image: ImageIcon,
@@ -67,7 +70,11 @@ const kindIcons: Record<LibraryItemKind, ComponentType<{ className?: string }>> 
 
 const statusMeta: Record<
   LibraryItem["status"],
-  { label: string; variant: BadgeVariant; icon: ComponentType<{ className?: string }> }
+  {
+    label: string;
+    variant: BadgeVariant;
+    icon: ComponentType<{ className?: string }>;
+  }
 > = {
   ready: { label: "Ready", variant: "success", icon: CheckCircle2Icon },
   uploaded: { label: "Uploaded", variant: "success", icon: CheckCircle2Icon },
@@ -242,7 +249,8 @@ export function LibraryWorkspace({ library }: { library: Library }) {
     event.preventDefault();
     dragDepth.current = 0;
     setIsDragging(false);
-    if (event.dataTransfer.files.length) void uploadFiles(event.dataTransfer.files);
+    if (event.dataTransfer.files.length)
+      void uploadFiles(event.dataTransfer.files);
   }
 
   return (
@@ -301,7 +309,8 @@ export function LibraryWorkspace({ library }: { library: Library }) {
                 className="shrink-0 rounded-full"
                 onClick={() => setFilter(item)}
               >
-                {filterLabels[item]} <span className="opacity-70">{counts[item]}</span>
+                {filterLabels[item]}{" "}
+                <span className="opacity-70">{counts[item]}</span>
               </Button>
             ))}
           </div>
@@ -332,7 +341,11 @@ export function LibraryWorkspace({ library }: { library: Library }) {
           </Alert>
         ) : null}
         {uploadStage ? (
-          <Alert variant="accent" role="status" className="mx-3.5 mt-3.5 w-auto">
+          <Alert
+            variant="accent"
+            role="status"
+            className="mx-3.5 mt-3.5 w-auto"
+          >
             <Loader2Icon className="animate-spin" />
             <AlertTitle>{uploadStage}</AlertTitle>
             <AlertDescription>
@@ -377,7 +390,10 @@ export function LibraryWorkspace({ library }: { library: Library }) {
                             {formatBytes(item.byteSize)} · {item.source}
                           </p>
                         </div>
-                        <Badge variant={status.variant} className="shrink-0 gap-1">
+                        <Badge
+                          variant={status.variant}
+                          className="shrink-0 gap-1"
+                        >
                           <StatusIcon
                             className={cn(
                               item.status === "analyzing" && "animate-spin",

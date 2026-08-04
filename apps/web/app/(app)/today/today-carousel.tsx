@@ -69,10 +69,7 @@ export function TodayCarousel({
 
   return (
     <>
-      <section
-        className="min-w-0"
-        aria-label="Creative opportunities"
-      >
+      <section className="min-w-0" aria-label="Creative opportunities">
         <div className="mb-2.5 flex items-center justify-end gap-1.5">
           <span className="mr-1 font-mono text-[10px] text-muted-foreground">
             {entries.length} opportunities

@@ -14,9 +14,9 @@ describe("GenerationToast", () => {
     );
 
     expect(screen.getByRole("status").className).toMatch(/pointer-events-none/);
-    expect(
-      screen.getByRole("button", { name: "Dismiss" }).className,
-    ).toMatch(/pointer-events-auto/);
+    expect(screen.getByRole("button", { name: "Dismiss" }).className).toMatch(
+      /pointer-events-auto/,
+    );
   });
 
   it("shows non-blocking progress and its reserved credit amount", () => {

@@ -21,8 +21,11 @@ export default async function TodayPage() {
             Three routes worth making this week.
           </h1>
           <p className="mt-3.5 text-sm text-muted-foreground">
-            Three bets for the <strong className="font-semibold text-foreground">Warehouse Tapes</strong> window. Not a
-            ranking.
+            Three bets for the{" "}
+            <strong className="font-semibold text-foreground">
+              Warehouse Tapes
+            </strong>{" "}
+            window. Not a ranking.
           </p>
         </div>
         <span className="pb-1 font-mono text-[11px] whitespace-nowrap text-muted-foreground">

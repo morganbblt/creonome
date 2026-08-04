@@ -209,11 +209,15 @@ describe("Storyboard → Video workflow", () => {
       })),
     } as unknown as CreditsService;
     const qualityGate = {
-      evaluateScript: vi.fn().mockResolvedValue({ passed: true, violations: [] }),
+      evaluateScript: vi
+        .fn()
+        .mockResolvedValue({ passed: true, violations: [] }),
       evaluateStoryboard: vi
         .fn()
         .mockResolvedValue({ passed: true, violations: [] }),
-      evaluateVideo: vi.fn().mockResolvedValue({ passed: true, violations: [] }),
+      evaluateVideo: vi
+        .fn()
+        .mockResolvedValue({ passed: true, violations: [] }),
     } as unknown as QualityGateService;
     const service = new ProjectWorkflowService(
       {

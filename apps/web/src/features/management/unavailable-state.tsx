@@ -27,7 +27,9 @@ export function UnavailableState({
         {icon ?? <RefreshCwIcon className="size-[18px]" />}
       </span>
       <div>
-        <h2 className="m-0 mb-1 text-[15px] font-semibold text-foreground">{title}</h2>
+        <h2 className="m-0 mb-1 text-[15px] font-semibold text-foreground">
+          {title}
+        </h2>
         <p className="m-0 text-xs text-muted-foreground">{description}</p>
       </div>
       <Link

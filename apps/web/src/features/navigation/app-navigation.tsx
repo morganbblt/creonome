@@ -38,9 +38,7 @@ export function AppNavigation({ className }: { className?: string }) {
               href={item.href}
               className={cn(
                 "inline-flex items-center py-5.5 text-[13px] font-semibold whitespace-nowrap text-muted-foreground decoration-2 underline-offset-8 transition-colors max-[760px]:py-5 max-[520px]:text-xs",
-                active
-                  ? "text-foreground underline"
-                  : "hover:text-foreground",
+                active ? "text-foreground underline" : "hover:text-foreground",
               )}
               aria-current={active ? "page" : undefined}
               onClick={() => {

@@ -432,14 +432,14 @@ describe("OpportunityWorkflowService", () => {
       .catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(UnprocessableEntityException);
-    expect((failure as UnprocessableEntityException).getResponse()).toMatchObject(
-      {
-        retryMode: "regenerate",
-        violations: expect.arrayContaining([
-          expect.objectContaining({ code: "forbidden_topic" }),
-        ]),
-      },
-    );
+    expect(
+      (failure as UnprocessableEntityException).getResponse(),
+    ).toMatchObject({
+      retryMode: "regenerate",
+      violations: expect.arrayContaining([
+        expect.objectContaining({ code: "forbidden_topic" }),
+      ]),
+    });
     expect(qualityGate.evaluateScript).toHaveBeenCalledWith(
       context.creatorProfileId,
       expect.objectContaining({ hook: expect.any(String) }),

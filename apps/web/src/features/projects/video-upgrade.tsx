@@ -115,9 +115,8 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
               Turn this storyboard into a vertical motion preview
             </DialogTitle>
             <DialogDescription>
-              Creonome attempts a real 9:16 Veo render first, with the
-              resilient deterministic preview ready if the provider is
-              unavailable.
+              Creonome attempts a real 9:16 Veo render first, with the resilient
+              deterministic preview ready if the provider is unavailable.
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
@@ -125,7 +124,11 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
             preview is rendered.
           </p>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="button" onClick={generateVideo}>

@@ -159,7 +159,12 @@ export function ProjectIndex({ projects }: { projects: ProjectSummary[] }) {
               >
                 {project.score ?? "—"}
               </span>
-              <Button asChild variant="outline" size="sm" className="justify-self-end">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="justify-self-end"
+              >
                 <Link
                   href={`/projects/${project.id}`}
                   aria-label={`Open ${project.title}`}

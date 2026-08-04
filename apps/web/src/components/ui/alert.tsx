@@ -8,7 +8,8 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "border-border bg-card text-card-foreground",
-        accent: "border-accent/25 bg-accent-soft text-accent-soft-foreground [&>svg]:text-accent",
+        accent:
+          "border-accent/25 bg-accent-soft text-accent-soft-foreground [&>svg]:text-accent",
         destructive:
           "border-destructive/25 bg-destructive/8 text-destructive [&>svg]:text-destructive",
       },
@@ -38,17 +39,26 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-title"
-      className={cn("col-start-2 min-h-4 font-medium leading-tight tracking-tight", className)}
+      className={cn(
+        "col-start-2 min-h-4 font-medium leading-tight tracking-tight",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-function AlertDescription({ className, ...props }: React.ComponentProps<"div">) {
+function AlertDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-description"
-      className={cn("col-start-2 text-sm text-muted-foreground [&_p]:leading-relaxed", className)}
+      className={cn(
+        "col-start-2 text-sm text-muted-foreground [&_p]:leading-relaxed",
+        className,
+      )}
       {...props}
     />
   );

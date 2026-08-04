@@ -115,16 +115,20 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
               Turn this script into a shootable sequence
             </DialogTitle>
             <DialogDescription>
-              Timecodes, framing, action, audio, assets and edit notes for
-              every scene.
+              Timecodes, framing, action, audio, assets and edit notes for every
+              scene.
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            4 credits will be reserved. They are only charged if the
-            storyboard is generated.
+            4 credits will be reserved. They are only charged if the storyboard
+            is generated.
           </p>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="button" onClick={generateStoryboard}>
