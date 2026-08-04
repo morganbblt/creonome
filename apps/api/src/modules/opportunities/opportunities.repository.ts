@@ -1,4 +1,8 @@
 import type { OpportunityFeedbackAction } from "@creonome/contracts";
+import type {
+  OpportunityScoringDnaTrait,
+  OpportunityScoringRecent,
+} from "./opportunity-scoring.js";
 
 export type OpportunityRecord = {
   id: string;
@@ -124,6 +128,20 @@ export type CreateOpportunityBatchInput = {
   idempotencyKey: string;
   opportunities: GeneratedOpportunity[];
   trendSignals: TrendSignalRecord[];
+  /**
+   * The workspace's current Creator DNA traits, used to compute real
+   * scoreDnaFit and scoreFeasibility values instead of copying the LLM's
+   * aggregate score. Empty when Creator DNA has not been generated yet or
+   * could not be loaded — see opportunity-scoring.ts for the documented
+   * fallback baselines.
+   */
+  dnaTraits: OpportunityScoringDnaTrait[];
+  /**
+   * The workspace's currently active opportunities, used to compute a real
+   * scoreNovelty value by measuring text-similarity distance instead of
+   * copying the LLM's aggregate score.
+   */
+  recentOpportunities: OpportunityScoringRecent[];
 };
 
 export type GeneratedOpportunityRevision = {

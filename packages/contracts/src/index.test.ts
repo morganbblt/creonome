@@ -499,6 +499,12 @@ describe("shared API contracts", () => {
           source: "sample",
           reason: "Synthetic signal set for the deterministic demo.",
         },
+        subScores: {
+          momentum: 82,
+          dnaFit: 91,
+          novelty: 68,
+          feasibility: 88,
+        },
       }).currentLevel,
     ).toBe("idea");
   });

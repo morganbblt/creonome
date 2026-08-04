@@ -24,6 +24,7 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/src/components/ui/dialog";
+import { Progress } from "@/src/components/ui/progress";
 import {
   Sheet,
   SheetContent,
@@ -36,6 +37,12 @@ import { Textarea } from "@/src/components/ui/textarea";
 import { cn } from "@/src/lib/utils";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
+import {
+  buildSubScoreBreakdown,
+  listOpportunityCaveats,
+  listOpportunityStrengths,
+  summarizeOpportunityFit,
+} from "./opportunity-fit-summary";
 import { pollGenerationJob } from "../generation/poll-generation-job";
 import { splitScriptSegments } from "../projects/script-segments";
 
@@ -489,6 +496,57 @@ export function OpportunityWorkspace({
                 <span className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
                   Why this fits
                 </span>
+                <div
+                  className="flex flex-col gap-3 rounded-card border border-border bg-card p-4"
+                  aria-label="Sub-score breakdown"
+                >
+                  {buildSubScoreBreakdown(opportunity.subScores).map((item) => (
+                    <div
+                      key={item.dimension}
+                      className="flex flex-col gap-1"
+                      data-testid="sub-score-item"
+                      data-tone={item.tone}
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-xs font-medium text-foreground">
+                          {item.label}
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {item.value}/100
+                        </span>
+                      </div>
+                      <Progress className="h-1" value={item.value} />
+                    </div>
+                  ))}
+                  <p className="m-0 text-sm leading-[1.5] text-foreground">
+                    {summarizeOpportunityFit(opportunity.subScores)}
+                  </p>
+                  {listOpportunityStrengths(opportunity.subScores).length ||
+                  listOpportunityCaveats(opportunity.subScores).length ? (
+                    <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                      {listOpportunityStrengths(opportunity.subScores).map(
+                        (item) => (
+                          <li
+                            key={item}
+                            className="text-[13px] leading-[1.5] text-muted-foreground before:mr-2 before:text-accent before:content-['+']"
+                          >
+                            {item}
+                          </li>
+                        ),
+                      )}
+                      {listOpportunityCaveats(opportunity.subScores).map(
+                        (item) => (
+                          <li
+                            key={item}
+                            className="text-[13px] leading-[1.5] text-muted-foreground before:mr-2 before:content-['−']"
+                          >
+                            {item}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  ) : null}
+                </div>
                 <div
                   className="rounded-card border border-border bg-card p-4"
                   data-status={opportunity.trendSignal.status}

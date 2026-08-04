@@ -32,11 +32,39 @@ const opportunity: OpportunityDetail = {
     source: "trend_radar",
     reason: null,
   },
+  subScores: {
+    momentum: 88,
+    dnaFit: 91,
+    novelty: 62,
+    feasibility: 40,
+  },
 };
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("OpportunityWorkspace", () => {
+  it("shows the real sub-score breakdown and text derived from those values", () => {
+    render(<OpportunityWorkspace opportunity={opportunity} />);
+
+    const items = screen.getAllByTestId("sub-score-item");
+    expect(items).toHaveLength(4);
+    expect(screen.getByText("Momentum")).toBeTruthy();
+    expect(screen.getByText("Creator DNA fit")).toBeTruthy();
+    expect(screen.getByText("Novelty")).toBeTruthy();
+    expect(screen.getByText("Feasibility")).toBeTruthy();
+    expect(screen.getByText("88/100")).toBeTruthy();
+    expect(screen.getByText("91/100")).toBeTruthy();
+    expect(screen.getByText("62/100")).toBeTruthy();
+    expect(screen.getByText("40/100")).toBeTruthy();
+
+    expect(
+      screen.getAllByText(/creator dna fit is strong \(91\/100\)/i).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/feasibility is limited \(40\/100\)/i).length,
+    ).toBeGreaterThan(0);
+  });
+
   it("shows existing project maturity without offering a paid downgrade", () => {
     render(
       <OpportunityWorkspace

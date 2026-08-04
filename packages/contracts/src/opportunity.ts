@@ -52,6 +52,20 @@ const UnavailableTrendSignal = {
   reason: "No normalized trend signal is attached to this opportunity.",
 };
 
+/**
+ * The four independently-computed opportunity sub-scores that combine
+ * (via documented weights) into the aggregate `score`. See
+ * apps/api/src/modules/opportunities/opportunity-scoring.ts for the exact
+ * formula and how the product bible's seven weighted factors map onto
+ * these four columns.
+ */
+export const OpportunitySubScoresSchema = z.object({
+  momentum: z.number().int().min(0).max(100),
+  dnaFit: z.number().int().min(0).max(100),
+  novelty: z.number().int().min(0).max(100),
+  feasibility: z.number().int().min(0).max(100),
+});
+
 export const OpportunityDetailSchema = OpportunitySchema.extend({
   currentLevel: ProjectLevelSchema,
   projectId: z.uuid().nullable(),
@@ -63,6 +77,7 @@ export const OpportunityDetailSchema = OpportunitySchema.extend({
   estimatedDurationSeconds: z.number().int().positive().max(600).nullable(),
   evidence: z.array(z.string().trim().min(3).max(240)).max(4),
   trendSignal: TrendSignalSchema.default(UnavailableTrendSignal),
+  subScores: OpportunitySubScoresSchema,
 });
 
 export const OpportunityMemoryScopeSchema = z.enum([
@@ -134,6 +149,7 @@ export const UpgradeOpportunityResultSchema = z.object({
 export type Opportunity = z.infer<typeof OpportunitySchema>;
 export type OpportunityBatch = z.infer<typeof OpportunityBatchSchema>;
 export type OpportunityDetail = z.infer<typeof OpportunityDetailSchema>;
+export type OpportunitySubScores = z.infer<typeof OpportunitySubScoresSchema>;
 export type TrendSignal = z.infer<typeof TrendSignalSchema>;
 export type OpportunityMemoryScope = z.infer<
   typeof OpportunityMemoryScopeSchema
