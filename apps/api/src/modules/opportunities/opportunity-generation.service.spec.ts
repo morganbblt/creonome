@@ -92,7 +92,7 @@ function setup(existing: OpportunityRecord[] = []) {
   ];
   const repository: OpportunitiesRepository = {
     listTrendSignals: vi.fn().mockResolvedValue(trendSignals),
-    listCurrent: vi.fn(),
+    listCurrent: vi.fn().mockResolvedValue([]),
     findById: vi.fn(),
     saveAsProject: vi.fn(),
     findByIdempotency: vi.fn().mockResolvedValue(existing),
@@ -173,6 +173,7 @@ function setup(existing: OpportunityRecord[] = []) {
     trendSignals,
     enqueue,
     jobs,
+    dna,
   };
 }
 
@@ -264,6 +265,8 @@ describe("OpportunityGenerationService.executeQueuedBatch", () => {
         workspaceId: context.workspaceId,
         idempotencyKey: "request-2026-08-02",
         trendSignals,
+        dnaTraits: [],
+        recentOpportunities: [],
       }),
     );
     expect(jobs.markSucceeded).toHaveBeenCalledWith(
@@ -275,6 +278,67 @@ describe("OpportunityGenerationService.executeQueuedBatch", () => {
       3,
       "request-2026-08-02:commit",
       "Generated three opportunities",
+    );
+  });
+
+  it("passes real Creator DNA traits and recent opportunities through for scoring", async () => {
+    const { service, repository, dna } = setup();
+    vi.mocked(dna.getForWorkspaceContext).mockResolvedValueOnce({
+      version: 1,
+      summary: "Nocturnal, restrained and tactile.",
+      confirmed: true,
+      traits: [
+        {
+          id: "0198f3a2-82dd-7000-8000-000000000050",
+          category: "voice",
+          label: "Tone",
+          value: "precise, intimate, never over-explained",
+          confidence: 0.95,
+          evidence: {},
+        },
+      ],
+    });
+    vi.mocked(repository.listCurrent).mockResolvedValueOnce([
+      {
+        id: "0198f3a2-82dd-7000-8000-000000000060",
+        position: 1,
+        title: "An already-live idea",
+        pitch: "A currently active opportunity in this workspace.",
+        scoreOverall: 80,
+        scoreConfidence: "high",
+        scoreMomentum: 80,
+        scoreDnaFit: 80,
+        scoreNovelty: 80,
+        scoreFeasibility: 80,
+        rationale: null,
+        effort: "low",
+        platform: "tiktok",
+        estimatedDurationSeconds: null,
+        projectId: null,
+        projectCurrentLevel: null,
+        availableAt: new Date("2026-08-01T09:00:00.000Z"),
+      },
+    ]);
+
+    await service.executeQueuedBatch(jobId);
+
+    expect(repository.createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dnaTraits: [
+          expect.objectContaining({
+            category: "voice",
+            label: "Tone",
+            value: "precise, intimate, never over-explained",
+            confidence: 0.95,
+          }),
+        ],
+        recentOpportunities: [
+          {
+            title: "An already-live idea",
+            pitch: "A currently active opportunity in this workspace.",
+          },
+        ],
+      }),
     );
   });
 

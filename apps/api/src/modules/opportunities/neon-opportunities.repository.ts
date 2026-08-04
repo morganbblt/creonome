@@ -17,6 +17,7 @@ import {
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import { currentOpportunityStatuses } from "./opportunities.repository.js";
+import { computeOpportunitySubScores } from "./opportunity-scoring.js";
 import type {
   CreateOpportunityBatchInput,
   CreateOpportunityRevisionInput,
@@ -333,30 +334,50 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
     const database = this.requireDatabase();
     const batchId = randomUUID();
     const availableAt = new Date();
-    const rows = input.opportunities.map((concept, index) => ({
-      id: randomUUID(),
-      batchId,
-      workspaceId: input.workspaceId,
-      creatorProfileId: input.creatorProfileId,
-      trendClusterId: input.trendSignals[index]?.id ?? null,
-      position: index + 1,
-      strategy: ["signature", "stretch", "repeatable"][index]!,
-      title: concept.title,
-      pitch: concept.pitch,
-      rationale: input.trendSignals[index]
-        ? `Matched Creator DNA against the ${input.trendSignals[index]!.title} signal (${input.trendSignals[index]!.lifecycle}, ${input.trendSignals[index]!.momentumScore}/100 momentum).`
-        : "Generated from Creator DNA and current memory; no normalized trend signal was available.",
-      currentLevel: "idea",
-      scoreOverall: concept.score,
-      scoreMomentum: input.trendSignals[index]?.momentumScore ?? concept.score,
-      scoreDnaFit: concept.score,
-      scoreNovelty: concept.score,
-      scoreFeasibility: concept.score,
-      scoreConfidence: concept.confidence,
-      effort: index === 1 ? "medium" : "low",
-      platform: "tiktok",
-      status: "available",
-    }));
+    const rows = input.opportunities.map((concept, index) => {
+      const trendSignal = input.trendSignals[index];
+      // Each sub-score is computed independently from real signals (trend
+      // data, Creator DNA traits, recent opportunities) instead of copying
+      // the LLM's single aggregate `concept.score`. See
+      // opportunity-scoring.ts for the full documented formula.
+      const subScores = computeOpportunitySubScores({
+        concept: { title: concept.title, pitch: concept.pitch },
+        trend: trendSignal
+          ? {
+              momentumScore: trendSignal.momentumScore,
+              lifecycle: trendSignal.lifecycle,
+              lastSeenAt: trendSignal.lastSeenAt,
+            }
+          : null,
+        dnaTraits: input.dnaTraits,
+        recentOpportunities: input.recentOpportunities,
+        now: availableAt,
+      });
+      return {
+        id: randomUUID(),
+        batchId,
+        workspaceId: input.workspaceId,
+        creatorProfileId: input.creatorProfileId,
+        trendClusterId: trendSignal?.id ?? null,
+        position: index + 1,
+        strategy: ["signature", "stretch", "repeatable"][index]!,
+        title: concept.title,
+        pitch: concept.pitch,
+        rationale: trendSignal
+          ? `Matched Creator DNA against the ${trendSignal.title} signal (${trendSignal.lifecycle}, ${trendSignal.momentumScore}/100 momentum).`
+          : "Generated from Creator DNA and current memory; no normalized trend signal was available.",
+        currentLevel: "idea",
+        scoreOverall: subScores.overall,
+        scoreMomentum: subScores.momentum,
+        scoreDnaFit: subScores.dnaFit,
+        scoreNovelty: subScores.novelty,
+        scoreFeasibility: subScores.feasibility,
+        scoreConfidence: concept.confidence,
+        effort: index === 1 ? "medium" : "low",
+        platform: "tiktok",
+        status: "available",
+      };
+    });
 
     await database.batch([
       database.insert(opportunityBatches).values({

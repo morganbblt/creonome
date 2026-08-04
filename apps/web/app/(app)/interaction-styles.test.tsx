@@ -33,6 +33,12 @@ const opportunity = {
     source: "trend_radar" as const,
     reason: null,
   },
+  subScores: {
+    momentum: 88,
+    dnaFit: 96,
+    novelty: 70,
+    feasibility: 82,
+  },
 };
 
 describe("requested interaction styles", () => {

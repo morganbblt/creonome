@@ -37,6 +37,7 @@ import {
   type OpportunitiesRepository,
   type TrendSignalRecord,
 } from "./opportunities.repository.js";
+import type { OpportunityScoringDnaTrait } from "./opportunity-scoring.js";
 
 const GeneratedSetSchema = z.object({
   opportunities: z
@@ -207,20 +208,37 @@ export class OpportunityGenerationService {
 
     let persisted = false;
     try {
-      const trendSignals = await this.repository
-        .listTrendSignals(workspaceId)
-        .catch(() => []);
+      const [trendSignals, recentOpportunities] = await Promise.all([
+        this.repository.listTrendSignals(workspaceId).catch(() => []),
+        this.repository.listCurrent(workspaceId).catch(() => []),
+      ]);
+      // dnaTraits is only populated when the Creator DNA fetch inside
+      // generateOpportunities actually succeeds; if it (or the LLM call)
+      // fails, we fall back to canned opportunities and score them with no
+      // known DNA/production-constraint data, per opportunity-scoring.ts's
+      // documented fallback baselines.
+      let dnaTraits: OpportunityScoringDnaTrait[] = [];
       const generated = await this.generateOpportunities(
         context,
         direction,
         trendSignals,
-      ).catch(() => this.localOpportunities(direction));
+      )
+        .then((result) => {
+          dnaTraits = result.dnaTraits;
+          return result.opportunities;
+        })
+        .catch(() => this.localOpportunities(direction));
       const records = await this.repository.createBatch({
         workspaceId,
         creatorProfileId: context.creatorProfileId,
         idempotencyKey: job.idempotencyKey,
         opportunities: generated,
         trendSignals,
+        dnaTraits,
+        recentOpportunities: recentOpportunities.map((record) => ({
+          title: record.title,
+          pitch: record.pitch,
+        })),
       });
       await this.jobs.markSucceeded(jobId, {
         opportunityIds: records.map((record) => record.id),
@@ -259,9 +277,17 @@ export class OpportunityGenerationService {
 
   private async generateOpportunities(
     context: { workspaceId: string; creatorProfileId: string },
-    direction?: string,
-    trendSignals: TrendSignalRecord[] = [],
-  ): Promise<GeneratedOpportunity[]> {
+    direction: string | undefined,
+    trendSignals: TrendSignalRecord[],
+  ): Promise<{
+    opportunities: GeneratedOpportunity[];
+    dnaTraits: OpportunityScoringDnaTrait[];
+  }> {
+    // A rejected Creator DNA fetch rejects this whole Promise.all, which
+    // propagates up to the `.catch(() => this.localOpportunities(...))` in
+    // executeQueuedBatch — a missing/unreadable Creator DNA still falls
+    // back to the canned local opportunities, exactly as before this
+    // method started also returning dnaTraits for scoring.
     const [dna, memories] = await Promise.all([
       this.creatorDna.getForWorkspaceContext(context),
       this.memory
@@ -294,7 +320,7 @@ export class OpportunityGenerationService {
       schema: GeneratedSetSchema,
       jsonSchema: generatedSetJsonSchema,
     });
-    return generated.opportunities;
+    return { opportunities: generated.opportunities, dnaTraits: dna.traits };
   }
 
   private localOpportunities(direction?: string): GeneratedOpportunity[] {

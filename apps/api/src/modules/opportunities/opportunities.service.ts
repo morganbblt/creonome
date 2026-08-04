@@ -131,6 +131,12 @@ export class OpportunitiesService {
           ? "Shootable with the creator's existing production habits."
           : "Plan one extra production pass before shooting.",
       ],
+      subScores: {
+        momentum: row.scoreMomentum,
+        dnaFit: row.scoreDnaFit,
+        novelty: row.scoreNovelty,
+        feasibility: row.scoreFeasibility,
+      },
     });
   }
 
