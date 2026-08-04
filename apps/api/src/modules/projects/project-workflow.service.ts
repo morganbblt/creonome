@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import {
   UpgradeProjectResultSchema,
@@ -19,6 +20,10 @@ import {
 } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CreditsService, creditCosts } from "../credits/credits.service.js";
+import {
+  QualityGateRejectedError,
+  QualityGateService,
+} from "../quality-gate/quality-gate.service.js";
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
   PROJECTS_REPOSITORY,
@@ -26,6 +31,7 @@ import {
   type ProjectsRepository,
   type StoryboardSourceRecord,
   type StoryboardUpgradeRecord,
+  type VideoSourceRecord,
   type VideoUpgradeRecord,
 } from "./projects.repository.js";
 import { VIDEO_PROVIDER, type VideoProvider } from "./video/video-provider.js";
@@ -154,6 +160,8 @@ export class ProjectWorkflowService {
     private readonly generator: StructuredGenerator,
     @Inject(VIDEO_PROVIDER)
     private readonly videoProvider: VideoProvider,
+    @Inject(QualityGateService)
+    private readonly qualityGate: QualityGateService,
   ) {}
 
   async upgrade(
@@ -217,6 +225,13 @@ export class ProjectWorkflowService {
     let persisted = false;
     try {
       const generated = await this.generateStoryboard(source);
+      const gate = await this.qualityGate.evaluateStoryboard(
+        context.creatorProfileId,
+        generated.storyboard,
+      );
+      if (!gate.passed) {
+        throw new QualityGateRejectedError(gate.violations);
+      }
       const upgrade = await this.repository.createStoryboardUpgrade({
         ...context,
         projectId,
@@ -247,6 +262,14 @@ export class ProjectWorkflowService {
           );
         } catch {
           throw error;
+        }
+        if (error instanceof QualityGateRejectedError) {
+          throw new UnprocessableEntityException({
+            message:
+              "Storyboard generation failed the pre-publish content review",
+            retryMode: "regenerate",
+            violations: error.violations,
+          });
         }
         throw new ServiceUnavailableException({
           message: "Storyboard generation could not be completed",
@@ -316,6 +339,17 @@ export class ProjectWorkflowService {
         idempotencyKey,
         source,
       });
+      const gate = await this.qualityGate.evaluateVideo(
+        context.creatorProfileId,
+        {
+          width: artifact.width,
+          height: artifact.height,
+          sourceText: this.videoSourceText(source),
+        },
+      );
+      if (!gate.passed) {
+        throw new QualityGateRejectedError(gate.violations);
+      }
       const upgrade = await this.repository.createVideoUpgrade({
         workspaceId: context.workspaceId,
         userId: context.userId,
@@ -346,6 +380,13 @@ export class ProjectWorkflowService {
         } catch {
           throw error;
         }
+        if (error instanceof QualityGateRejectedError) {
+          throw new UnprocessableEntityException({
+            message: "Video generation failed the pre-publish content review",
+            retryMode: "regenerate",
+            violations: error.violations,
+          });
+        }
         throw new ServiceUnavailableException({
           message: "Video generation could not be completed",
           retryMode: "new_request",
@@ -353,6 +394,23 @@ export class ProjectWorkflowService {
       }
       throw error;
     }
+  }
+
+  private videoSourceText(source: VideoSourceRecord): string {
+    return [
+      source.script.hook,
+      source.script.body,
+      source.script.callToAction,
+      source.script.caption,
+      ...source.storyboard.scenes.flatMap((scene) => [
+        scene.heading,
+        scene.description,
+        scene.voiceover,
+        scene.onScreenText,
+      ]),
+    ]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .join("\n");
   }
 
   private async generateStoryboard(source: StoryboardSourceRecord): Promise<{

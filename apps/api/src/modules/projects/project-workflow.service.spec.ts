@@ -2,11 +2,13 @@ import {
   HttpException,
   NotFoundException,
   ServiceUnavailableException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import type { CreditsService } from "../credits/credits.service.js";
+import type { QualityGateService } from "../quality-gate/quality-gate.service.js";
 import type { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import type { ProjectsRepository } from "./projects.repository.js";
 import { ProjectWorkflowService } from "./project-workflow.service.js";
@@ -217,6 +219,8 @@ function setup(options?: {
   persistenceRejects?: boolean;
   realVideo?: boolean;
   videoRejects?: boolean;
+  storyboardGateRejects?: boolean;
+  videoGateRejects?: boolean;
 }) {
   const workspaces = {
     resolve: vi.fn().mockResolvedValue(context),
@@ -298,6 +302,35 @@ function setup(options?: {
             options?.realVideo ? realVideo : deterministicVideo,
           ),
   } as VideoProvider;
+  const storyboardRejection = {
+    passed: false,
+    violations: [
+      {
+        code: "forbidden_topic",
+        message:
+          'Generated content references "alcohol", which conflicts with the creator boundary "No alcohol brand promotions".',
+      },
+    ],
+  };
+  const videoRejection = {
+    passed: false,
+    violations: [
+      { code: "invalid_aspect_ratio", message: "Video must be rendered in 9:16." },
+    ],
+  };
+  const qualityGate = {
+    evaluateScript: vi.fn(),
+    evaluateStoryboard: vi.fn().mockResolvedValue(
+      options?.storyboardGateRejects
+        ? storyboardRejection
+        : { passed: true, violations: [] },
+    ),
+    evaluateVideo: vi.fn().mockResolvedValue(
+      options?.videoGateRejects
+        ? videoRejection
+        : { passed: true, violations: [] },
+    ),
+  } as unknown as QualityGateService;
 
   return {
     service: new ProjectWorkflowService(
@@ -306,10 +339,12 @@ function setup(options?: {
       credits,
       generator,
       videoProvider,
+      qualityGate,
     ),
     repository,
     credits,
     videoProvider,
+    qualityGate,
   };
 }
 
@@ -383,6 +418,43 @@ describe("ProjectWorkflowService", () => {
     expect(credits.reserve).toHaveBeenCalledTimes(1);
     expect(credits.commit).toHaveBeenCalledTimes(1);
     expect(credits.release).not.toHaveBeenCalled();
+  });
+
+  it("rejects a video whose render fails the pre-publish content gate and releases the reservation", async () => {
+    const { service, credits, repository, qualityGate } = setup({
+      videoGateRejects: true,
+    });
+
+    const failure = await service
+      .upgrade(
+        principal,
+        projectId,
+        { targetLevel: "video", confirmedCreditCost: true },
+        "upgrade-video-gate-rejected",
+      )
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(UnprocessableEntityException);
+    expect((failure as UnprocessableEntityException).getResponse()).toMatchObject(
+      {
+        retryMode: "regenerate",
+        violations: expect.arrayContaining([
+          expect.objectContaining({ code: "invalid_aspect_ratio" }),
+        ]),
+      },
+    );
+    expect(qualityGate.evaluateVideo).toHaveBeenCalledWith(
+      context.creatorProfileId,
+      expect.objectContaining({ width: expect.any(Number) }),
+    );
+    expect(repository.createVideoUpgrade).not.toHaveBeenCalled();
+    expect(credits.commit).not.toHaveBeenCalled();
+    expect(credits.release).toHaveBeenCalledWith(
+      context.workspaceId,
+      12,
+      "upgrade-video-gate-rejected:release",
+      expect.stringMatching(/failed/i),
+    );
   });
 
   it("refunds the reservation only when neither video provider produced an artifact", async () => {
@@ -503,6 +575,43 @@ describe("ProjectWorkflowService", () => {
     );
     expect(credits.commit).toHaveBeenCalled();
     expect(credits.release).not.toHaveBeenCalled();
+  });
+
+  it("rejects a storyboard that fails the pre-publish content gate and releases the reservation", async () => {
+    const { service, credits, repository, qualityGate } = setup({
+      storyboardGateRejects: true,
+    });
+
+    const failure = await service
+      .upgrade(
+        principal,
+        projectId,
+        { targetLevel: "storyboard", confirmedCreditCost: true },
+        "upgrade-storyboard-gate-rejected",
+      )
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(UnprocessableEntityException);
+    expect((failure as UnprocessableEntityException).getResponse()).toMatchObject(
+      {
+        retryMode: "regenerate",
+        violations: expect.arrayContaining([
+          expect.objectContaining({ code: "forbidden_topic" }),
+        ]),
+      },
+    );
+    expect(qualityGate.evaluateStoryboard).toHaveBeenCalledWith(
+      context.creatorProfileId,
+      expect.objectContaining({ durationSeconds: expect.any(Number) }),
+    );
+    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
+    expect(credits.commit).not.toHaveBeenCalled();
+    expect(credits.release).toHaveBeenCalledWith(
+      context.workspaceId,
+      4,
+      "upgrade-storyboard-gate-rejected:release",
+      expect.stringMatching(/failed/i),
+    );
   });
 
   it("releases the reservation if persistence fails", async () => {
