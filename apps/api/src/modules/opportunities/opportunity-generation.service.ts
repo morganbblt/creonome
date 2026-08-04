@@ -14,6 +14,7 @@ import {
 import { z } from "zod";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CreatorDnaService } from "../creator-dna/creator-dna.service.js";
+import { buildHardConstraintsPromptLine } from "../creator-dna/forbidden-constraints.js";
 import { CreditsService } from "../credits/credits.service.js";
 import { GenerationJobEnqueueService } from "../jobs/generation-job-enqueue.service.js";
 import { toGenerationJobContract } from "../jobs/generation-job.mapper.js";
@@ -316,6 +317,7 @@ export class OpportunityGenerationService {
         }`,
         `Direction: ${direction ?? "balanced"}`,
         "Do not copy trend wording and do not claim guaranteed virality.",
+        buildHardConstraintsPromptLine(dna.traits),
       ].join("\n"),
       schema: GeneratedSetSchema,
       jsonSchema: generatedSetJsonSchema,

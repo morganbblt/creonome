@@ -293,6 +293,7 @@ describe("OpportunityGenerationService.executeQueuedBatch", () => {
           category: "voice",
           label: "Tone",
           value: "precise, intimate, never over-explained",
+          layer: "observed",
           confidence: 0.95,
           evidence: {},
         },

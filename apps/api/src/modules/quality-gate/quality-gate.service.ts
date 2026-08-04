@@ -270,7 +270,19 @@ export class QualityGateService {
     const normalizedText = text.toLowerCase();
     const violations: QualityGateViolation[] = [];
     for (const trait of dna.traits) {
-      if (trait.category !== "boundary") continue;
+      // Only the "forbidden" layer (Creator DNA bible §11.1) is enforced
+      // here as a hard, rejection-worthy constraint. Historically this
+      // checked `category === "boundary"` directly, which conflated "is a
+      // boundary-shaped trait" with "is a non-negotiable constraint" --
+      // every boundary-category trait created by onboarding is always
+      // promoted to layer="forbidden" (see onboarding-mapping.ts), so this
+      // is a strict generalization, not a behavior change for existing
+      // data. It also means a "learned" avoidance pattern (a softer,
+      // inferred signal -- see MemoryCandidatesService.approve) is
+      // deliberately *not* enforced here even though it may share the same
+      // "boundary"-like vocabulary; only an explicit forbidden entry is
+      // treated as non-negotiable.
+      if (trait.layer !== "forbidden") continue;
       const keywords = extractForbiddenKeywords(trait.value);
       const matched = keywords.find((keyword) =>
         new RegExp(`\\b${escapeRegExp(keyword)}\\b`, "i").test(normalizedText),

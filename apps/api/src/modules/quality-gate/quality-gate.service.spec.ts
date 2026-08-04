@@ -7,7 +7,9 @@ import {
 
 const creatorProfileId = "0198f3a2-82dd-7000-8000-000000000012";
 
-function setup(traits: Array<{ category: string; value: string }> = []) {
+function setup(
+  traits: Array<{ category: string; value: string; layer?: string }> = [],
+) {
   const creatorDna = {
     getCurrent: vi.fn().mockResolvedValue({
       id: "dna-1",
@@ -19,6 +21,13 @@ function setup(traits: Array<{ category: string; value: string }> = []) {
         category: trait.category,
         label: trait.category,
         value: trait.value,
+        // Boundary-category fixtures default to the forbidden layer to
+        // match what onboarding-mapping.ts always produces; tests that
+        // want to prove layer (not category) is the source of truth pass
+        // an explicit override.
+        layer:
+          trait.layer ??
+          (trait.category === "boundary" ? "forbidden" : "observed"),
         confidence: null,
         evidence: {},
       })),
@@ -77,6 +86,45 @@ describe("QualityGateService.evaluateScript", () => {
       ]),
     );
     expect(creatorDna.getCurrent).toHaveBeenCalledWith(creatorProfileId);
+  });
+
+  it("does not reject a boundary-category trait whose layer is not forbidden", async () => {
+    const { service } = setup([
+      {
+        category: "boundary",
+        value: "No alcohol brand promotions",
+        layer: "learned",
+      },
+    ]);
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: "Grab a cold beer from our alcohol sponsor before we start.",
+      body: "Then we get into the studio session and build the beat together.",
+      callToAction: "Follow for part two.",
+      caption: null,
+    });
+
+    expect(result.passed).toBe(true);
+  });
+
+  it("rejects a forbidden-layer trait outside the boundary category", async () => {
+    const { service } = setup([
+      { category: "person", value: "Jane Doe", layer: "forbidden" },
+    ]);
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: "Shoutout to Jane Doe for the inspiration.",
+      body: "Then we get into the studio session and build the beat together.",
+      callToAction: "Follow for part two.",
+      caption: null,
+    });
+
+    expect(result.passed).toBe(false);
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "forbidden_topic" }),
+      ]),
+    );
   });
 
   it("rejects a script that is missing a call to action", async () => {

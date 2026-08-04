@@ -18,6 +18,7 @@ describe("NeonCreatorDnaRepository.restoreVersion", () => {
           category: "voice",
           label: "Tone",
           value: "precise and intimate",
+          layer: "declared",
           confidence: "0.950",
           evidence: { source: "creator_edit" },
         },
@@ -37,6 +38,7 @@ describe("NeonCreatorDnaRepository.restoreVersion", () => {
           category: "voice",
           label: "Tone",
           value: "warm and playful",
+          layer: "observed",
           confidence: "0.800",
           evidence: { source: "onboarding" },
         },
@@ -90,6 +92,7 @@ describe("NeonCreatorDnaRepository.restoreVersion", () => {
       category: "voice",
       label: "Tone",
       value: "warm and playful", // copied from the target version's trait
+      layer: "observed", // the target trait's layer, also copied verbatim
       confidence: "0.800",
     });
     expect(traitsInsert[0]!.evidence).toMatchObject({
@@ -120,6 +123,183 @@ describe("NeonCreatorDnaRepository.restoreVersion", () => {
     await expect(
       repository.restoreVersion("profile-1", "user-1", 999),
     ).resolves.toBeNull();
+    expect(database.batch).not.toHaveBeenCalled();
+  });
+});
+
+describe("NeonCreatorDnaRepository.upsertLearnedTrait", () => {
+  function databaseHarness() {
+    const insertCalls: Array<{ table: unknown; values: unknown }> = [];
+    const database = {
+      insert: vi.fn((table: unknown) => ({
+        values: (values: unknown) => {
+          insertCalls.push({ table, values });
+          return { table, values };
+        },
+      })),
+      batch: vi.fn(async () => []),
+      update: vi.fn(),
+      delete: vi.fn(),
+    };
+    return { database, insertCalls };
+  }
+
+  it("returns null when the creator has no Creator DNA yet", async () => {
+    const { database } = databaseHarness();
+    const repository = new NeonCreatorDnaRepository(database as never);
+    vi.spyOn(repository, "getCurrent").mockResolvedValue(null);
+
+    await expect(
+      repository.upsertLearnedTrait("profile-1", {
+        category: "avoidance",
+        label: "Learned avoidance pattern",
+        value: "Confirmed 2 times via creator feedback.",
+        confidence: "0.600",
+        evidence: { source: "learned_pattern" },
+      }),
+    ).resolves.toBeNull();
+    expect(database.batch).not.toHaveBeenCalled();
+  });
+
+  it('adds a new layer="learned" trait alongside the existing ones', async () => {
+    const { database, insertCalls } = databaseHarness();
+    const current: CreatorDnaRecord = {
+      id: "current-version-id",
+      version: 3,
+      summary: "Current summary",
+      confirmed: true,
+      traits: [
+        {
+          id: "existing-trait-id",
+          category: "voice",
+          label: "Tone",
+          value: "precise and intimate",
+          layer: "declared",
+          confidence: "0.950",
+          evidence: {},
+        },
+      ],
+    };
+    const repository = new NeonCreatorDnaRepository(database as never);
+    vi.spyOn(repository, "getCurrent")
+      .mockResolvedValueOnce(current)
+      .mockResolvedValueOnce({
+        ...current,
+        version: 4,
+      });
+
+    await repository.upsertLearnedTrait("profile-1", {
+      category: "avoidance",
+      label: "Learned avoidance pattern",
+      value: 'Confirmed 2 times via creator feedback. Most recent: "Avoid X."',
+      confidence: "0.600",
+      evidence: { source: "learned_pattern", action: "never_use" },
+    });
+
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    const versionInsert = insertCalls[0]!.values as Record<string, unknown>;
+    expect(versionInsert).toMatchObject({
+      creatorProfileId: "profile-1",
+      version: 4,
+      source: "learned_pattern",
+    });
+    const traitsInsert = insertCalls[1]!.values as Array<
+      Record<string, unknown>
+    >;
+    expect(traitsInsert).toHaveLength(2);
+    expect(traitsInsert).toContainEqual(
+      expect.objectContaining({
+        category: "voice",
+        label: "Tone",
+        layer: "declared",
+      }),
+    );
+    expect(traitsInsert).toContainEqual(
+      expect.objectContaining({
+        category: "avoidance",
+        label: "Learned avoidance pattern",
+        layer: "learned",
+        confidence: "0.600",
+      }),
+    );
+  });
+
+  it("updates the existing learned trait in place instead of duplicating it", async () => {
+    const { database, insertCalls } = databaseHarness();
+    const current: CreatorDnaRecord = {
+      id: "current-version-id",
+      version: 4,
+      summary: "Current summary",
+      confirmed: true,
+      traits: [
+        {
+          id: "learned-trait-id",
+          category: "avoidance",
+          label: "Learned avoidance pattern",
+          value: "Confirmed 2 times via creator feedback.",
+          layer: "learned",
+          confidence: "0.600",
+          evidence: { source: "learned_pattern", approvedCount: 2 },
+        },
+      ],
+    };
+    const repository = new NeonCreatorDnaRepository(database as never);
+    vi.spyOn(repository, "getCurrent")
+      .mockResolvedValueOnce(current)
+      .mockResolvedValueOnce({ ...current, version: 5 });
+
+    await repository.upsertLearnedTrait("profile-1", {
+      category: "avoidance",
+      label: "Learned avoidance pattern",
+      value: "Confirmed 3 times via creator feedback.",
+      confidence: "0.650",
+      evidence: { source: "learned_pattern", approvedCount: 3 },
+    });
+
+    const traitsInsert = insertCalls[1]!.values as Array<
+      Record<string, unknown>
+    >;
+    expect(traitsInsert).toHaveLength(1);
+    expect(traitsInsert[0]).toMatchObject({
+      category: "avoidance",
+      label: "Learned avoidance pattern",
+      value: "Confirmed 3 times via creator feedback.",
+      layer: "learned",
+      confidence: "0.650",
+    });
+  });
+
+  it("does not bump the version when the promoted value hasn't changed", async () => {
+    const { database } = databaseHarness();
+    const current: CreatorDnaRecord = {
+      id: "current-version-id",
+      version: 4,
+      summary: "Current summary",
+      confirmed: true,
+      traits: [
+        {
+          id: "learned-trait-id",
+          category: "avoidance",
+          label: "Learned avoidance pattern",
+          value: "Confirmed 2 times via creator feedback.",
+          layer: "learned",
+          confidence: "0.600",
+          evidence: {},
+        },
+      ],
+    };
+    const repository = new NeonCreatorDnaRepository(database as never);
+    vi.spyOn(repository, "getCurrent").mockResolvedValue(current);
+
+    const result = await repository.upsertLearnedTrait("profile-1", {
+      category: "avoidance",
+      label: "Learned avoidance pattern",
+      value: "Confirmed 2 times via creator feedback.",
+      confidence: "0.600",
+      evidence: {},
+    });
+
+    expect(result).toEqual(current);
     expect(database.batch).not.toHaveBeenCalled();
   });
 });

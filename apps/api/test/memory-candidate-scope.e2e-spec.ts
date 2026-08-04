@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { getTableName } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import type { AuthPrincipal } from "../src/modules/auth/auth-token-verifier.js";
+import type { CreatorDnaRepository } from "../src/modules/creator-dna/creator-dna.repository.js";
 import { MemoryCandidatesService } from "../src/modules/memory/memory-candidates.service.js";
 import { NeonMemoryCandidateRepository } from "../src/modules/memory/neon-memory-candidate.repository.js";
 import type { MemoryProvider } from "../src/modules/memory/memory-provider.js";
@@ -134,10 +135,14 @@ describe("memory candidate scope round trip", () => {
       remember: vi.fn(),
       forget: vi.fn(),
     };
+    const creatorDna = {
+      upsertLearnedTrait: vi.fn(),
+    } as unknown as CreatorDnaRepository;
     const service = new MemoryCandidatesService(
       workspaces,
       memoryRepository,
       provider,
+      creatorDna,
     );
     const principal: AuthPrincipal = { subject: userId };
 

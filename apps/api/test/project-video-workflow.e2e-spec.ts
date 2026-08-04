@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../src/modules/ai/structured-generator.js";
 import type { AuthPrincipal } from "../src/modules/auth/auth-token-verifier.js";
+import type { CreatorDnaService } from "../src/modules/creator-dna/creator-dna.service.js";
 import type { CreditsService } from "../src/modules/credits/credits.service.js";
 import { GenerationJobEnqueueService } from "../src/modules/jobs/generation-job-enqueue.service.js";
 import type { GenerationQueue } from "../src/modules/jobs/generation-queue.js";
@@ -303,6 +304,14 @@ describe("Storyboard → Video workflow", () => {
       enqueue: vi.fn().mockResolvedValue(undefined),
     };
     const enqueue = new GenerationJobEnqueueService(jobsRepository, queue);
+    const creatorDna = {
+      getForWorkspaceContext: vi.fn().mockResolvedValue({
+        version: 1,
+        summary: "Restrained studio storytelling.",
+        confirmed: true,
+        traits: [],
+      }),
+    } as unknown as CreatorDnaService;
     const service = new ProjectWorkflowService(
       {
         resolve: vi.fn().mockResolvedValue(context),
@@ -314,6 +323,7 @@ describe("Storyboard → Video workflow", () => {
       } as unknown as StructuredGenerator,
       new DeterministicVideoProvider(),
       qualityGate,
+      creatorDna,
       enqueue,
       jobsRepository,
     );

@@ -2,6 +2,7 @@ import { HttpException, NotFoundException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import type { CreatorDnaService } from "../creator-dna/creator-dna.service.js";
 import type { CreditsService } from "../credits/credits.service.js";
 import type { GenerationJobEnqueueService } from "../jobs/generation-job-enqueue.service.js";
 import type {
@@ -259,6 +260,14 @@ function setup(options?: {
     evaluateStoryboard: vi.fn(),
     evaluateVideo: vi.fn(),
   } as unknown as QualityGateService;
+  const creatorDna = {
+    getForWorkspaceContext: vi.fn().mockResolvedValue({
+      version: 1,
+      summary: "A restrained, studio-focused music creator.",
+      confirmed: true,
+      traits: [],
+    }),
+  } as unknown as CreatorDnaService;
   const enqueue = {
     createAndEnqueue: vi.fn().mockResolvedValue(queuedJob()),
   } as unknown as GenerationJobEnqueueService;
@@ -284,6 +293,7 @@ function setup(options?: {
       credits,
       generator,
       qualityGate,
+      creatorDna,
       enqueue,
       jobs,
     ),
@@ -291,6 +301,7 @@ function setup(options?: {
     credits,
     generator,
     qualityGate,
+    creatorDna,
     enqueue,
     jobs,
   };
@@ -489,6 +500,39 @@ describe("OpportunityWorkflowService.executeQueuedScriptUpgrade", () => {
       2,
       "upgrade-script-1:commit",
       expect.stringMatching(/script/i),
+    );
+  });
+
+  it("injects the creator's forbidden-layer traits as hard constraints into the script prompt", async () => {
+    const { service, generator, creatorDna } = setup();
+    vi.mocked(creatorDna.getForWorkspaceContext).mockResolvedValueOnce({
+      version: 1,
+      summary: "A restrained, studio-focused music creator.",
+      confirmed: true,
+      traits: [
+        {
+          id: "trait-1",
+          category: "boundary",
+          label: "Boundary 1",
+          value: "No alcohol brand promotions",
+          layer: "forbidden",
+          confidence: 1,
+          evidence: {},
+        },
+      ],
+    });
+
+    await service.executeQueuedScriptUpgrade(jobId);
+
+    expect(creatorDna.getForWorkspaceContext).toHaveBeenCalledWith(
+      expect.objectContaining({ creatorProfileId: context.creatorProfileId }),
+    );
+    expect(generator.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining(
+          "Hard constraints, must not violate under any circumstance: No alcohol brand promotions.",
+        ),
+      }),
     );
   });
 

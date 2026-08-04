@@ -1,10 +1,27 @@
 import { z } from "zod";
 
+/**
+ * The Creator DNA bible §11.1 four-layer model:
+ *   - declared:  stated explicitly by the creator (the confirmed profile).
+ *   - observed:  inferred from analyzed source assets (the draft profile).
+ *   - learned:   promoted automatically from a repeated, approved explicit
+ *                feedback signal (always_do/never_use).
+ *   - forbidden: a hard constraint enforced during generation and the
+ *                quality gate -- a banned topic, person, word, or other.
+ */
+export const DnaTraitLayerSchema = z.enum([
+  "declared",
+  "observed",
+  "learned",
+  "forbidden",
+]);
+
 export const CreatorDnaTraitSchema = z.object({
   id: z.uuid(),
   category: z.string().min(1),
   label: z.string().min(1),
   value: z.string().min(1),
+  layer: DnaTraitLayerSchema,
   confidence: z.number().min(0).max(1).nullable(),
   evidence: z.record(z.string(), z.unknown()),
 });
@@ -71,6 +88,7 @@ export type CreatorDna = z.infer<typeof CreatorDnaSchema>;
 export type CreatorDnaReferenceImage = z.infer<
   typeof CreatorDnaReferenceImageSchema
 >;
+export type DnaTraitLayer = z.infer<typeof DnaTraitLayerSchema>;
 export type CreatorDnaTrait = z.infer<typeof CreatorDnaTraitSchema>;
 export type SetCreatorDnaReferenceImageInput = z.infer<
   typeof SetCreatorDnaReferenceImageInputSchema

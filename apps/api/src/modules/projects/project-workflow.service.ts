@@ -20,6 +20,8 @@ import {
   type StructuredGenerator,
 } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import { CreatorDnaService } from "../creator-dna/creator-dna.service.js";
+import { buildHardConstraintsPromptLine } from "../creator-dna/forbidden-constraints.js";
 import { CreditsService, creditCosts } from "../credits/credits.service.js";
 import { GenerationJobEnqueueService } from "../jobs/generation-job-enqueue.service.js";
 import { toGenerationJobContract } from "../jobs/generation-job.mapper.js";
@@ -169,6 +171,8 @@ export class ProjectWorkflowService {
     private readonly videoProvider: VideoProvider,
     @Inject(QualityGateService)
     private readonly qualityGate: QualityGateService,
+    @Inject(CreatorDnaService)
+    private readonly creatorDna: CreatorDnaService,
     @Inject(GenerationJobEnqueueService)
     private readonly enqueue: GenerationJobEnqueueService,
     @Inject(JOBS_REPOSITORY)
@@ -319,7 +323,7 @@ export class ProjectWorkflowService {
       if (!source) {
         throw new NotFoundException("A script-ready project was not found");
       }
-      const generated = await this.generateStoryboard(source);
+      const generated = await this.generateStoryboard(source, context);
       const gate = await this.qualityGate.evaluateStoryboard(
         context.creatorProfileId,
         generated.storyboard,
@@ -581,11 +585,17 @@ export class ProjectWorkflowService {
       .join("\n");
   }
 
-  private async generateStoryboard(source: StoryboardSourceRecord): Promise<{
+  private async generateStoryboard(
+    source: StoryboardSourceRecord,
+    context: { workspaceId: string; creatorProfileId: string },
+  ): Promise<{
     provider: string;
     model: string;
     storyboard: GeneratedStoryboard;
   }> {
+    const dna = await this.creatorDna
+      .getForWorkspaceContext(context)
+      .catch(() => null);
     try {
       const storyboard = await this.generator.generate({
         prompt: [
@@ -599,6 +609,7 @@ export class ProjectWorkflowService {
           "Every scene needs a precise frame, action, audio, transition, required asset and edit instruction.",
           "Keep it feasible for an independent music creator in one studio session.",
           "Scene durations must add up to the storyboard duration.",
+          buildHardConstraintsPromptLine(dna?.traits ?? []),
         ].join("\n"),
         schema: GeneratedStoryboardSchema,
         jsonSchema: generatedStoryboardJsonSchema,

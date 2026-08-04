@@ -14,7 +14,18 @@ import type {
   CreatorDnaRepository,
   CreatorDnaVersionDetailRecord,
   CreatorDnaVersionRecord,
+  DnaTraitLayer,
+  LearnedTraitInput,
 } from "./creator-dna.repository.js";
+
+function asDnaTraitLayer(value: string): DnaTraitLayer {
+  return value === "declared" ||
+    value === "observed" ||
+    value === "learned" ||
+    value === "forbidden"
+    ? value
+    : "observed";
+}
 
 export class NeonCreatorDnaRepository implements CreatorDnaRepository {
   constructor(
@@ -46,6 +57,7 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
         category: dnaTraits.category,
         label: dnaTraits.label,
         value: dnaTraits.value,
+        layer: dnaTraits.layer,
         confidence: dnaTraits.confidence,
         evidence: dnaTraits.evidence,
       })
@@ -53,7 +65,13 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
       .where(eq(dnaTraits.dnaVersionId, version.id))
       .orderBy(asc(dnaTraits.position));
 
-    return { ...version, traits };
+    return {
+      ...version,
+      traits: traits.map((trait) => ({
+        ...trait,
+        layer: asDnaTraitLayer(trait.layer),
+      })),
+    };
   }
 
   async updateTrait(
@@ -90,6 +108,7 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
           category: trait.category,
           label: trait.label,
           value: trait.id === traitId ? normalizedValue : trait.value,
+          layer: trait.layer,
           confidence: trait.confidence,
           evidence:
             trait.id === traitId
@@ -176,6 +195,7 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
         category: dnaTraits.category,
         label: dnaTraits.label,
         value: dnaTraits.value,
+        layer: dnaTraits.layer,
         confidence: dnaTraits.confidence,
         evidence: dnaTraits.evidence,
       })
@@ -183,7 +203,13 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
       .where(eq(dnaTraits.dnaVersionId, row.id))
       .orderBy(asc(dnaTraits.position));
 
-    return { ...row, traits };
+    return {
+      ...row,
+      traits: traits.map((trait) => ({
+        ...trait,
+        layer: asDnaTraitLayer(trait.layer),
+      })),
+    };
   }
 
   async restoreVersion(
@@ -219,12 +245,106 @@ export class NeonCreatorDnaRepository implements CreatorDnaRepository {
           category: trait.category,
           label: trait.label,
           value: trait.value,
+          layer: trait.layer,
           confidence: trait.confidence,
           evidence: {
             ...trait.evidence,
             source: "restore",
             restoredFromVersion: target.version,
           },
+          position: index + 1,
+          createdAt: now,
+        })),
+      ),
+    ] as const);
+
+    return this.getCurrent(creatorProfileId);
+  }
+
+  /**
+   * Upserts a layer="learned" trait keyed on (category, label): the sole
+   * writer of this layer, invoked from MemoryCandidatesService.approve
+   * once a repeated, approved explicit-feedback signal (always_do /
+   * never_use) crosses the promotion threshold. Like {@link updateTrait}
+   * and {@link restoreVersion}, this creates a new, additive DNA version
+   * rather than mutating an existing one, keeping the full audit trail.
+   */
+  async upsertLearnedTrait(
+    creatorProfileId: string,
+    input: LearnedTraitInput,
+  ): Promise<CreatorDnaRecord | null> {
+    const database = this.requireDatabase();
+    const current = await this.getCurrent(creatorProfileId);
+    if (!current) return null;
+
+    const existingIndex = current.traits.findIndex(
+      (trait) =>
+        trait.category === input.category && trait.label === input.label,
+    );
+    if (
+      existingIndex >= 0 &&
+      current.traits[existingIndex]!.value === input.value
+    ) {
+      // The promoted value hasn't changed since the last promotion --
+      // avoid bumping the version for a no-op write.
+      return current;
+    }
+
+    const baseTraits = current.traits.map((trait) => ({
+      category: trait.category,
+      label: trait.label,
+      value: trait.value,
+      layer: trait.layer,
+      confidence: trait.confidence,
+      evidence: trait.evidence,
+    }));
+    const nextTraits =
+      existingIndex >= 0
+        ? baseTraits.map((trait, index) =>
+            index === existingIndex
+              ? {
+                  ...trait,
+                  value: input.value,
+                  confidence: input.confidence,
+                  evidence: input.evidence,
+                  layer: "learned" as const,
+                }
+              : trait,
+          )
+        : [
+            ...baseTraits,
+            {
+              category: input.category,
+              label: input.label,
+              value: input.value,
+              layer: "learned" as const,
+              confidence: input.confidence,
+              evidence: input.evidence,
+            },
+          ];
+
+    const now = new Date();
+    const versionId = randomUUID();
+    await database.batch([
+      database.insert(creatorDnaVersions).values({
+        id: versionId,
+        creatorProfileId,
+        version: current.version + 1,
+        summary: current.summary,
+        source: "learned_pattern",
+        confirmed: current.confirmed,
+        createdAt: now,
+      }),
+      database.insert(dnaTraits).values(
+        nextTraits.map((trait, index) => ({
+          id: randomUUID(),
+          dnaVersionId: versionId,
+          category: trait.category,
+          label: trait.label,
+          value: trait.value,
+          layer: trait.layer,
+          confidence: trait.confidence,
+          evidence: trait.evidence,
           position: index + 1,
           createdAt: now,
         })),

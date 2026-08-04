@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { CreatorDnaModule } from "../creator-dna/creator-dna.module.js";
 import { WorkspacesModule } from "../workspaces/workspaces.module.js";
 import { Mem0MemoryProvider } from "./mem0-memory.provider.js";
 import { MemoryCandidatesController } from "./memory-candidates.controller.js";
@@ -10,7 +11,7 @@ import { NeonMemoryCandidateRepository } from "./neon-memory-candidate.repositor
 import { UnavailableMemoryProvider } from "./unavailable-memory.provider.js";
 
 @Module({
-  imports: [WorkspacesModule],
+  imports: [CreatorDnaModule, WorkspacesModule],
   controllers: [MemoryCandidatesController],
   providers: [
     MemoryCandidatesService,

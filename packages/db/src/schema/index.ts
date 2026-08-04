@@ -235,6 +235,31 @@ export const dnaTraits = pgTable(
     category: text("category").notNull(),
     label: text("label").notNull(),
     value: text("value").notNull(),
+    /**
+     * The Creator DNA bible §11.1 four-layer model this trait belongs to:
+     *
+     *   - declared:  stated explicitly by the creator during onboarding
+     *                (the completed/confirmed profile).
+     *   - observed:  inferred from analyzed source assets (the in-progress
+     *                draft profile), lower default confidence than declared.
+     *   - learned:   promoted automatically from a repeated, *approved*
+     *                explicit feedback signal (always_do/never_use) — see
+     *                memory-candidates.service.ts's approval path, which is
+     *                the sole writer of this layer.
+     *   - forbidden: a hard constraint the creator must never see violated
+     *                (banned topic/person/word/other). Onboarding's
+     *                "boundaries" free-text list is the only writer today.
+     *                This is the sole layer QualityGateService enforces as
+     *                a rejection-worthy violation (see quality-gate.service.ts).
+     *
+     * Before this column, layer was implicit: "declared" vs "observed" lived
+     * only inside the untyped evidence.provenance JSONB field, and
+     * learned/forbidden did not exist as a concept at all -- boundary-typed
+     * traits were enforced by the quality gate purely by matching on
+     * `category === 'boundary'`, with no way to distinguish a hard
+     * constraint from a soft preference.
+     */
+    layer: text("layer").notNull().default("observed"),
     confidence: numeric("confidence", { precision: 4, scale: 3 }),
     evidence: jsonb("evidence").$type<JsonObject>().notNull().default({}),
     position: integer("position").notNull().default(1),
@@ -247,9 +272,14 @@ export const dnaTraits = pgTable(
       table.label,
     ),
     index("dna_traits_version_idx").on(table.dnaVersionId),
+    index("dna_traits_version_layer_idx").on(table.dnaVersionId, table.layer),
     check(
       "dna_traits_confidence_check",
       sql`${table.confidence} is null or (${table.confidence} >= 0 and ${table.confidence} <= 1)`,
+    ),
+    check(
+      "dna_traits_layer_check",
+      sql`${table.layer} in ('declared', 'observed', 'learned', 'forbidden')`,
     ),
   ],
 );
