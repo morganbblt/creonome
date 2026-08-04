@@ -36,10 +36,6 @@ export class MemoryCandidatesService {
       context.creatorProfileId,
     );
     const candidates = records.map((record) => {
-      const scope =
-        record.kind === "project" || record.kind === "creator"
-          ? record.kind
-          : null;
       const projectId =
         typeof record.evidence.projectId === "string"
           ? record.evidence.projectId
@@ -52,7 +48,8 @@ export class MemoryCandidatesService {
         id: record.id,
         status: record.status,
         kind: record.kind,
-        scope,
+        scope: record.scope,
+        confidence: record.confidence,
         content: record.content,
         source:
           typeof record.evidence.source === "string"

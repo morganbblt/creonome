@@ -26,6 +26,8 @@ function setup() {
         creatorProfileId: "creator-1",
         provider: "mem0",
         kind: "creator",
+        scope: "creator",
+        confidence: 0.6,
         content: "Never use fake urgency.",
         evidence: {
           source: "opportunity_chat",
@@ -41,11 +43,27 @@ function setup() {
         creatorProfileId: "creator-1",
         provider: "mem0",
         kind: "project",
+        scope: "project",
+        confidence: 0.6,
         content: "Use a louder opening.",
         evidence: { source: "opportunity_chat" },
         status: "rejected",
         reviewedAt: new Date("2026-08-01T06:10:00.000Z"),
         createdAt: new Date("2026-08-01T06:00:00.000Z"),
+      },
+      {
+        id: "0198f3a2-82dd-7000-8000-000000000005",
+        workspaceId: "workspace-1",
+        creatorProfileId: "creator-1",
+        provider: "mem0",
+        kind: "idea",
+        scope: "idea",
+        confidence: 0.6,
+        content: "Lean into the reveal beat for this one idea.",
+        evidence: { source: "opportunity_chat" },
+        status: "pending",
+        reviewedAt: null,
+        createdAt: new Date("2026-08-03T06:00:00.000Z"),
       },
     ]),
     findPending: vi.fn().mockResolvedValue({
@@ -79,18 +97,25 @@ describe("MemoryCandidatesService", () => {
     const { service } = setup();
 
     await expect(service.list(principal)).resolves.toMatchObject({
-      pendingCount: 1,
+      pendingCount: 2,
       pending: [
         {
           id: candidateId,
           scope: "creator",
+          confidence: 0.6,
           source: "opportunity_chat",
           projectId: "0198f3a2-82dd-7000-8000-000000000020",
+        },
+        {
+          id: "0198f3a2-82dd-7000-8000-000000000005",
+          scope: "idea",
+          confidence: 0.6,
         },
       ],
       history: [
         {
           status: "rejected",
+          scope: "project",
           reviewedAt: "2026-08-01T06:10:00.000Z",
         },
       ],

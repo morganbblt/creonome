@@ -28,6 +28,7 @@ const memories = {
       status: "pending" as const,
       kind: "creator",
       scope: "creator" as const,
+      confidence: 0.6,
       content: "Prefer implicit calls to action.",
       source: "opportunity_chat",
       provider: "mem0",

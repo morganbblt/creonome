@@ -27,6 +27,8 @@ export class NeonMemoryCandidateRepository implements MemoryCandidateRepository 
         creatorProfileId: memoryCandidates.creatorProfileId,
         provider: memoryCandidates.provider,
         kind: memoryCandidates.kind,
+        scope: memoryCandidates.scope,
+        confidence: memoryCandidates.confidence,
         content: memoryCandidates.content,
         evidence: memoryCandidates.evidence,
         status: memoryCandidates.status,
@@ -43,10 +45,20 @@ export class NeonMemoryCandidateRepository implements MemoryCandidateRepository 
       .orderBy(desc(memoryCandidates.createdAt))
       .limit(50);
     return records.flatMap((record) =>
-      record.status === "pending" ||
-      record.status === "approved" ||
-      record.status === "rejected"
-        ? [{ ...record, status: record.status }]
+      (record.status === "pending" ||
+        record.status === "approved" ||
+        record.status === "rejected") &&
+      (record.scope === "idea" ||
+        record.scope === "project" ||
+        record.scope === "creator")
+        ? [
+            {
+              ...record,
+              status: record.status,
+              scope: record.scope,
+              confidence: Number(record.confidence),
+            },
+          ]
         : [],
     );
   }

@@ -33,6 +33,15 @@ import type {
   TrendSignalRecord,
 } from "./opportunities.repository.js";
 
+/**
+ * memory_candidates.confidence has no scoring model behind it yet -- these
+ * are flat heuristic defaults per creation source, just enough to make the
+ * column real and queryable (see packages/db/src/schema/index.ts and the
+ * P1.4 migration for the full rationale).
+ */
+const REVISION_MEMORY_CANDIDATE_CONFIDENCE = "0.65";
+const FEEDBACK_MEMORY_CANDIDATE_CONFIDENCE = "0.7";
+
 const projectSelection = {
   id: projects.id,
   opportunityId: projects.opportunityId,
@@ -407,8 +416,13 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
     const now = new Date();
     const version = project.currentVersion + 1;
     const projectVersionId = randomUUID();
-    const memoryCandidateId =
-      input.memoryScope === "idea" ? null : randomUUID();
+    // Every /modify revision produces a memory candidate at whatever scope
+    // the caller requested -- including "idea", which used to be silently
+    // dropped here because `kind` was the only column available and never
+    // held "idea". The real `scope` column now carries that distinction, so
+    // an idea-scoped candidate is written (and reviewable) just like the
+    // others instead of vanishing.
+    const memoryCandidateId = randomUUID();
     const insertVersion = database.insert(projectVersions).values({
       id: projectVersionId,
       projectId: project.id,
@@ -436,28 +450,29 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       })
       .where(eq(projects.id, project.id));
 
-    if (memoryCandidateId) {
-      await database.batch([
-        insertVersion,
-        updateProject,
-        database.insert(memoryCandidates).values({
-          id: memoryCandidateId,
-          workspaceId: input.workspaceId,
-          creatorProfileId: input.creatorProfileId,
-          kind: input.memoryScope,
-          content: input.generated.memoryContent,
-          evidence: {
-            source: "opportunity_chat",
-            opportunityId: input.opportunityId,
-            projectId: project.id,
-          },
-          status: "pending",
-          createdAt: now,
-        }),
-      ] as const);
-    } else {
-      await database.batch([insertVersion, updateProject] as const);
-    }
+    await database.batch([
+      insertVersion,
+      updateProject,
+      database.insert(memoryCandidates).values({
+        id: memoryCandidateId,
+        workspaceId: input.workspaceId,
+        creatorProfileId: input.creatorProfileId,
+        kind: input.memoryScope,
+        scope: input.memoryScope,
+        // Explicit, user-authored revision instruction -- more confident
+        // than an unprompted inference, but not maximal since we don't yet
+        // know whether the same preference recurs across revisions.
+        confidence: REVISION_MEMORY_CANDIDATE_CONFIDENCE,
+        content: input.generated.memoryContent,
+        evidence: {
+          source: "opportunity_chat",
+          opportunityId: input.opportunityId,
+          projectId: project.id,
+        },
+        status: "pending",
+        createdAt: now,
+      }),
+    ] as const);
 
     return {
       project: {
@@ -472,14 +487,12 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       pitch: input.generated.pitch,
       hook: input.generated.hook,
       changeSummary: input.generated.changeSummary,
-      memoryCandidate: memoryCandidateId
-        ? {
-            id: memoryCandidateId,
-            status: "pending",
-            scope: input.memoryScope,
-            content: input.generated.memoryContent,
-          }
-        : null,
+      memoryCandidate: {
+        id: memoryCandidateId,
+        status: "pending",
+        scope: input.memoryScope,
+        content: input.generated.memoryContent,
+      },
     };
   }
 
@@ -515,6 +528,11 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
           creatorProfileId: input.creatorProfileId,
           provider: "creonome",
           kind: "creator",
+          scope: "creator",
+          // Explicit feedback actions ("always_do" / "never_use" / etc.) are
+          // a deliberate, unambiguous user signal -- more confident than an
+          // inferred revision instruction.
+          confidence: FEEDBACK_MEMORY_CANDIDATE_CONFIDENCE,
           content: input.memoryContent,
           evidence: {
             source: "explicit_feedback",
