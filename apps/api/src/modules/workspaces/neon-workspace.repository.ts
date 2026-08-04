@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
 import {
   creditAccounts,
+  creditLedger,
   creatorProfiles,
   type CreonomeDatabase,
   users,
@@ -119,6 +120,14 @@ export class NeonWorkspaceRepository implements WorkspaceRepository {
         workspaceId,
         balance: initialCreditBalance,
         reserved: 0,
+      }),
+      database.insert(creditLedger).values({
+        workspaceId,
+        kind: "grant",
+        balanceDelta: initialCreditBalance,
+        reservedDelta: 0,
+        idempotencyKey: `signup-grant:${workspaceId}`,
+        description: "Initial signup credit grant",
       }),
     ] as const);
 
