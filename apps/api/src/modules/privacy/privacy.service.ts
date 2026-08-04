@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import {
@@ -23,6 +24,10 @@ import {
   type UpdatePrivacyPreferencesInput,
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import {
+  PRIVATE_OBJECT_STORE,
+  type PrivateObjectStore,
+} from "../uploads/private-object-store.js";
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
   PRIVACY_REPOSITORY,
@@ -33,13 +38,23 @@ import {
 
 const deletionDelayMs = 24 * 60 * 60 * 1_000;
 
+export type AccountDeletionExecutionSummary = {
+  processed: number;
+  executed: string[];
+  failed: string[];
+};
+
 @Injectable()
 export class PrivacyService {
+  private readonly logger = new Logger(PrivacyService.name);
+
   constructor(
     @Inject(WorkspaceContextService)
     private readonly workspaces: WorkspaceContextService,
     @Inject(PRIVACY_REPOSITORY)
     private readonly repository: PrivacyRepository,
+    @Inject(PRIVATE_OBJECT_STORE)
+    private readonly objectStore: PrivateObjectStore,
   ) {}
 
   async getState(principal: AuthPrincipal): Promise<PrivacyState> {
@@ -141,6 +156,60 @@ export class PrivacyService {
       id: requestId,
       cancelled: true,
     });
+  }
+
+  /**
+   * Executes every scheduled account deletion whose grace period has
+   * elapsed. Intended for a trusted internal caller only (see
+   * `InternalJobAuthGuard`); there is no per-user authorization here because
+   * there is no acting user — it processes all due workspaces in one pass.
+   *
+   * Each request is handled independently: a failure partway through one
+   * workspace's cleanup (most likely a GCS error) leaves that request
+   * `scheduled` for a future retry instead of aborting the whole batch, and
+   * whatever rows were already deleted stay deleted so the retry only has
+   * to finish the remainder.
+   */
+  async executeDueAccountDeletions(): Promise<AccountDeletionExecutionSummary> {
+    const due = await this.repository.findDueAccountDeletions(new Date());
+    const executed: string[] = [];
+    const failed: string[] = [];
+
+    for (const request of due) {
+      try {
+        await this.deleteWorkspaceData(request.workspaceId);
+        await this.repository.markAccountDeletionExecuted(
+          request.id,
+          request.workspaceId,
+        );
+        executed.push(request.id);
+      } catch (error) {
+        failed.push(request.id);
+        this.logger.error(
+          `Account deletion execution failed for request ${request.id} (workspace ${request.workspaceId}); leaving it scheduled for retry`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+
+    return { processed: due.length, executed, failed };
+  }
+
+  /**
+   * Deletes a workspace's creative data. Source assets are removed from GCS
+   * before their database row so a failed object-store delete leaves the
+   * row (and therefore the retry target) intact. credit_ledger and
+   * credit_accounts rows are intentionally never touched here.
+   */
+  private async deleteWorkspaceData(workspaceId: string): Promise<void> {
+    const sourceAssets =
+      await this.repository.listWorkspaceSourceAssets(workspaceId);
+    for (const asset of sourceAssets) {
+      await this.objectStore.deleteObject(asset.gcsUri);
+      await this.repository.deleteWorkspaceSourceAsset(workspaceId, asset.id);
+    }
+    await this.repository.deleteWorkspaceCreatorDna(workspaceId);
+    await this.repository.deleteWorkspaceProjects(workspaceId);
   }
 
   private toPreferences(record: PrivacyPreferencesRecord): PrivacyPreferences {

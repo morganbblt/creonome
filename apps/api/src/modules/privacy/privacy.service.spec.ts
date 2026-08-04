@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import type { PrivateObjectStore } from "../uploads/private-object-store.js";
 import type { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import type { PrivacyRepository } from "./privacy.repository.js";
 import { PrivacyService } from "./privacy.service.js";
@@ -42,10 +43,22 @@ function setup() {
       scheduledFor: input.scheduledFor,
     })),
     cancelAccountDeletion: vi.fn().mockResolvedValue(true),
+    findDueAccountDeletions: vi.fn().mockResolvedValue([]),
+    listWorkspaceSourceAssets: vi.fn().mockResolvedValue([]),
+    deleteWorkspaceSourceAsset: vi.fn().mockResolvedValue(undefined),
+    deleteWorkspaceCreatorDna: vi.fn().mockResolvedValue(undefined),
+    deleteWorkspaceProjects: vi.fn().mockResolvedValue(undefined),
+    markAccountDeletionExecuted: vi.fn().mockResolvedValue(undefined),
   };
+  const deleteObject = vi
+    .fn<PrivateObjectStore["deleteObject"]>()
+    .mockResolvedValue(undefined);
+  const objectStore: PrivateObjectStore = { deleteObject };
   return {
     repository,
-    service: new PrivacyService(workspaces, repository),
+    objectStore,
+    deleteObject,
+    service: new PrivacyService(workspaces, repository, objectStore),
   };
 }
 
@@ -153,5 +166,132 @@ describe("PrivacyService", () => {
         "0198f3a2-82dd-7000-8000-000000000090",
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  describe("executeDueAccountDeletions", () => {
+    const dueWorkspaceId = "0198f3a2-82dd-7000-8000-000000000102";
+    const dueRequest = {
+      id: "0198f3a2-82dd-7000-8000-000000000101",
+      workspaceId: dueWorkspaceId,
+      scheduledFor: new Date("2026-08-01T10:00:00.000Z"),
+    };
+
+    it("deletes referenced GCS objects and DB rows, then marks the request executed", async () => {
+      const { service, repository, deleteObject } = setup();
+      vi.mocked(repository.findDueAccountDeletions).mockResolvedValue([
+        dueRequest,
+      ]);
+      vi.mocked(repository.listWorkspaceSourceAssets).mockResolvedValue([
+        { id: "asset-1", gcsUri: "gs://bucket/workspaces/w/sources/a.mov" },
+        { id: "asset-2", gcsUri: "gs://bucket/workspaces/w/sources/b.mov" },
+      ]);
+
+      const result = await service.executeDueAccountDeletions();
+
+      expect(deleteObject).toHaveBeenCalledWith(
+        "gs://bucket/workspaces/w/sources/a.mov",
+      );
+      expect(deleteObject).toHaveBeenCalledWith(
+        "gs://bucket/workspaces/w/sources/b.mov",
+      );
+      expect(repository.deleteWorkspaceSourceAsset).toHaveBeenCalledWith(
+        dueWorkspaceId,
+        "asset-1",
+      );
+      expect(repository.deleteWorkspaceSourceAsset).toHaveBeenCalledWith(
+        dueWorkspaceId,
+        "asset-2",
+      );
+      expect(repository.deleteWorkspaceCreatorDna).toHaveBeenCalledWith(
+        dueWorkspaceId,
+      );
+      expect(repository.deleteWorkspaceProjects).toHaveBeenCalledWith(
+        dueWorkspaceId,
+      );
+      expect(repository.markAccountDeletionExecuted).toHaveBeenCalledWith(
+        dueRequest.id,
+        dueWorkspaceId,
+      );
+      expect(result).toEqual({
+        processed: 1,
+        executed: [dueRequest.id],
+        failed: [],
+      });
+    });
+
+    it("leaves the request scheduled and retryable when a GCS delete fails partway through", async () => {
+      const { service, repository, deleteObject } = setup();
+      vi.mocked(repository.findDueAccountDeletions).mockResolvedValue([
+        dueRequest,
+      ]);
+      vi.mocked(repository.listWorkspaceSourceAssets).mockResolvedValue([
+        { id: "asset-1", gcsUri: "gs://bucket/workspaces/w/sources/a.mov" },
+        { id: "asset-2", gcsUri: "gs://bucket/workspaces/w/sources/b.mov" },
+      ]);
+      deleteObject.mockImplementation(async (uri) => {
+        if (uri.endsWith("b.mov")) throw new Error("storage unavailable");
+      });
+
+      const result = await service.executeDueAccountDeletions();
+
+      expect(repository.deleteWorkspaceSourceAsset).toHaveBeenCalledWith(
+        dueWorkspaceId,
+        "asset-1",
+      );
+      expect(repository.deleteWorkspaceSourceAsset).not.toHaveBeenCalledWith(
+        dueWorkspaceId,
+        "asset-2",
+      );
+      expect(repository.deleteWorkspaceCreatorDna).not.toHaveBeenCalled();
+      expect(repository.deleteWorkspaceProjects).not.toHaveBeenCalled();
+      expect(repository.markAccountDeletionExecuted).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        processed: 1,
+        executed: [],
+        failed: [dueRequest.id],
+      });
+    });
+
+    it("continues processing remaining due requests after one workspace fails", async () => {
+      const { service, repository, deleteObject } = setup();
+      const secondRequest = {
+        id: "0198f3a2-82dd-7000-8000-000000000103",
+        workspaceId: "0198f3a2-82dd-7000-8000-000000000104",
+        scheduledFor: new Date("2026-08-01T11:00:00.000Z"),
+      };
+      vi.mocked(repository.findDueAccountDeletions).mockResolvedValue([
+        dueRequest,
+        secondRequest,
+      ]);
+      vi.mocked(repository.listWorkspaceSourceAssets).mockImplementation(
+        async (workspaceId) =>
+          workspaceId === dueWorkspaceId
+            ? [{ id: "asset-1", gcsUri: "gs://bucket/w/sources/a.mov" }]
+            : [],
+      );
+      deleteObject.mockRejectedValueOnce(new Error("storage unavailable"));
+
+      const result = await service.executeDueAccountDeletions();
+
+      expect(repository.markAccountDeletionExecuted).toHaveBeenCalledWith(
+        secondRequest.id,
+        secondRequest.workspaceId,
+      );
+      expect(result).toEqual({
+        processed: 2,
+        executed: [secondRequest.id],
+        failed: [dueRequest.id],
+      });
+    });
+
+    it("does nothing when there are no due requests", async () => {
+      const { service, repository, deleteObject } = setup();
+
+      const result = await service.executeDueAccountDeletions();
+
+      expect(deleteObject).not.toHaveBeenCalled();
+      expect(repository.markAccountDeletionExecuted).not.toHaveBeenCalled();
+      expect(result).toEqual({ processed: 0, executed: [], failed: [] });
+    });
   });
 });
