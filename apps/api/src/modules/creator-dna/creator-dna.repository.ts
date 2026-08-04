@@ -1,9 +1,28 @@
+/** The Creator DNA bible §11.1 four-layer model. See dna_traits.layer. */
+export type DnaTraitLayer = "declared" | "observed" | "learned" | "forbidden";
+
 export type CreatorDnaTraitRecord = {
   id: string;
   category: string;
   label: string;
   value: string;
+  layer: DnaTraitLayer;
   confidence: string | null;
+  evidence: Record<string, unknown>;
+};
+
+/**
+ * Input for promoting a repeated, approved explicit-feedback signal into a
+ * layer="learned" Creator DNA trait (see MemoryCandidatesService.approve).
+ * Idempotent per (category, label): re-promoting the same category/label
+ * pair updates the existing learned trait's value/evidence instead of
+ * creating a duplicate.
+ */
+export type LearnedTraitInput = {
+  category: string;
+  label: string;
+  value: string;
+  confidence: string;
   evidence: Record<string, unknown>;
 };
 
@@ -54,6 +73,17 @@ export interface CreatorDnaRepository {
     creatorProfileId: string,
     userId: string,
     version: number,
+  ): Promise<CreatorDnaRecord | null>;
+  /**
+   * Upserts a layer="learned" trait into a new Creator DNA version, keyed
+   * on (category, label). Returns null when the creator has no Creator DNA
+   * yet (nothing to promote into) -- callers must treat this as a no-op,
+   * not an error, since promotion is a best-effort side effect of
+   * reviewing memory candidates, not the primary action.
+   */
+  upsertLearnedTrait(
+    creatorProfileId: string,
+    input: LearnedTraitInput,
   ): Promise<CreatorDnaRecord | null>;
   getPeopleReferenceImage(
     workspaceId: string,

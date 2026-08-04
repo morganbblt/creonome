@@ -638,12 +638,31 @@ describe("shared API contracts", () => {
             category: "voice",
             label: "Tone",
             value: "precise and intimate",
+            layer: "observed",
             confidence: 0.95,
             evidence: { source: "demo" },
           },
         ],
       }).traits,
     ).toHaveLength(1);
+    expect(
+      CreatorDnaSchema.safeParse({
+        version: 1,
+        summary: "Restrained nocturnal electronic storytelling.",
+        confirmed: true,
+        traits: [
+          {
+            id: opportunity.id,
+            category: "boundary",
+            label: "Boundary 1",
+            value: "No alcohol brand promotions",
+            layer: "not_a_real_layer",
+            confidence: 1,
+            evidence: {},
+          },
+        ],
+      }).success,
+    ).toBe(false);
     expect(
       CreditsResponseSchema.parse({ balance: 60, reserved: 2, available: 58 })
         .available,

@@ -381,6 +381,7 @@ export class NeonPrivacyRepository implements PrivacyRepository {
             category: dnaTraits.category,
             label: dnaTraits.label,
             value: dnaTraits.value,
+            layer: dnaTraits.layer,
             confidence: dnaTraits.confidence,
             evidence: dnaTraits.evidence,
             position: dnaTraits.position,

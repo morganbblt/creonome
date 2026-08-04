@@ -21,6 +21,8 @@ import {
   type StructuredGenerator,
 } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import { CreatorDnaService } from "../creator-dna/creator-dna.service.js";
+import { buildHardConstraintsPromptLine } from "../creator-dna/forbidden-constraints.js";
 import { CreditsService, creditCosts } from "../credits/credits.service.js";
 import { GenerationJobEnqueueService } from "../jobs/generation-job-enqueue.service.js";
 import { toGenerationJobContract } from "../jobs/generation-job.mapper.js";
@@ -122,6 +124,8 @@ export class OpportunityWorkflowService {
     private readonly generator: StructuredGenerator,
     @Inject(QualityGateService)
     private readonly qualityGate: QualityGateService,
+    @Inject(CreatorDnaService)
+    private readonly creatorDna: CreatorDnaService,
     @Inject(GenerationJobEnqueueService)
     private readonly enqueue: GenerationJobEnqueueService,
     @Inject(JOBS_REPOSITORY)
@@ -142,7 +146,7 @@ export class OpportunityWorkflowService {
       throw new NotFoundException("Opportunity was not found");
     }
 
-    const generated = await this.generateRevision(opportunity, input);
+    const generated = await this.generateRevision(opportunity, input, context);
     const revision = await this.repository.createRevision({
       ...context,
       opportunityId,
@@ -292,7 +296,7 @@ export class OpportunityWorkflowService {
       if (!opportunity) {
         throw new NotFoundException("Opportunity was not found");
       }
-      const generated = await this.generateScript(opportunity);
+      const generated = await this.generateScript(opportunity, context);
       const gate = await this.qualityGate.evaluateScript(
         context.creatorProfileId,
         generated.script,
@@ -350,7 +354,11 @@ export class OpportunityWorkflowService {
   private async generateRevision(
     opportunity: OpportunityRecord,
     input: ModifyOpportunityInput,
+    context: { workspaceId: string; creatorProfileId: string },
   ): Promise<GeneratedOpportunityRevision> {
+    const dna = await this.creatorDna
+      .getForWorkspaceContext(context)
+      .catch(() => null);
     try {
       return await this.generator.generate({
         prompt: [
@@ -362,6 +370,7 @@ export class OpportunityWorkflowService {
           `Locked fields: ${input.lockedFields.join(", ") || "none"}`,
           `Memory scope: ${input.memoryScope}`,
           "Return concise production-ready copy and one explicit memory sentence.",
+          buildHardConstraintsPromptLine(dna?.traits ?? []),
         ].join("\n"),
         schema: GeneratedRevisionSchema,
         jsonSchema: generatedRevisionJsonSchema,
@@ -387,11 +396,17 @@ export class OpportunityWorkflowService {
     };
   }
 
-  private async generateScript(opportunity: OpportunityRecord): Promise<{
+  private async generateScript(
+    opportunity: OpportunityRecord,
+    context: { workspaceId: string; creatorProfileId: string },
+  ): Promise<{
     provider: string;
     model: string;
     script: GeneratedScript;
   }> {
+    const dna = await this.creatorDna
+      .getForWorkspaceContext(context)
+      .catch(() => null);
     try {
       const script = await this.generator.generate({
         prompt: [
@@ -401,6 +416,7 @@ export class OpportunityWorkflowService {
           `Duration: ${opportunity.estimatedDurationSeconds ?? 35} seconds`,
           "Keep it restrained, specific and feasible in one studio session.",
           "Do not cite individual third-party posts, handles or timecodes.",
+          buildHardConstraintsPromptLine(dna?.traits ?? []),
         ].join("\n"),
         schema: GeneratedScriptSchema,
         jsonSchema: generatedScriptJsonSchema,

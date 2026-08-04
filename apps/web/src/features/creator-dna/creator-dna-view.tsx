@@ -42,6 +42,23 @@ function categoryLabel(value: string): string {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+/**
+ * The Creator DNA bible §11.1 four-layer model, surfaced as a distinct
+ * badge per trait: declared/observed reflect where the trait came from,
+ * learned is an inferred-and-confirmed behavioral pattern, and forbidden is
+ * a hard constraint enforced during generation (see the API's
+ * QualityGateService and forbidden-constraints.ts).
+ */
+const layerCopy: Record<
+  CreatorDnaTrait["layer"],
+  { label: string; variant: "outline" | "default" | "accent" | "destructive" }
+> = {
+  declared: { label: "Declared", variant: "outline" },
+  observed: { label: "Observed", variant: "default" },
+  learned: { label: "Learned", variant: "accent" },
+  forbidden: { label: "Forbidden", variant: "destructive" },
+};
+
 function evidenceLabels(evidence: CreatorDnaTrait["evidence"]): string[] {
   return Object.values(evidence)
     .flatMap((value) =>
@@ -374,13 +391,24 @@ export function CreatorDnaView({
               : Math.round(trait.confidence * 100);
           const evidence = evidenceLabels(trait.evidence);
           const isEditing = editingTraitId === trait.id;
+          const layer = layerCopy[trait.layer];
           return (
-            <Card key={trait.id}>
+            <Card
+              className={
+                trait.layer === "forbidden"
+                  ? "border-destructive/30"
+                  : undefined
+              }
+              key={trait.id}
+            >
               <CardContent className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
-                  <Badge variant="outline">
-                    {categoryLabel(trait.category)}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline">
+                      {categoryLabel(trait.category)}
+                    </Badge>
+                    <Badge variant={layer.variant}>{layer.label}</Badge>
+                  </div>
                   <Button
                     className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
                     disabled={traitBusy}

@@ -1,6 +1,6 @@
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
 import { type CreonomeDatabase, memoryCandidates } from "@creonome/db";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import type {
   MemoryCandidateListRecord,
@@ -74,6 +74,7 @@ export class NeonMemoryCandidateRepository implements MemoryCandidateRepository 
         creatorProfileId: memoryCandidates.creatorProfileId,
         kind: memoryCandidates.kind,
         content: memoryCandidates.content,
+        evidence: memoryCandidates.evidence,
       })
       .from(memoryCandidates)
       .where(
@@ -85,6 +86,24 @@ export class NeonMemoryCandidateRepository implements MemoryCandidateRepository 
       )
       .limit(1);
     return candidate ?? null;
+  }
+
+  async countApprovedFeedbackByAction(
+    creatorProfileId: string,
+    action: string,
+  ): Promise<number> {
+    const [row] = await this.requireDatabase()
+      .select({ count: count() })
+      .from(memoryCandidates)
+      .where(
+        and(
+          eq(memoryCandidates.creatorProfileId, creatorProfileId),
+          eq(memoryCandidates.status, "approved"),
+          sql`${memoryCandidates.evidence}->>'source' = 'explicit_feedback'`,
+          sql`${memoryCandidates.evidence}->>'action' = ${action}`,
+        ),
+      );
+    return row?.count ?? 0;
   }
 
   async markReviewed(

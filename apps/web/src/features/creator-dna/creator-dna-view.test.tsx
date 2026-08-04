@@ -14,8 +14,44 @@ const dna: CreatorDna = {
       category: "visual_language",
       label: "Direction artistique",
       value: "Cold grey light, concrete, vinyl and restrained film grain.",
+      layer: "observed",
       confidence: 0.94,
       evidence: { source: "representative uploads" },
+    },
+  ],
+};
+
+const dnaWithAllLayers: CreatorDna = {
+  ...dna,
+  traits: [
+    ...dna.traits,
+    {
+      id: "0198f3a2-82dd-7000-8000-000000000012",
+      category: "signature",
+      label: "Creative signature",
+      value: "Restrained pacing with tape hiss under every reveal.",
+      layer: "declared",
+      confidence: 1,
+      evidence: { source: "onboarding", provenance: "declared" },
+    },
+    {
+      id: "0198f3a2-82dd-7000-8000-000000000013",
+      category: "avoidance",
+      label: "Learned avoidance pattern",
+      value:
+        'Confirmed 2 times via creator feedback. Most recent: "Avoid loud drops."',
+      layer: "learned",
+      confidence: 0.6,
+      evidence: { source: "learned_pattern", action: "never_use" },
+    },
+    {
+      id: "0198f3a2-82dd-7000-8000-000000000014",
+      category: "boundary",
+      label: "Boundary 1",
+      value: "No alcohol brand promotions",
+      layer: "forbidden",
+      confidence: 1,
+      evidence: { source: "onboarding", provenance: "declared" },
     },
   ],
 };
@@ -54,6 +90,15 @@ describe("CreatorDnaView", () => {
     expect(screen.getByText("Confirmed")).toBeTruthy();
     expect(screen.getByText("Version 2")).toBeTruthy();
     expect(screen.getByText("Prefer implicit calls to action.")).toBeTruthy();
+  });
+
+  it("renders a distinct badge for each of the four Creator DNA layers", () => {
+    render(<CreatorDnaView dna={dnaWithAllLayers} memories={memories} />);
+
+    expect(screen.getByText("Declared")).toBeTruthy();
+    expect(screen.getByText("Observed")).toBeTruthy();
+    expect(screen.getByText("Learned")).toBeTruthy();
+    expect(screen.getByText("Forbidden")).toBeTruthy();
   });
 
   it("uploads a private people reference image and marks it for Veo", async () => {

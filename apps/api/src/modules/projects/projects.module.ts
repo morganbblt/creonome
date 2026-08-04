@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { GoogleGenAI } from "@google/genai";
 import { AiModule } from "../ai/ai.module.js";
+import { CreatorDnaModule } from "../creator-dna/creator-dna.module.js";
 import { CreditsModule } from "../credits/credits.module.js";
 import { JobsModule } from "../jobs/jobs.module.js";
 import { QualityGateModule } from "../quality-gate/quality-gate.module.js";
@@ -37,6 +38,7 @@ import { VeoVideoProvider } from "./video/veo-video.provider.js";
 @Module({
   imports: [
     AiModule,
+    CreatorDnaModule,
     CreditsModule,
     JobsModule,
     QualityGateModule,

@@ -20,6 +20,7 @@ export {
   CreatorDnaVersionCompareSchema,
   CreatorDnaVersionSummarySchema,
   CreatorDnaVersionsResponseSchema,
+  DnaTraitLayerSchema,
   SetCreatorDnaReferenceImageInputSchema,
   UpdateCreatorDnaTraitInputSchema,
   type CreatorDnaReferenceImage,
@@ -30,6 +31,7 @@ export {
   type CreatorDnaVersionCompare,
   type CreatorDnaVersionSummary,
   type CreatorDnaVersionsResponse,
+  type DnaTraitLayer,
   type SetCreatorDnaReferenceImageInput,
   type UpdateCreatorDnaTraitInput,
 } from "./creator-dna.js";
