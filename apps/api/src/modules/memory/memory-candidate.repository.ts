@@ -1,3 +1,5 @@
+export type MemoryCandidateScope = "idea" | "project" | "creator";
+
 export type MemoryCandidateRecord = {
   id: string;
   workspaceId: string;
@@ -11,6 +13,8 @@ export type MemoryCandidateStatus = "pending" | MemoryReviewStatus;
 
 export type MemoryCandidateListRecord = MemoryCandidateRecord & {
   provider: string;
+  scope: MemoryCandidateScope;
+  confidence: number;
   evidence: Record<string, unknown>;
   status: MemoryCandidateStatus;
   reviewedAt: Date | null;

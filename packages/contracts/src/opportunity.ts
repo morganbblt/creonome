@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CreditsResponseSchema } from "./credits.js";
 import { GenerationJobSchema } from "./generation-job.js";
+import { MemoryCandidateScopeSchema } from "./memory.js";
 import { ProjectLevelSchema, ProjectSchema } from "./project.js";
 import { ScriptDraftSchema } from "./script.js";
 
@@ -80,11 +81,12 @@ export const OpportunityDetailSchema = OpportunitySchema.extend({
   subScores: OpportunitySubScoresSchema,
 });
 
-export const OpportunityMemoryScopeSchema = z.enum([
-  "idea",
-  "project",
-  "creator",
-]);
+/**
+ * Re-exports the canonical scope enum from memory.ts (memory_candidates is
+ * the memory module's concern) so opportunity flows and the memory review
+ * queue can never drift out of sync on which scopes are valid again.
+ */
+export const OpportunityMemoryScopeSchema = MemoryCandidateScopeSchema;
 
 export const ModifyOpportunityInputSchema = z.object({
   instruction: z.string().trim().min(3).max(1_000),

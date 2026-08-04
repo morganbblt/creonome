@@ -266,9 +266,30 @@ export const memoryCandidates = pgTable(
       .references(() => creatorProfiles.id, { onDelete: "cascade" }),
     provider: text("provider").notNull().default("mem0"),
     kind: text("kind").notNull(),
+    /**
+     * The blast radius this candidate should be remembered at. Historically
+     * this was inferred at read time from `kind` (see git history for
+     * memory-candidates.service.ts before migration
+     * 20260804215532_add_memory_candidates_scope_confidence), which silently
+     * dropped "idea"-scoped candidates since `kind` only ever held "project"
+     * or "creator". This column is now written explicitly by every creation
+     * site so "idea" round-trips correctly.
+     */
+    scope: text("scope").notNull().default("creator"),
     content: text("content").notNull(),
     evidence: jsonb("evidence").$type<JsonObject>().notNull().default({}),
     status: text("status").notNull().default("pending"),
+    /**
+     * Heuristic confidence (0..1) that this candidate reflects a durable
+     * creator preference rather than a one-off instruction. No scoring model
+     * exists yet, so creation sites currently write a flat heuristic default
+     * per source (see neon-opportunities.repository.ts); this column just
+     * needs to be real and queryable so the review queue can eventually sort
+     * by it.
+     */
+    confidence: numeric("confidence", { precision: 4, scale: 3 })
+      .notNull()
+      .default("0.5"),
     reviewedByUserId: uuid("reviewed_by_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -285,6 +306,14 @@ export const memoryCandidates = pgTable(
     check(
       "memory_candidates_status_check",
       sql`${table.status} in ('pending', 'approved', 'rejected')`,
+    ),
+    check(
+      "memory_candidates_scope_check",
+      sql`${table.scope} in ('idea', 'project', 'creator')`,
+    ),
+    check(
+      "memory_candidates_confidence_check",
+      sql`${table.confidence} >= 0 and ${table.confidence} <= 1`,
     ),
   ],
 );
