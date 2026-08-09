@@ -449,6 +449,7 @@ describe("shared API contracts", () => {
   it("requires exactly three scored opportunities", () => {
     const valid = OpportunityBatchSchema.safeParse({
       generatedAt: "2026-08-02T12:00:00.000Z",
+      fallback: false,
       opportunities: [
         opportunity,
         {
@@ -470,6 +471,45 @@ describe("shared API contracts", () => {
 
     expect(valid.success).toBe(true);
     expect(invalid.success).toBe(false);
+  });
+
+  it("requires the batch to explicitly disclose the local-fallback flag", () => {
+    const missingFallback = OpportunityBatchSchema.safeParse({
+      generatedAt: "2026-08-02T12:00:00.000Z",
+      opportunities: [
+        opportunity,
+        {
+          ...opportunity,
+          id: "c51ff70f-2aed-48ec-97b1-3163eb4247a4",
+          strategy: "stretch",
+        },
+        {
+          ...opportunity,
+          id: "b37ea693-66d4-41fc-a260-768942277d10",
+          strategy: "repeatable",
+        },
+      ],
+    });
+    expect(missingFallback.success).toBe(false);
+
+    const fallbackBatch = OpportunityBatchSchema.parse({
+      generatedAt: "2026-08-02T12:00:00.000Z",
+      fallback: true,
+      opportunities: [
+        opportunity,
+        {
+          ...opportunity,
+          id: "c51ff70f-2aed-48ec-97b1-3163eb4247a4",
+          strategy: "stretch",
+        },
+        {
+          ...opportunity,
+          id: "b37ea693-66d4-41fc-a260-768942277d10",
+          strategy: "repeatable",
+        },
+      ],
+    });
+    expect(fallbackBatch.fallback).toBe(true);
   });
 
   it("validates the read-only opportunity detail used by the creative chat", () => {

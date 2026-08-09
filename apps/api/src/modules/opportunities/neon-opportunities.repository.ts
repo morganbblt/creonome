@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
+import type { OpportunityStrategy } from "@creonome/contracts";
 import {
   type CreonomeDatabase,
   feedbackEvents,
@@ -98,6 +99,7 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       .select({
         id: opportunityBatches.id,
         availableAt: opportunityBatches.availableAt,
+        fallback: opportunityBatches.fallback,
       })
       .from(opportunityBatches)
       .where(
@@ -113,7 +115,7 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       return [];
     }
 
-    return this.listBatch(batch.id, batch.availableAt);
+    return this.listBatch(batch.id, batch.availableAt, batch.fallback);
   }
 
   async findById(
@@ -125,6 +127,7 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       .select({
         id: opportunities.id,
         position: opportunities.position,
+        strategy: opportunities.strategy,
         title: opportunities.title,
         pitch: opportunities.pitch,
         scoreOverall: opportunities.scoreOverall,
@@ -145,6 +148,7 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
         projectId: projects.id,
         projectCurrentLevel: projects.currentLevel,
         availableAt: opportunityBatches.availableAt,
+        fallback: opportunityBatches.fallback,
       })
       .from(opportunities)
       .innerJoin(
@@ -211,6 +215,7 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
     return {
       id: row.id,
       position: row.position,
+      strategy: row.strategy as OpportunityStrategy,
       title: snapshot.title ?? row.title,
       pitch: snapshot.pitch ?? row.pitch,
       hook: snapshot.hook ?? null,
@@ -227,6 +232,7 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       projectId: row.projectId,
       projectCurrentLevel: row.projectCurrentLevel,
       availableAt: row.availableAt,
+      fallback: row.fallback,
       trendSignal,
     };
   }
@@ -325,6 +331,7 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       .select({
         id: opportunityBatches.id,
         availableAt: opportunityBatches.availableAt,
+        fallback: opportunityBatches.fallback,
       })
       .from(opportunityBatches)
       .where(
@@ -334,7 +341,9 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
         ),
       )
       .limit(1);
-    return batch ? this.listBatch(batch.id, batch.availableAt) : [];
+    return batch
+      ? this.listBatch(batch.id, batch.availableAt, batch.fallback)
+      : [];
   }
 
   async createBatch(
@@ -397,11 +406,12 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
         kind: "generated",
         size: 3,
         status: "available",
+        fallback: input.fallback,
         availableAt,
       }),
       database.insert(opportunities).values(rows),
     ] as const);
-    return this.listBatch(batchId, availableAt);
+    return this.listBatch(batchId, availableAt, input.fallback);
   }
 
   async createRevision(
@@ -809,11 +819,13 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
   private async listBatch(
     batchId: string,
     availableAt: Date,
+    fallback: boolean,
   ): Promise<OpportunityRecord[]> {
     const rows = await this.requireDatabase()
       .select({
         id: opportunities.id,
         position: opportunities.position,
+        strategy: opportunities.strategy,
         title: opportunities.title,
         pitch: opportunities.pitch,
         scoreOverall: opportunities.scoreOverall,
@@ -839,7 +851,12 @@ export class NeonOpportunitiesRepository implements OpportunitiesRepository {
       )
       .orderBy(asc(opportunities.position));
 
-    return rows.map((row) => ({ ...row, availableAt }));
+    return rows.map((row) => ({
+      ...row,
+      strategy: row.strategy as OpportunityStrategy,
+      availableAt,
+      fallback,
+    }));
   }
 
   private toPlatforms(

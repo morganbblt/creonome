@@ -11,6 +11,7 @@ vi.mock("next/navigation", () => ({
 
 const generatedBatch = {
   generatedAt: "2026-08-02T10:00:00.000Z",
+  fallback: false,
   opportunities: demoOpportunities.map(
     (
       {

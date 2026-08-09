@@ -16,7 +16,6 @@ import {
   type OpportunityFeedbackAction,
   type OpportunityFeedbackInput,
   type OpportunityFeedbackResult,
-  type OpportunityStrategy,
   type Project,
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
@@ -25,12 +24,6 @@ import {
   OPPORTUNITIES_REPOSITORY,
   type OpportunitiesRepository,
 } from "./opportunities.repository.js";
-
-const strategyByPosition: Record<number, OpportunityStrategy> = {
-  1: "signature",
-  2: "stretch",
-  3: "repeatable",
-};
 
 const ratingByFeedbackAction: Record<OpportunityFeedbackAction, number> = {
   this_is_me: 5,
@@ -62,9 +55,10 @@ export class OpportunitiesService {
 
     return OpportunityBatchSchema.parse({
       generatedAt: rows[0]!.availableAt.toISOString(),
+      fallback: rows[0]!.fallback,
       opportunities: rows.map((row) => ({
         id: row.id,
-        strategy: strategyByPosition[row.position],
+        strategy: row.strategy,
         title: row.title,
         pitch: row.pitch,
         score: row.scoreOverall,
@@ -199,7 +193,7 @@ export class OpportunitiesService {
   ): Opportunity {
     return OpportunitySchema.parse({
       id: row.id,
-      strategy: strategyByPosition[row.position],
+      strategy: row.strategy,
       title: row.title,
       pitch: row.pitch,
       score: row.scoreOverall,

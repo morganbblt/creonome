@@ -30,6 +30,7 @@ const context = {
 const opportunity: OpportunityRecord = {
   id: "0198f3a2-82dd-7000-8000-000000000013",
   position: 1,
+  strategy: "signature",
   title: "The silence before the drop",
   pitch: "Hold the room still, then let the first kick arrive alone.",
   scoreOverall: 92,
@@ -46,6 +47,7 @@ const opportunity: OpportunityRecord = {
   projectId: null,
   projectCurrentLevel: null,
   availableAt: new Date("2026-08-02T09:00:00.000Z"),
+  fallback: false,
 };
 
 const jobId = "0198f3a2-82dd-7000-8000-000000000099";

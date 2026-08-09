@@ -25,9 +25,16 @@ const context = {
   creatorProfileId: "0198f3a2-82dd-7000-8000-000000000004",
 };
 
+const strategyByPosition = {
+  1: "signature",
+  2: "stretch",
+  3: "repeatable",
+} as const;
+
 const generatedRecords: OpportunityRecord[] = [1, 2, 3].map((position) => ({
   id: `0198f3a2-82dd-7000-8000-00000000000${position + 4}`,
   position,
+  strategy: strategyByPosition[position as 1 | 2 | 3],
   title: `Generated concept ${position}`,
   pitch: "A generated creative route detailed enough to make this week.",
   scoreOverall: 88 - position,
@@ -43,6 +50,7 @@ const generatedRecords: OpportunityRecord[] = [1, 2, 3].map((position) => ({
   projectId: null,
   projectCurrentLevel: null,
   availableAt: new Date("2026-08-02T12:00:00.000Z"),
+  fallback: false,
 }));
 
 const jobId = "0198f3a2-82dd-7000-8000-000000000099";
@@ -223,12 +231,23 @@ describe("OpportunityGenerationService.generate", () => {
       "Generated three opportunities",
     );
     expect(result).toMatchObject({
+      fallback: false,
       opportunities: [
         { strategy: "signature" },
         { strategy: "stretch" },
         { strategy: "repeatable" },
       ],
     });
+  });
+
+  it("replays a persisted fallback batch with the fallback flag disclosed", async () => {
+    const { service } = setup(
+      generatedRecords.map((record) => ({ ...record, fallback: true })),
+    );
+
+    const result = await service.generate(principal, "request-2026-08-02");
+
+    expect(result).toMatchObject({ fallback: true });
   });
 
   it("releases the reservation and fails clearly when the queue is unavailable", async () => {
@@ -303,6 +322,7 @@ describe("OpportunityGenerationService.executeQueuedBatch", () => {
       {
         id: "0198f3a2-82dd-7000-8000-000000000060",
         position: 1,
+        strategy: "signature",
         title: "An already-live idea",
         pitch: "A currently active opportunity in this workspace.",
         scoreOverall: 80,
@@ -318,6 +338,7 @@ describe("OpportunityGenerationService.executeQueuedBatch", () => {
         projectId: null,
         projectCurrentLevel: null,
         availableAt: new Date("2026-08-01T09:00:00.000Z"),
+        fallback: false,
       },
     ]);
 
@@ -356,10 +377,24 @@ describe("OpportunityGenerationService.executeQueuedBatch", () => {
         opportunities: expect.arrayContaining([
           expect.objectContaining({ title: "One gesture, one drop" }),
         ]),
+        // The fallback substitution must be disclosed to the persistence
+        // layer (and from there, to OpportunityBatchSchema.fallback) --
+        // not silently written as a real generation.
+        fallback: true,
       }),
     );
     expect(credits.commit).toHaveBeenCalledOnce();
     expect(credits.release).not.toHaveBeenCalled();
+  });
+
+  it("discloses a real generation as non-fallback", async () => {
+    const { repository, service } = setup();
+
+    await service.executeQueuedBatch(jobId);
+
+    expect(repository.createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ fallback: false }),
+    );
   });
 
   it("fails the job and releases credits when persistence fails", async () => {

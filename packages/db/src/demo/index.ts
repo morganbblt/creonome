@@ -148,6 +148,7 @@ export function buildDemoDataset() {
     kind: "daily",
     size: 3,
     status: "available",
+    fallback: false,
     availableAt: demoCreatedAt,
     createdAt: demoCreatedAt,
   };
@@ -348,7 +349,7 @@ export function buildDemoDataset() {
       title: "Flip the crate find everyone skipped",
       pitch:
         "Turn one overlooked record into a fast reveal: original texture, your flip, then the detail that changed everything.",
-      strategy: "cross_sector",
+      strategy: "signature",
       scoreOverall: 91,
       scoreMomentum: 88,
       scoreDnaFit: 96,
@@ -361,7 +362,7 @@ export function buildDemoDataset() {
       title: "Silent studio, loud decisions",
       pitch:
         "Film a nearly silent production session and let three on-screen decisions carry the story before the final drop.",
-      strategy: "format_transfer",
+      strategy: "stretch",
       scoreOverall: 87,
       scoreMomentum: 82,
       scoreDnaFit: 94,
@@ -374,7 +375,7 @@ export function buildDemoDataset() {
       title: "Track recipe: one room, three ingredients",
       pitch:
         "Build a track recipe from a room tone, one drum break and one unstable synth gesture, then reveal the mix.",
-      strategy: "recipe",
+      strategy: "repeatable",
       scoreOverall: 84,
       scoreMomentum: 79,
       scoreDnaFit: 89,

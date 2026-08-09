@@ -217,8 +217,11 @@ export class OpportunityGenerationService {
       // generateOpportunities actually succeeds; if it (or the LLM call)
       // fails, we fall back to canned opportunities and score them with no
       // known DNA/production-constraint data, per opportunity-scoring.ts's
-      // documented fallback baselines.
+      // documented fallback baselines. `fallback` records that substitution
+      // so OpportunityBatchSchema.fallback can disclose it honestly instead
+      // of silently presenting canned copy as a real generation.
       let dnaTraits: OpportunityScoringDnaTrait[] = [];
+      let fallback = false;
       const generated = await this.generateOpportunities(
         context,
         direction,
@@ -228,7 +231,10 @@ export class OpportunityGenerationService {
           dnaTraits = result.dnaTraits;
           return result.opportunities;
         })
-        .catch(() => this.localOpportunities(direction));
+        .catch(() => {
+          fallback = true;
+          return this.localOpportunities(direction);
+        });
       const records = await this.repository.createBatch({
         workspaceId,
         creatorProfileId: context.creatorProfileId,
@@ -240,6 +246,7 @@ export class OpportunityGenerationService {
           title: record.title,
           pitch: record.pitch,
         })),
+        fallback,
       });
       await this.jobs.markSucceeded(jobId, {
         opportunityIds: records.map((record) => record.id),
@@ -353,12 +360,12 @@ export class OpportunityGenerationService {
   }
 
   private toContract(rows: OpportunityRecord[]): OpportunityBatch {
-    const strategies = ["signature", "stretch", "repeatable"] as const;
     return OpportunityBatchSchema.parse({
       generatedAt: rows[0]!.availableAt.toISOString(),
-      opportunities: rows.map((row, index) => ({
+      fallback: rows[0]!.fallback,
+      opportunities: rows.map((row) => ({
         id: row.id,
-        strategy: strategies[index],
+        strategy: row.strategy,
         title: row.title,
         pitch: row.pitch,
         score: row.scoreOverall,

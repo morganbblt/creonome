@@ -1,0 +1,1 @@
+ALTER TABLE "opportunity_batches" ADD COLUMN "fallback" boolean DEFAULT false NOT NULL;
