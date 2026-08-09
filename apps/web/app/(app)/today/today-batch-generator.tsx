@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Button } from "@/src/components/ui/button";
+import { AnalyticsEvent, track } from "@/src/lib/analytics/analytics";
 import { cn } from "@/src/lib/utils";
 import { pollGenerationJob } from "@/src/features/generation/poll-generation-job";
 
@@ -86,6 +87,9 @@ export function TodayBatchGenerator({
           return;
         }
         requestKey.current = null;
+        track(AnalyticsEvent.OpportunityBatchGenerated, {
+          directions: selectedDirections.join(","),
+        });
         router.refresh();
         return;
       }
@@ -99,6 +103,10 @@ export function TodayBatchGenerator({
         return;
       }
       requestKey.current = null;
+      track(AnalyticsEvent.OpportunityBatchGenerated, {
+        directions: selectedDirections.join(","),
+        opportunityCount: parsedBatch.data.opportunities.length,
+      });
       onGenerated?.(parsedBatch.data);
       router.refresh();
     } catch {

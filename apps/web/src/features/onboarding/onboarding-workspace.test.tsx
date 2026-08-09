@@ -11,6 +11,14 @@ import { OnboardingWorkspace } from "./onboarding-workspace";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
+const { track } = vi.hoisted(() => ({ track: vi.fn() }));
+vi.mock("@/src/lib/analytics/analytics", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/src/lib/analytics/analytics")
+  >("@/src/lib/analytics/analytics");
+  return { ...actual, track };
+});
+
 const insight = {
   summary: "A restrained performance built around tactile close-ups.",
   disciplines: ["music performance", "video"],
@@ -93,6 +101,7 @@ function onboardingState(
 afterEach(() => {
   vi.unstubAllGlobals();
   push.mockReset();
+  track.mockReset();
 });
 
 describe("OnboardingWorkspace", () => {
@@ -285,6 +294,11 @@ describe("OnboardingWorkspace", () => {
     await screen.findByText(dna.summary);
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
+    expect(track).toHaveBeenCalledWith(
+      "creator_dna_confirmed",
+      expect.objectContaining({ traitCount: dna.traits.length }),
+    );
+
     await screen.findByText("React to six quick concepts.");
     for (const concept of calibrationSet.concepts) {
       await screen.findByText(concept.title);
@@ -312,5 +326,74 @@ describe("OnboardingWorkspace", () => {
       screen.getByRole("button", { name: "Generate my first opportunities" }),
     );
     expect(push).toHaveBeenCalledWith("/today");
+  });
+
+  describe("analytics", () => {
+    it("fires onboarding_started once when arriving at the very first step", () => {
+      render(
+        <OnboardingWorkspace
+          initialState={{
+            status: "pending",
+            step: "source",
+            readyCount: 0,
+            recommendedAssetCount: 3,
+            assets: [],
+            profile: null,
+          }}
+        />,
+      );
+
+      expect(track).toHaveBeenCalledWith("onboarding_started");
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not treat resuming mid-flow as a fresh onboarding start", () => {
+      render(<OnboardingWorkspace initialState={onboardingState("upload")} />);
+
+      expect(track).not.toHaveBeenCalledWith(
+        "onboarding_started",
+        expect.anything(),
+      );
+    });
+
+    it("fires onboarding_assets_imported exactly once when crossing 3 imported sources", async () => {
+      const withTwoAssets = onboardingState();
+      withTwoAssets.assets = withTwoAssets.assets.slice(0, 2);
+      withTwoAssets.readyCount = 2;
+      const withThreeAssets = onboardingState();
+      const request = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(Response.json(withThreeAssets));
+      vi.stubGlobal("fetch", request);
+      render(<OnboardingWorkspace initialState={withTwoAssets} />);
+
+      expect(track).not.toHaveBeenCalledWith(
+        "onboarding_assets_imported",
+        expect.anything(),
+      );
+
+      fireEvent.click(
+        screen.getAllByRole("button", { name: "Reference only" })[0]!,
+      );
+
+      await screen.findByText("3 of 3 sources analyzed");
+      expect(track).toHaveBeenCalledWith("onboarding_assets_imported", {
+        assetCount: 3,
+      });
+      expect(
+        track.mock.calls.filter(
+          ([event]) => event === "onboarding_assets_imported",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("does not re-fire onboarding_assets_imported when resuming with 3+ sources already imported", () => {
+      render(<OnboardingWorkspace initialState={onboardingState()} />);
+
+      expect(track).not.toHaveBeenCalledWith(
+        "onboarding_assets_imported",
+        expect.anything(),
+      );
+    });
   });
 });

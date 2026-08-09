@@ -34,6 +34,7 @@ import {
   SheetTitle,
 } from "@/src/components/ui/sheet";
 import { Textarea } from "@/src/components/ui/textarea";
+import { AnalyticsEvent, track } from "@/src/lib/analytics/analytics";
 import { cn } from "@/src/lib/utils";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
@@ -290,6 +291,10 @@ export function OpportunityWorkspace({
     setGenerationState("success");
     scriptRequestKey.current = null;
     setPanel(null);
+    track(AnalyticsEvent.OpportunityUpgradedToScript, {
+      opportunityId: opportunity.id,
+      projectId: project.id,
+    });
   }
 
   async function generateScript() {
@@ -363,6 +368,10 @@ export function OpportunityWorkspace({
       setGenerationState("success");
       scriptRequestKey.current = null;
       setPanel(null);
+      track(AnalyticsEvent.OpportunityUpgradedToScript, {
+        opportunityId: opportunity.id,
+        projectId: upgrade.project.id,
+      });
     } catch {
       setError(
         "The script response could not be verified. Your idea is intact; retry to safely resume the same request.",

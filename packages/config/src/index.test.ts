@@ -84,4 +84,28 @@ describe("web server environment", () => {
       }),
     ).toThrow();
   });
+
+  it("leaves PostHog analytics unset by default", () => {
+    const env = parseWebServerEnv({
+      NEON_AUTH_BASE_URL:
+        "https://ep-example.neonauth.eu-central-1.aws.neon.tech/neondb/auth",
+      NEON_AUTH_COOKIE_SECRET: "a".repeat(32),
+    });
+
+    expect(env.NEXT_PUBLIC_POSTHOG_KEY).toBeUndefined();
+    expect(env.NEXT_PUBLIC_POSTHOG_HOST).toBeUndefined();
+  });
+
+  it("accepts an optional PostHog key and host", () => {
+    const env = parseWebServerEnv({
+      NEON_AUTH_BASE_URL:
+        "https://ep-example.neonauth.eu-central-1.aws.neon.tech/neondb/auth",
+      NEON_AUTH_COOKIE_SECRET: "a".repeat(32),
+      NEXT_PUBLIC_POSTHOG_KEY: "phc_example",
+      NEXT_PUBLIC_POSTHOG_HOST: "https://eu.i.posthog.com",
+    });
+
+    expect(env.NEXT_PUBLIC_POSTHOG_KEY).toBe("phc_example");
+    expect(env.NEXT_PUBLIC_POSTHOG_HOST).toBe("https://eu.i.posthog.com");
+  });
 });

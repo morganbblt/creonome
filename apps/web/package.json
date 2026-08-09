@@ -40,6 +40,7 @@
     "next": "catalog:",
     "next-themes": "^0.4.6",
     "postcss": "8.5.25",
+    "posthog-js": "^1.414.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sonner": "^2.0.7",

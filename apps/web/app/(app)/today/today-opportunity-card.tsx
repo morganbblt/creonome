@@ -5,6 +5,7 @@ import { ChevronDownIcon, PencilIcon, PlayIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Badge } from "@/src/components/ui/badge";
+import { AnalyticsEvent, track } from "@/src/lib/analytics/analytics";
 import { cn } from "@/src/lib/utils";
 import type { DemoOpportunity } from "../../../src/features/opportunities/demo-opportunities";
 
@@ -89,6 +90,9 @@ export function TodayOpportunityCard({
       setSavedHref(
         project.success ? `/projects/${project.data.id}` : "/projects",
       );
+      track(AnalyticsEvent.OpportunitySaved, {
+        opportunityId: opportunity.id,
+      });
     } catch {
       setSaveError(
         "The save could not be confirmed. Reload Projects before trying again.",

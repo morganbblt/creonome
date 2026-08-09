@@ -3,6 +3,14 @@ import type { OpportunityDetail } from "@creonome/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OpportunityWorkspace } from "./opportunity-workspace";
 
+const { track } = vi.hoisted(() => ({ track: vi.fn() }));
+vi.mock("@/src/lib/analytics/analytics", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/src/lib/analytics/analytics")
+  >("@/src/lib/analytics/analytics");
+  return { ...actual, track };
+});
+
 const opportunity: OpportunityDetail = {
   id: "7af6fdcc-8881-48c2-ae5d-3f45df1bd0a2",
   strategy: "signature",
@@ -40,7 +48,10 @@ const opportunity: OpportunityDetail = {
   },
 };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  track.mockReset();
+});
 
 describe("OpportunityWorkspace", () => {
   it("shows the real sub-score breakdown and text derived from those values", () => {
@@ -284,11 +295,104 @@ describe("OpportunityWorkspace", () => {
     expect(screen.getByRole("tab", { name: "Idea" })).toBeTruthy();
     expect(screen.getAllByTestId("script-segment")).toHaveLength(3);
     expect(screen.getByText(/hold for two seconds/i)).toBeTruthy();
+    expect(track).toHaveBeenCalledWith("opportunity_upgraded_to_script", {
+      opportunityId: opportunity.id,
+      projectId: "0198f3a2-82dd-7000-8000-000000000020",
+    });
     expect(screen.queryByLabelText("Opportunity detail")).toBeNull();
     expect(screen.getByText(/58 credits remaining/i)).toBeTruthy();
     expect(
       screen.getByRole("link", { name: /view project/i }).getAttribute("href"),
     ).toBe("/projects/0198f3a2-82dd-7000-8000-000000000020");
+  });
+
+  it("fires opportunity_upgraded_to_script once a queued script job finishes", async () => {
+    const projectId = "0198f3a2-82dd-7000-8000-000000000020";
+    const request = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (input) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url === `/api/creonome/opportunities/${opportunity.id}/upgrade`) {
+          return Response.json({
+            job: {
+              id: "0198f3a2-82dd-7000-8000-000000000023",
+              kind: "script",
+              provider: "gemini",
+              model: "gemini-3.6-flash",
+              status: "queued",
+              progress: 0,
+              createdAt: "2026-08-02T12:03:00.000Z",
+              updatedAt: "2026-08-02T12:03:00.000Z",
+              projectId,
+            },
+            credits: { balance: 56, reserved: 2, available: 54 },
+          });
+        }
+        if (url === `/api/creonome/jobs/0198f3a2-82dd-7000-8000-000000000023`) {
+          return Response.json({
+            id: "0198f3a2-82dd-7000-8000-000000000023",
+            kind: "script",
+            provider: "gemini",
+            model: "gemini-3.6-flash",
+            status: "succeeded",
+            progress: 100,
+            createdAt: "2026-08-02T12:03:00.000Z",
+            updatedAt: "2026-08-02T12:04:00.000Z",
+            completedAt: "2026-08-02T12:04:00.000Z",
+            projectId,
+          });
+        }
+        if (url === `/api/creonome/projects/${projectId}`) {
+          return Response.json({
+            id: projectId,
+            opportunityId: opportunity.id,
+            title: opportunity.title,
+            status: "active",
+            currentLevel: "script",
+            currentVersion: 2,
+            updatedAt: "2026-08-02T12:04:00.000Z",
+            platform: "tiktok",
+            score: opportunity.score,
+            hasScript: true,
+            hasStoryboard: false,
+            hasVideo: false,
+            script: {
+              id: "0198f3a2-82dd-7000-8000-000000000022",
+              projectId,
+              title: opportunity.title,
+              hook: "Let the room breathe. Then drop the needle.",
+              body: "[0:00-0:08] Hold for two seconds. [0:08-0:15] Lower the needle. [0:15-0:35] Reveal the kick.",
+              callToAction: "What comes after your silence?",
+              caption: "The room is part of the arrangement.",
+              platforms: ["tiktok", "instagram"],
+              durationSeconds: 35,
+            },
+            storyboard: null,
+            video: null,
+            versions: [],
+            latestJob: null,
+          });
+        }
+        if (url === "/api/creonome/credits") {
+          return Response.json({ balance: 56, reserved: 0, available: 56 });
+        }
+        throw new Error(`unexpected fetch: ${url}`);
+      });
+    vi.stubGlobal("fetch", request);
+    render(<OpportunityWorkspace opportunity={opportunity} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /move to script/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /generate script · 2 credits/i }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: /your script/i }),
+    ).toBeTruthy();
+    expect(track).toHaveBeenCalledWith("opportunity_upgraded_to_script", {
+      opportunityId: opportunity.id,
+      projectId,
+    });
   });
 
   it("moves confirmed script generation into a non-blocking progress toast", async () => {
