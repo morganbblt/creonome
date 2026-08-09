@@ -35,6 +35,7 @@ function createService(detail: Record<string, unknown> | null = null) {
     createStoryboardUpgrade: vi.fn(),
     updateStoryboardScene: vi.fn(),
     reorderStoryboardScenes: vi.fn(),
+    attachStoryboardSceneAsset: vi.fn(),
     findVideoUpgradeByIdempotency: vi.fn(),
     findExistingVideoUpgrade: vi.fn(),
     findVideoSource: vi.fn(),

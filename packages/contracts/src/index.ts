@@ -1,11 +1,13 @@
 export { HealthResponseSchema, type HealthResponse } from "./health.js";
 export {
   AssetDeletionSchema,
+  AssetDetailSchema,
   CreateAssetInputSchema,
   LibraryItemKindSchema,
   LibraryItemSchema,
   LibrarySchema,
   type AssetDeletion,
+  type AssetDetail,
   type CreateAssetInput,
   type Library,
   type LibraryItem,
@@ -140,6 +142,8 @@ export {
   type UpdateOnboardingProfileInput,
 } from "./onboarding.js";
 export {
+  AttachStoryboardSceneAssetInputSchema,
+  AttachStoryboardSceneAssetResultSchema,
   ProjectLevelSchema,
   ProjectListSchema,
   ProjectDetailSchema,
@@ -161,6 +165,8 @@ export {
   UpgradeProjectInputSchema,
   UpgradeProjectResultSchema,
   UpgradeVideoResultSchema,
+  type AttachStoryboardSceneAssetInput,
+  type AttachStoryboardSceneAssetResult,
   type Project,
   type ProjectDetail,
   type ProjectLevel,

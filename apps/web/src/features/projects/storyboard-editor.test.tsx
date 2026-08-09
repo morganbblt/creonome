@@ -36,6 +36,7 @@ function scene(overrides: Partial<ProjectStoryboard["scenes"][number]>) {
     sound: null,
     editingNote: null,
     referenceFrameUrl: null,
+    assetId: null,
     durationSeconds: 10,
     ...overrides,
   };
@@ -219,5 +220,134 @@ describe("StoryboardEditor", () => {
     );
     expect(await screen.findByText("Storyboard updated")).toBeTruthy();
     expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("attaches a Library asset to a scene via the picker, without touching the regenerate endpoint", async () => {
+    const library = {
+      totalByteSize: 2_000_000,
+      items: [
+        {
+          id: "0198f3a2-82dd-7000-8000-000000000041",
+          projectId: null,
+          name: "private-rush.mov",
+          kind: "video",
+          mimeType: "video/quicktime",
+          byteSize: 2_000_000,
+          durationSeconds: null,
+          status: "ready",
+          source: "upload",
+          createdAt: "2026-08-02T10:30:00.000Z",
+        },
+      ],
+    };
+    const attachedStoryboard: ProjectStoryboard = {
+      ...storyboard,
+      scenes: [
+        {
+          ...storyboard.scenes[0]!,
+          assetId: "0198f3a2-82dd-7000-8000-000000000041",
+        },
+        storyboard.scenes[1]!,
+        storyboard.scenes[2]!,
+      ],
+    };
+    const request = vi.fn<typeof fetch>((input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === "/api/creonome/assets") {
+        return Promise.resolve(Response.json(library));
+      }
+      return Promise.resolve(
+        Response.json({
+          project: projectPayload(),
+          storyboard: attachedStoryboard,
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", request);
+
+    render(<StoryboardEditor projectId={projectId} storyboard={storyboard} />);
+
+    const sceneOneCard = screen
+      .getByRole("heading", { name: "01 · Silence" })
+      .closest("article")!;
+    fireEvent.click(
+      within(sceneOneCard).getByRole("button", { name: /attach asset/i }),
+    );
+
+    expect(await screen.findByText("private-rush.mov")).toBeTruthy();
+    fireEvent.click(screen.getByText("private-rush.mov"));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/api/creonome/projects/${projectId}/storyboard/scenes/${sceneOneId}/asset`,
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({
+            assetId: "0198f3a2-82dd-7000-8000-000000000041",
+          }),
+        }),
+      ),
+    );
+    // Attaching an asset is a separate, mechanical endpoint from the
+    // scene-regenerate one -- it must never be called as a side effect of
+    // picking an asset.
+    expect(request).not.toHaveBeenCalledWith(
+      `/api/creonome/projects/${projectId}/storyboard/scenes/${sceneOneId}`,
+      expect.anything(),
+    );
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(
+      await screen.findByText("Library asset attached to this scene."),
+    ).toBeTruthy();
+  });
+
+  it("never sends assetId as part of a scene regenerate request, so an attached asset can't be overwritten by it", async () => {
+    const sceneWithAsset: ProjectStoryboard = {
+      ...storyboard,
+      scenes: [
+        {
+          ...storyboard.scenes[0]!,
+          assetId: "0198f3a2-82dd-7000-8000-000000000041",
+        },
+        storyboard.scenes[1]!,
+        storyboard.scenes[2]!,
+      ],
+    };
+    const request = vi.fn().mockResolvedValue(
+      Response.json({
+        project: projectPayload(),
+        storyboard: sceneWithAsset,
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+
+    render(
+      <StoryboardEditor projectId={projectId} storyboard={sceneWithAsset} />,
+    );
+
+    // Scene 1 already carries an attached asset (as it would after a prior
+    // picker selection); regenerating it must not clobber that.
+    const sceneOneCard = screen
+      .getByRole("heading", { name: "01 · Silence" })
+      .closest("article")!;
+    expect(
+      within(sceneOneCard).getByRole("button", {
+        name: /change attached asset/i,
+      }),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      within(sceneOneCard).getByRole("button", {
+        name: /regenerate this scene/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /^regenerate scene$/i }),
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledOnce());
+    const [, requestInit] = request.mock.calls[0]!;
+    const sentBody = JSON.parse((requestInit as RequestInit).body as string);
+    expect(sentBody).not.toHaveProperty("assetId");
   });
 });

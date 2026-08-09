@@ -53,6 +53,7 @@ const project: ProjectDetail = {
         sound: null,
         editingNote: null,
         referenceFrameUrl: null,
+        assetId: null,
         durationSeconds: 7,
       },
     ],

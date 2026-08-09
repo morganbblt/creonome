@@ -380,11 +380,18 @@ export function LibraryWorkspace({ library }: { library: Library }) {
                     <div className="flex flex-1 flex-col gap-2.5 p-3.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h2
-                            className="truncate text-sm font-semibold text-foreground"
-                            title={item.name}
-                          >
-                            {item.name}
+                          <h2 className="truncate text-sm font-semibold text-foreground">
+                            {item.source === "upload" ? (
+                              <Link
+                                href={`/library/${item.id}`}
+                                className="hover:underline"
+                                title={item.name}
+                              >
+                                {item.name}
+                              </Link>
+                            ) : (
+                              <span title={item.name}>{item.name}</span>
+                            )}
                           </h2>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {formatBytes(item.byteSize)} · {item.source}

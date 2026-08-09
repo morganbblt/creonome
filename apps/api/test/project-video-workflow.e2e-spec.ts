@@ -192,6 +192,7 @@ describe("Storyboard → Video workflow", () => {
                 id: `0198f3a2-82dd-7000-8000-00000000003${index + 1}`,
                 position: index + 1,
                 startSeconds,
+                assetId: null as string | null,
               };
               startSeconds += scene.durationSeconds;
               return result;

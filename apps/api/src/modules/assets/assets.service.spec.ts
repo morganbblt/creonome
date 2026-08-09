@@ -45,6 +45,9 @@ function createService(records: Array<Record<string, unknown>> = []) {
   const deleteSource = vi
     .fn<AssetsRepository["deleteSource"]>()
     .mockResolvedValue(true);
+  const findLatestAnalysis = vi
+    .fn<AssetsRepository["findLatestAnalysis"]>()
+    .mockResolvedValue(null);
   const repository: AssetsRepository = {
     list: vi.fn().mockResolvedValue(records),
     create: vi.fn().mockImplementation(async (input) => ({
@@ -61,6 +64,7 @@ function createService(records: Array<Record<string, unknown>> = []) {
     })),
     findSourceById,
     deleteSource,
+    findLatestAnalysis,
   };
   const deleteObject = vi
     .fn<PrivateObjectStore["deleteObject"]>()
@@ -88,6 +92,7 @@ function createService(records: Array<Record<string, unknown>> = []) {
     repository,
     findSourceById,
     deleteSource,
+    findLatestAnalysis,
     deleteObject,
     objectReader,
     source,
@@ -195,12 +200,52 @@ describe("AssetsService", () => {
       id: source.id,
       name: source.name,
       source: "upload",
+      analysis: null,
     });
     expect(asset).not.toHaveProperty("gcsUri");
     expect(findSourceById).toHaveBeenCalledWith(
       "0198f3a2-82dd-7000-8000-000000000002",
       source.id,
     );
+  });
+
+  it("includes the latest analysis evidence when it has finished", async () => {
+    const { service, findLatestAnalysis, source } = createService();
+    const insight = {
+      summary: "A steady handheld walkthrough of a small ceramics studio.",
+      disciplines: ["ceramics"],
+      genres: ["studio vlog"],
+      creativeSignature: "Warm, unhurried narration over practical b-roll.",
+      themes: ["craft", "process"],
+      targetAudience: "Hobbyist makers curious about the craft.",
+      boundaries: [],
+      evidence: ["Steady handheld camera work throughout the clip."],
+    };
+    findLatestAnalysis.mockResolvedValue({
+      status: "succeeded",
+      result: insight,
+      errorCode: null,
+      completedAt: new Date("2026-08-02T10:05:00.000Z"),
+    });
+
+    const asset = await service.get(principal, source.id);
+
+    expect(asset.analysis).toEqual(insight);
+    expect(findLatestAnalysis).toHaveBeenCalledWith(source.id);
+  });
+
+  it("omits analysis when the stored result cannot be parsed as evidence", async () => {
+    const { service, findLatestAnalysis, source } = createService();
+    findLatestAnalysis.mockResolvedValue({
+      status: "failed",
+      result: {},
+      errorCode: "unsupported_media_type",
+      completedAt: null,
+    });
+
+    const asset = await service.get(principal, source.id);
+
+    expect(asset.analysis).toBeNull();
   });
 
   it("deletes the private object before its cascading database record", async () => {

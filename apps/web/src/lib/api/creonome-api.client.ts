@@ -1,4 +1,5 @@
 import {
+  AssetDetailSchema,
   CreatorDnaSchema,
   CreatorDnaVersionCompareSchema,
   CreatorDnaVersionsResponseSchema,
@@ -17,6 +18,7 @@ import {
   PrivacyStateSchema,
   UpgradeOpportunityInputSchema,
   UpgradeOpportunityResultSchema,
+  type AssetDetail,
   type CreatorDna,
   type CreatorDnaVersionCompare,
   type CreatorDnaVersionsResponse,
@@ -138,6 +140,13 @@ export class CreonomeApiClient {
 
   getLibrary(): Promise<Library> {
     return this.get("/assets", LibrarySchema);
+  }
+
+  getAsset(assetId: string): Promise<AssetDetail> {
+    return this.get(
+      `/assets/${encodeURIComponent(assetId)}`,
+      AssetDetailSchema,
+    );
   }
 
   getPrivacy(): Promise<PrivacyState> {

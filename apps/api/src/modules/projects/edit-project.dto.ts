@@ -1,4 +1,5 @@
 import type {
+  AttachStoryboardSceneAssetInput,
   RegenerateScriptBlockInput,
   RegenerateStoryboardSceneInput,
   ReorderStoryboardScenesInput,
@@ -15,6 +16,7 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from "class-validator";
 
 /**
@@ -71,4 +73,18 @@ export class ReorderStoryboardScenesDto implements ReorderStoryboardScenesInput 
   @ArrayMaxSize(8)
   @IsUUID(undefined, { each: true })
   sceneIds!: string[];
+}
+
+/**
+ * Body for `PATCH /projects/:id/storyboard/scenes/:sceneId/asset` (P2.4):
+ * `assetId` is a real workspace Library asset id to attach, or `null` to
+ * detach whatever is currently attached. `@ValidateIf` (rather than
+ * `@IsOptional`) is deliberate -- the field must always be present and
+ * either a UUID or explicit `null`; a missing/`undefined` value is
+ * rejected the same as a malformed one.
+ */
+export class AttachStoryboardSceneAssetDto implements AttachStoryboardSceneAssetInput {
+  @ValidateIf((dto: AttachStoryboardSceneAssetDto) => dto.assetId !== null)
+  @IsUUID()
+  assetId!: string | null;
 }

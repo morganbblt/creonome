@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Inject, ServiceUnavailableException } from "@nestjs/common";
 import {
+  assetAnalyses,
   type CreonomeDatabase,
   exports as projectExports,
   generatedAssets,
@@ -12,6 +13,7 @@ import {
 import { and, desc, eq } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import type {
+  AssetAnalysisRecord,
   AssetsRepository,
   LibraryAssetRecord,
   RegisterAssetInput,
@@ -236,6 +238,23 @@ export class NeonAssetsRepository implements AssetsRepository {
       gcsUri: asset.gcsUri,
       createdAt: asset.createdAt,
     };
+  }
+
+  async findLatestAnalysis(
+    assetId: string,
+  ): Promise<AssetAnalysisRecord | null> {
+    const [analysis] = await this.requireDatabase()
+      .select({
+        status: assetAnalyses.status,
+        result: assetAnalyses.result,
+        errorCode: assetAnalyses.errorCode,
+        completedAt: assetAnalyses.completedAt,
+      })
+      .from(assetAnalyses)
+      .where(eq(assetAnalyses.sourceAssetId, assetId))
+      .orderBy(desc(assetAnalyses.createdAt))
+      .limit(1);
+    return analysis ?? null;
   }
 
   async deleteSource(workspaceId: string, assetId: string): Promise<boolean> {

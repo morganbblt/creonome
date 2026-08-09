@@ -64,6 +64,15 @@ export const StoryboardSceneSchema = z.object({
   sound: z.string().trim().min(1).max(1_000).nullable().default(null),
   editingNote: z.string().trim().min(1).max(1_000).nullable().default(null),
   referenceFrameUrl: z.url().nullable().default(null),
+  /**
+   * A Library asset the creator explicitly attached to this scene (P2.4),
+   * distinct from `requiredAsset` above (an AI-generated free-text
+   * description of what footage a scene needs). Set via
+   * `PATCH /projects/:id/storyboard/scenes/:sceneId/asset`; untouched by a
+   * scene-level regenerate (`PATCH .../scenes/:sceneId`), so it survives
+   * the same way a locked field would.
+   */
+  assetId: z.uuid().nullable().default(null),
 });
 
 export const ProjectStoryboardSchema = z.object({
@@ -213,6 +222,28 @@ export const ReorderStoryboardScenesResultSchema = z.object({
 });
 export type ReorderStoryboardScenesResult = z.infer<
   typeof ReorderStoryboardScenesResultSchema
+>;
+
+/**
+ * Input for `PATCH /projects/:id/storyboard/scenes/:sceneId/asset`
+ * (P2.4): attaches (or, with `assetId: null`, detaches) one Library asset
+ * to a single scene. Purely mechanical -- like the reorder endpoint above,
+ * no generation and no locks to check, since attaching an asset never
+ * changes AI-generated scene content.
+ */
+export const AttachStoryboardSceneAssetInputSchema = z.object({
+  assetId: z.uuid().nullable(),
+});
+export type AttachStoryboardSceneAssetInput = z.infer<
+  typeof AttachStoryboardSceneAssetInputSchema
+>;
+
+export const AttachStoryboardSceneAssetResultSchema = z.object({
+  project: ProjectSchema,
+  storyboard: ProjectStoryboardSchema,
+});
+export type AttachStoryboardSceneAssetResult = z.infer<
+  typeof AttachStoryboardSceneAssetResultSchema
 >;
 
 export type Project = z.infer<typeof ProjectSchema>;

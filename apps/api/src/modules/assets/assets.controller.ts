@@ -16,7 +16,12 @@ import {
   ApiOperation,
   ApiTags,
 } from "@nestjs/swagger";
-import type { AssetDeletion, Library, LibraryItem } from "@creonome/contracts";
+import type {
+  AssetDeletion,
+  AssetDetail,
+  Library,
+  LibraryItem,
+} from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import { AssetsService } from "./assets.service.js";
@@ -41,7 +46,7 @@ export class AssetsController {
   get(
     @CurrentUser() principal: AuthPrincipal,
     @Param("id", new ParseUUIDPipe()) assetId: string,
-  ): Promise<LibraryItem> {
+  ): Promise<AssetDetail> {
     return this.assets.get(principal, assetId);
   }
 

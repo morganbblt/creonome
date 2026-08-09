@@ -38,6 +38,13 @@ export type ProjectSceneRecord = {
   editingNote: string | null;
   referenceFrameUrl: string | null;
   durationSeconds: number | null;
+  /**
+   * The Library asset explicitly attached to this scene (P2.4), or null.
+   * Not AI-generated content -- see {@link GeneratedStoryboardScene}, which
+   * deliberately omits this field so a scene-level regenerate never
+   * touches it.
+   */
+  assetId: string | null;
 };
 
 export type ProjectStoryboardRecord = {
@@ -130,7 +137,7 @@ export type VideoSourceRecord = {
 
 export type GeneratedStoryboardScene = Omit<
   ProjectSceneRecord,
-  "id" | "position" | "startSeconds" | "durationSeconds"
+  "id" | "position" | "startSeconds" | "durationSeconds" | "assetId"
 > & { durationSeconds: number };
 
 export type GeneratedStoryboard = {
@@ -232,6 +239,28 @@ export type ReorderStoryboardScenesInput = {
   orderedSceneIds: string[];
 };
 
+export type AttachStoryboardSceneAssetRepoInput = {
+  workspaceId: string;
+  projectId: string;
+  userId: string;
+  storyboardId: string;
+  sceneId: string;
+  /** The Library asset to attach, or null to detach whatever is attached. */
+  assetId: string | null;
+};
+
+/**
+ * Discriminated so the caller (ProjectWorkflowService) can tell "the scene
+ * doesn't exist" (404) apart from "the given assetId isn't a source asset
+ * in this workspace" (400) -- both are failures, but distinct ones, unlike
+ * {@link updateStoryboardScene}'s single `null` (which only ever means
+ * "scene not found").
+ */
+export type AttachStoryboardSceneAssetOutcome =
+  | { outcome: "ok"; record: CurrentStoryboardRecord }
+  | { outcome: "scene_not_found" }
+  | { outcome: "asset_not_found" };
+
 /** `{project, script}` view mirroring {@link CurrentStoryboardRecord}. */
 export type CurrentScriptRecord = {
   project: WorkflowProjectRecord;
@@ -287,6 +316,14 @@ export interface ProjectsRepository {
   reorderStoryboardScenes(
     input: ReorderStoryboardScenesInput,
   ): Promise<CurrentStoryboardRecord | null>;
+  /**
+   * Purely mechanical, like {@link reorderStoryboardScenes}: sets or clears
+   * one scene's attached asset reference. Never touches AI-generated scene
+   * content, so an attached asset survives a later scene-level regenerate.
+   */
+  attachStoryboardSceneAsset(
+    input: AttachStoryboardSceneAssetRepoInput,
+  ): Promise<AttachStoryboardSceneAssetOutcome>;
   findVideoUpgradeByIdempotency(
     workspaceId: string,
     idempotencyKey: string,

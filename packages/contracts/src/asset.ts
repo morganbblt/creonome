@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { OnboardingAssetInsightSchema } from "./onboarding.js";
 
 export const LibraryItemKindSchema = z.enum([
   "video",
@@ -44,7 +45,23 @@ export const AssetDeletionSchema = z.object({
   deleted: z.literal(true),
 });
 
+/**
+ * `GET /assets/:id` (P2.4 asset detail route): the same fields as a
+ * `LibraryItem`, plus the latest analysis evidence for this asset, if any
+ * has run. Reuses {@link OnboardingAssetInsightSchema} rather than a
+ * separate shape -- `asset_analyses` rows are keyed only by
+ * `source_asset_id` (packages/db/src/schema/index.ts), not by which flow
+ * triggered the analysis, so the onboarding pipeline's analysis of an
+ * uploaded source and this detail route's reading of it are the same
+ * record. `null` covers both "not analyzed yet" and "analysis failed to
+ * parse" -- the detail page doesn't need to distinguish those from here.
+ */
+export const AssetDetailSchema = LibraryItemSchema.extend({
+  analysis: OnboardingAssetInsightSchema.nullable(),
+});
+
 export type AssetDeletion = z.infer<typeof AssetDeletionSchema>;
+export type AssetDetail = z.infer<typeof AssetDetailSchema>;
 export type CreateAssetInput = z.infer<typeof CreateAssetInputSchema>;
 export type Library = z.infer<typeof LibrarySchema>;
 export type LibraryItem = z.infer<typeof LibraryItemSchema>;

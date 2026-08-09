@@ -8,10 +8,13 @@ import {
 import { ConfigService } from "@nestjs/config";
 import {
   AssetDeletionSchema,
+  AssetDetailSchema,
   CreateAssetInputSchema,
   LibraryItemSchema,
   LibrarySchema,
+  OnboardingAssetInsightSchema,
   type AssetDeletion,
+  type AssetDetail,
   type CreateAssetInput,
   type Library,
   type LibraryItem,
@@ -76,14 +79,21 @@ export class AssetsService {
     return this.toItem(await this.repository.create({ ...input, ...context }));
   }
 
-  async get(principal: AuthPrincipal, assetId: string): Promise<LibraryItem> {
+  async get(principal: AuthPrincipal, assetId: string): Promise<AssetDetail> {
     const context = await this.workspaces.resolve(principal);
     const asset = await this.repository.findSourceById(
       context.workspaceId,
       assetId,
     );
     if (!asset) throw new NotFoundException("Source asset was not found");
-    return this.toItem(asset);
+    const analysisRecord = await this.repository.findLatestAnalysis(assetId);
+    const parsedInsight = OnboardingAssetInsightSchema.safeParse(
+      analysisRecord?.result,
+    );
+    return AssetDetailSchema.parse({
+      ...this.toItem(asset),
+      analysis: parsedInsight.success ? parsedInsight.data : null,
+    });
   }
 
   async remove(

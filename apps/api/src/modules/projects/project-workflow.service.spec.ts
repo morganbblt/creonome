@@ -131,6 +131,7 @@ function upgradeRecord() {
           id: `0198f3a2-82dd-7000-8000-00000000003${index + 1}`,
           position: index + 1,
           startSeconds,
+          assetId: null as string | null,
         };
         startSeconds += scene.durationSeconds;
         return record;
@@ -246,6 +247,23 @@ function currentStoryboardAfterSceneUpdate(
       ),
       scenes,
     },
+  };
+}
+
+function currentStoryboardAfterAssetAttach(
+  sceneId: string,
+  assetId: string | null,
+) {
+  const base = upgradeRecord();
+  const scenes = base.storyboard.scenes.map((scene) =>
+    scene.id === sceneId ? { ...scene, assetId } : scene,
+  );
+  return {
+    project: {
+      ...base.project,
+      currentVersion: base.project.currentVersion + 1,
+    },
+    storyboard: { ...base.storyboard, scenes },
   };
 }
 
@@ -383,6 +401,17 @@ function setup(options?: {
       .mockImplementation(({ orderedSceneIds }) =>
         Promise.resolve(currentStoryboardAfterReorder(orderedSceneIds)),
       ),
+    attachStoryboardSceneAsset: vi
+      .fn()
+      .mockImplementation(({ sceneId, assetId }) => {
+        if (assetId === "0198f3a2-82dd-7000-8000-00000000009a") {
+          return Promise.resolve({ outcome: "asset_not_found" });
+        }
+        return Promise.resolve({
+          outcome: "ok",
+          record: currentStoryboardAfterAssetAttach(sceneId, assetId),
+        });
+      }),
     updateScriptBlocks: vi
       .fn()
       .mockImplementation(({ generated }) =>
@@ -1479,6 +1508,137 @@ describe("ProjectWorkflowService.regenerateStoryboardScene", () => {
         { lockedFields: [] },
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("never sends assetId to the repository, so a scene's attached asset can't be clobbered by a regenerate", async () => {
+    // GeneratedStoryboardScene deliberately has no assetId field (see
+    // projects.repository.ts) -- this asserts that contract holds at the
+    // call site: `generated` here is exactly what
+    // NeonProjectsRepository#updateStoryboardScene passes to `.set(...)`,
+    // so an omitted key is what makes the SQL UPDATE leave the asset_id
+    // column untouched (bible-style lock-preservation, but for a field
+    // that was never AI-generated content in the first place).
+    const { service, repository, generator } = setup({ existing: true });
+    vi.mocked(generator.generate).mockResolvedValueOnce(generatedScene);
+
+    await service.regenerateStoryboardScene(principal, projectId, sceneId, {
+      instruction: "Open on something else",
+      lockedFields: [],
+    });
+
+    const call = vi.mocked(repository.updateStoryboardScene).mock.calls[0]![0];
+    expect(call.generated).not.toHaveProperty("assetId");
+  });
+});
+
+describe("ProjectWorkflowService.attachStoryboardSceneAsset", () => {
+  const sceneId = "0198f3a2-82dd-7000-8000-000000000031"; // position 1
+  const assetId = "0198f3a2-82dd-7000-8000-000000000099";
+  const generatedScene = {
+    heading: "A brand new opening",
+    description: "Reworked opening beat.",
+    shotType: "Extreme close-up",
+    voiceover: "Hold the empty room.",
+    onScreenText: "Before the drop",
+    bRoll: "Dust moving through the studio light.",
+    transition: "Hard cut on the needle touch.",
+    requiredAsset: "Studio speaker close-up",
+    sound: "Room tone only",
+    editingNote: "Keep the first frame still for two seconds.",
+    referenceFrameUrl: null,
+    durationSeconds: 8,
+  };
+
+  it("attaches an asset to a scene without calling the generator", async () => {
+    const { service, repository, generator } = setup({ existing: true });
+
+    const result = await service.attachStoryboardSceneAsset(
+      principal,
+      projectId,
+      sceneId,
+      { assetId },
+    );
+
+    expect(generator.generate).not.toHaveBeenCalled();
+    expect(repository.attachStoryboardSceneAsset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: context.workspaceId,
+        projectId,
+        sceneId,
+        assetId,
+      }),
+    );
+    const attachedScene = result.storyboard.scenes.find(
+      (scene) => scene.id === sceneId,
+    );
+    expect(attachedScene).toMatchObject({ assetId });
+  });
+
+  it("detaches an asset from a scene with assetId: null", async () => {
+    const { service, repository } = setup({ existing: true });
+
+    await service.attachStoryboardSceneAsset(principal, projectId, sceneId, {
+      assetId: null,
+    });
+
+    expect(repository.attachStoryboardSceneAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ sceneId, assetId: null }),
+    );
+  });
+
+  it("404s when the scene id does not belong to the current storyboard", async () => {
+    const { service } = setup({ existing: true });
+
+    await expect(
+      service.attachStoryboardSceneAsset(
+        principal,
+        projectId,
+        "0198f3a2-82dd-7000-8000-000000000099",
+        { assetId },
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("404s when the project has no storyboard yet", async () => {
+    const { service } = setup({ existing: false });
+
+    await expect(
+      service.attachStoryboardSceneAsset(principal, projectId, sceneId, {
+        assetId,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("400s when the asset does not belong to the current workspace", async () => {
+    const { service } = setup({ existing: true });
+
+    await expect(
+      service.attachStoryboardSceneAsset(principal, projectId, sceneId, {
+        assetId: "0198f3a2-82dd-7000-8000-00000000009a",
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("survives a later regenerate of the same scene (repository never receives an overwrite)", async () => {
+    const { service, repository, generator } = setup({ existing: true });
+
+    await service.attachStoryboardSceneAsset(principal, projectId, sceneId, {
+      assetId,
+    });
+    vi.mocked(generator.generate).mockResolvedValueOnce(generatedScene);
+    await service.regenerateStoryboardScene(principal, projectId, sceneId, {
+      instruction: "Open on something else",
+      lockedFields: [],
+    });
+
+    // The regenerate call's payload to the repository never carries
+    // assetId (see the assertion above in the regenerateStoryboardScene
+    // suite) -- so the earlier attach is never overwritten by this call,
+    // regardless of what NeonProjectsRepository#updateStoryboardScene's
+    // partial `.set(...)` actually persists.
+    const regenerateCall = vi.mocked(repository.updateStoryboardScene).mock
+      .calls[0]![0];
+    expect(regenerateCall.generated).not.toHaveProperty("assetId");
   });
 });
 
