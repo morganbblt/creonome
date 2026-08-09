@@ -1,11 +1,14 @@
 import { BadRequestException } from "@nestjs/common";
 import type {
+  CreatorDna,
   OnboardingAssetInsight,
   OnboardingProfile,
   OnboardingState,
 } from "@creonome/contracts";
 import { describe, expect, it, vi } from "vitest";
+import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
+import type { CreatorDnaService } from "../creator-dna/creator-dna.service.js";
 import type { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import type { OnboardingIntelligence } from "./onboarding-intelligence.js";
 import type { OnboardingRepository } from "./onboarding.repository.js";
@@ -69,6 +72,21 @@ function state(
   };
 }
 
+const dna: CreatorDna = {
+  version: 1,
+  summary: "Nocturnal electronic stories grounded in tactile details.",
+  confirmed: true,
+  traits: [],
+  peopleReferenceImage: null,
+};
+
+const generatedCalibration = {
+  concepts: Array.from({ length: 6 }, (_, index) => ({
+    title: `Generated mini-concept ${index + 1}`,
+    description: `A generated calibration concept detailed enough to react to, number ${index + 1}.`,
+  })),
+};
+
 function setup(currentState = state()) {
   const workspaces = {
     resolve: vi.fn().mockResolvedValue(context),
@@ -92,6 +110,7 @@ function setup(currentState = state()) {
     updateRepresentativeness: vi.fn().mockResolvedValue(true),
     saveDraftProfile: vi.fn(),
     completeProfile: vi.fn(),
+    saveCalibrationResponses: vi.fn().mockResolvedValue(1),
   };
   const intelligence: OnboardingIntelligence = {
     provider: "vertex-ai",
@@ -106,10 +125,24 @@ function setup(currentState = state()) {
       boundaries: profile.boundaries,
     }),
   };
+  const creatorDna = {
+    getForWorkspaceContext: vi.fn().mockResolvedValue(dna),
+  } as unknown as CreatorDnaService;
+  const generator: StructuredGenerator = {
+    generate: vi.fn().mockResolvedValue(generatedCalibration),
+  };
   return {
-    service: new OnboardingService(workspaces, repository, intelligence),
+    service: new OnboardingService(
+      workspaces,
+      repository,
+      intelligence,
+      creatorDna,
+      generator,
+    ),
     repository,
     intelligence,
+    creatorDna,
+    generator,
   };
 }
 
@@ -192,5 +225,54 @@ describe("OnboardingService", () => {
       status: "complete",
     });
     expect(repository.completeProfile).toHaveBeenCalledWith(context, profile);
+  });
+
+  it("generates six calibration mini-concepts from the confirmed Creator DNA", async () => {
+    const { service, creatorDna, generator } = setup(state("complete"));
+
+    const result = await service.generateCalibration(principal);
+
+    expect(result.concepts).toHaveLength(6);
+    expect(new Set(result.concepts.map(({ id }) => id)).size).toBe(6);
+    expect(creatorDna.getForWorkspaceContext).toHaveBeenCalledWith(context);
+    expect(generator.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining(dna.summary),
+      }),
+    );
+    expect(result.concepts[0]).toMatchObject({
+      title: "Generated mini-concept 1",
+    });
+  });
+
+  it("falls back to local calibration concepts when generation is unavailable", async () => {
+    const { service, generator } = setup(state("complete"));
+    vi.mocked(generator.generate).mockRejectedValueOnce(
+      new Error("generator unavailable"),
+    );
+
+    const result = await service.generateCalibration(principal);
+
+    expect(result.concepts).toHaveLength(6);
+  });
+
+  it("saves calibration responses as memory candidate signal", async () => {
+    const { service, repository } = setup(state("complete"));
+    const responses = [
+      {
+        conceptId: "calibration-1",
+        title: "One gesture, one drop",
+        description: "Film one decisive production gesture.",
+        response: "feels_like_me" as const,
+      },
+    ];
+
+    await expect(
+      service.submitCalibrationResponses(principal, { responses }),
+    ).resolves.toEqual({ saved: 1 });
+    expect(repository.saveCalibrationResponses).toHaveBeenCalledWith(
+      context,
+      responses,
+    );
   });
 });

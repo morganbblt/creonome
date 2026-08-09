@@ -14,10 +14,15 @@ import {
   ApiOperation,
   ApiTags,
 } from "@nestjs/swagger";
-import type { OnboardingState } from "@creonome/contracts";
+import type {
+  OnboardingCalibrationSet,
+  OnboardingState,
+  SubmitOnboardingCalibrationResponsesResult,
+} from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import { OnboardingService } from "./onboarding.service.js";
+import { SubmitOnboardingCalibrationResponsesDto } from "./submit-onboarding-calibration-responses.dto.js";
 import { UpdateOnboardingAssetDto } from "./update-onboarding-asset.dto.js";
 import { UpdateOnboardingProfileDto } from "./update-onboarding-profile.dto.js";
 
@@ -73,5 +78,26 @@ export class OnboardingController {
     @Body() input: UpdateOnboardingProfileDto,
   ): Promise<OnboardingState> {
     return this.onboarding.complete(principal, input);
+  }
+
+  @Post("calibration")
+  @ApiOperation({
+    summary: "Generate six calibration mini-concepts from Creator DNA",
+  })
+  generateCalibration(
+    @CurrentUser() principal: AuthPrincipal,
+  ): Promise<OnboardingCalibrationSet> {
+    return this.onboarding.generateCalibration(principal);
+  }
+
+  @Post("calibration/responses")
+  @ApiOperation({
+    summary: "Save calibration responses as memory candidate signal",
+  })
+  submitCalibrationResponses(
+    @CurrentUser() principal: AuthPrincipal,
+    @Body() input: SubmitOnboardingCalibrationResponsesDto,
+  ): Promise<SubmitOnboardingCalibrationResponsesResult> {
+    return this.onboarding.submitCalibrationResponses(principal, input);
   }
 }

@@ -1,10 +1,18 @@
 "use client";
 
 import {
+  CreatorDnaSchema,
+  CreditsResponseSchema,
   LibraryItemSchema,
+  OnboardingCalibrationSetSchema,
   OnboardingStateSchema,
+  SubmitOnboardingCalibrationResponsesResultSchema,
   UploadSignResponseSchema,
+  type CreatorDna,
+  type CreditsResponse,
   type OnboardingAsset,
+  type OnboardingCalibrationConcept,
+  type OnboardingCalibrationResponseValue,
   type OnboardingProfile,
   type OnboardingRepresentativeness,
   type OnboardingState,
@@ -45,8 +53,17 @@ import { Progress } from "@/src/components/ui/progress";
 import { Textarea } from "@/src/components/ui/textarea";
 import { cn } from "@/src/lib/utils";
 import { BrandWordmark } from "../brand/brand-wordmark";
+import { OnboardingCalibrationView } from "./onboarding-calibration-view";
+import { OnboardingDnaReviewView } from "./onboarding-dna-review-view";
+import { OnboardingSummaryView } from "./onboarding-summary-view";
 
-type View = "source" | "upload" | "profile";
+type View =
+  | "source"
+  | "upload"
+  | "profile"
+  | "dna-review"
+  | "calibration"
+  | "summary";
 type LocalFailure = { id: string; fileName: string; message: string };
 
 const representationLabels: Record<OnboardingRepresentativeness, string> = {
@@ -91,11 +108,21 @@ const emptyProfile: OnboardingProfile = {
   boundaries: [],
 };
 
-const stepOrder: View[] = ["source", "upload", "profile"];
+const stepOrder: View[] = [
+  "source",
+  "upload",
+  "profile",
+  "dna-review",
+  "calibration",
+  "summary",
+];
 const stepTitles: Record<View, string> = {
   source: "Add your sources",
   upload: "Review your sources",
   profile: "Confirm your profile",
+  "dna-review": "Review your Creator DNA",
+  calibration: "Calibrate your taste",
+  summary: "You’re ready",
 };
 
 function initialView(state: OnboardingState): View {
@@ -205,6 +232,25 @@ export function OnboardingWorkspace({
   const [savingProfile, setSavingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const [dna, setDna] = useState<CreatorDna | null>(null);
+  const [dnaLoading, setDnaLoading] = useState(false);
+  const [dnaError, setDnaError] = useState<string | null>(null);
+
+  const [calibrationConcepts, setCalibrationConcepts] = useState<
+    OnboardingCalibrationConcept[]
+  >([]);
+  const [calibrationResponses, setCalibrationResponses] = useState<
+    Record<string, OnboardingCalibrationResponseValue>
+  >({});
+  const [calibrationLoading, setCalibrationLoading] = useState(false);
+  const [calibrationError, setCalibrationError] = useState<string | null>(
+    null,
+  );
+  const [calibrationSubmitting, setCalibrationSubmitting] = useState(false);
+
+  const [credits, setCredits] = useState<CreditsResponse | null>(null);
+  const [finishing, setFinishing] = useState(false);
 
   function useRemoteState(next: unknown) {
     const parsed = OnboardingStateSchema.parse(next);
@@ -435,8 +481,9 @@ export function OnboardingWorkspace({
       });
       if (!response.ok) throw new Error("save");
       useRemoteState(await response.json());
-      setNotice("Profile saved. Opening your workspace…");
-      router.push("/today");
+      setNotice("Profile saved. Building your Creator DNA…");
+      setView("dna-review");
+      void loadCreatorDna();
     } catch {
       setError(
         "Your profile wasn’t saved. Your draft is still here — try again.",
@@ -444,6 +491,127 @@ export function OnboardingWorkspace({
     } finally {
       setSavingProfile(false);
     }
+  }
+
+  async function loadCreatorDna() {
+    setDnaLoading(true);
+    setDnaError(null);
+    try {
+      const response = await fetch("/api/creonome/creator-dna", {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("dna");
+      setDna(CreatorDnaSchema.parse(await response.json()));
+    } catch {
+      setDnaError(
+        "We couldn’t load your Creator DNA. Your confirmed profile is intact — try again.",
+      );
+    } finally {
+      setDnaLoading(false);
+    }
+  }
+
+  async function startCalibration() {
+    setView("calibration");
+    // Already generated once (e.g. the creator went back and forward
+    // between dna-review and calibration) -- don't regenerate and lose
+    // their in-progress responses.
+    if (calibrationConcepts.length > 0) return;
+    setCalibrationLoading(true);
+    setCalibrationError(null);
+    try {
+      const response = await fetch("/api/creonome/onboarding/calibration", {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("calibration");
+      const parsed = OnboardingCalibrationSetSchema.parse(
+        await response.json(),
+      );
+      setCalibrationConcepts(parsed.concepts);
+    } catch {
+      setCalibrationError(
+        "We couldn’t generate calibration concepts. Your profile is intact — try again, or continue without answering.",
+      );
+    } finally {
+      setCalibrationLoading(false);
+    }
+  }
+
+  function respondToCalibration(
+    conceptId: string,
+    response: OnboardingCalibrationResponseValue,
+  ) {
+    setCalibrationResponses((current) => ({
+      ...current,
+      [conceptId]: response,
+    }));
+  }
+
+  async function loadCredits() {
+    try {
+      const response = await fetch("/api/creonome/credits", {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("credits");
+      setCredits(CreditsResponseSchema.parse(await response.json()));
+    } catch {
+      setCredits(null);
+    }
+  }
+
+  /**
+   * Calibration responses are supplementary signal (fed into memory
+   * candidates, see onboarding.service.ts's submitCalibrationResponses),
+   * not a gate on completing onboarding -- onboarding itself already
+   * completed when the profile was confirmed. A save failure here shows a
+   * notice but still lets the creator continue to their workspace.
+   */
+  async function continueFromCalibration() {
+    setCalibrationSubmitting(true);
+    setCalibrationError(null);
+    try {
+      const responses = calibrationConcepts.flatMap((concept) => {
+        const response = calibrationResponses[concept.id];
+        return response
+          ? [
+              {
+                conceptId: concept.id,
+                title: concept.title,
+                description: concept.description,
+                response,
+              },
+            ]
+          : [];
+      });
+      if (responses.length > 0) {
+        const response = await fetch(
+          "/api/creonome/onboarding/calibration/responses",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ responses }),
+          },
+        );
+        if (!response.ok) throw new Error("calibration-responses");
+        SubmitOnboardingCalibrationResponsesResultSchema.parse(
+          await response.json(),
+        );
+      }
+    } catch {
+      setCalibrationError(
+        "Your calibration responses weren’t saved, but you can continue.",
+      );
+    } finally {
+      setCalibrationSubmitting(false);
+    }
+    setView("summary");
+    void loadCredits();
+  }
+
+  function finishOnboarding() {
+    setFinishing(true);
+    setNotice("Opening your workspace…");
+    router.push("/today");
   }
 
   const footerHint =
@@ -998,6 +1166,39 @@ export function OnboardingWorkspace({
               </div>
             </footer>
           </form>
+        ) : null}
+
+        {view === "dna-review" ? (
+          <OnboardingDnaReviewView
+            dna={dna}
+            error={dnaError}
+            loading={dnaLoading}
+            onBack={() => setView("profile")}
+            onContinue={() => void startCalibration()}
+          />
+        ) : null}
+
+        {view === "calibration" ? (
+          <OnboardingCalibrationView
+            concepts={calibrationConcepts}
+            error={calibrationError}
+            loading={calibrationLoading}
+            onBack={() => setView("dna-review")}
+            onContinue={() => void continueFromCalibration()}
+            onRespond={respondToCalibration}
+            responses={calibrationResponses}
+            submitting={calibrationSubmitting}
+          />
+        ) : null}
+
+        {view === "summary" ? (
+          <OnboardingSummaryView
+            credits={credits}
+            error={null}
+            generating={finishing}
+            onGenerate={finishOnboarding}
+            profile={profile}
+          />
         ) : null}
 
         {error ? (
