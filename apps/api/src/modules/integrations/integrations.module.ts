@@ -6,6 +6,7 @@ import { IntegrationsController } from "./integrations.controller.js";
 import { INTEGRATIONS_REPOSITORY } from "./integrations.repository.js";
 import { IntegrationsService } from "./integrations.service.js";
 import { NeonIntegrationsRepository } from "./neon-integrations.repository.js";
+import { TikTokOAuthClient } from "./tiktok-oauth.client.js";
 
 @Module({
   imports: [WorkspacesModule],
@@ -26,20 +27,34 @@ import { NeonIntegrationsRepository } from "./neon-integrations.repository.js";
       ) => {
         const enabled =
           config.get<boolean>("FEATURE_SOCIAL_CONNECTIONS") ?? false;
-        return new IntegrationsService(workspaces, repository, {
-          tiktokConfigured: Boolean(
-            enabled &&
-            config.get("TIKTOK_CLIENT_KEY") &&
-            config.get("TIKTOK_CLIENT_SECRET") &&
-            config.get("TIKTOK_REDIRECT_URI"),
-          ),
-          instagramConfigured: Boolean(
-            enabled &&
-            config.get("META_APP_ID") &&
-            config.get("META_APP_SECRET") &&
-            config.get("META_REDIRECT_URI"),
-          ),
-        });
+        const tiktokClientKey = config.get<string>("TIKTOK_CLIENT_KEY");
+        const tiktokClientSecret = config.get<string>("TIKTOK_CLIENT_SECRET");
+        const tiktokRedirectUri = config.get<string>("TIKTOK_REDIRECT_URI");
+        const tiktokConfigured = Boolean(
+          enabled && tiktokClientKey && tiktokClientSecret && tiktokRedirectUri,
+        );
+        const tiktokClient = tiktokConfigured
+          ? new TikTokOAuthClient({
+              clientKey: tiktokClientKey as string,
+              clientSecret: tiktokClientSecret as string,
+              redirectUri: tiktokRedirectUri as string,
+            })
+          : null;
+
+        return new IntegrationsService(
+          workspaces,
+          repository,
+          {
+            tiktokConfigured,
+            instagramConfigured: Boolean(
+              enabled &&
+              config.get("META_APP_ID") &&
+              config.get("META_APP_SECRET") &&
+              config.get("META_REDIRECT_URI"),
+            ),
+          },
+          tiktokClient,
+        );
       },
     },
   ],

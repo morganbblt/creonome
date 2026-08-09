@@ -30,6 +30,54 @@ describe("IntegrationsService", () => {
       ],
     });
   });
+
+  it("throws when starting TikTok OAuth without developer credentials", () => {
+    const workspaces = {
+      resolve: vi.fn(),
+    } as unknown as WorkspaceContextService;
+    const repository: IntegrationsRepository = {
+      list: vi.fn(),
+      disconnect: vi.fn(),
+    };
+    const service = new IntegrationsService(workspaces, repository, {
+      tiktokConfigured: false,
+      instagramConfigured: false,
+    });
+
+    expect(() => service.startTikTok()).toThrow(
+      "TikTok OAuth requires the Creonome developer app credentials and final callback domain",
+    );
+  });
+
+  it("builds a real authorization URL when TikTok OAuth is configured and enabled", () => {
+    const workspaces = {
+      resolve: vi.fn(),
+    } as unknown as WorkspaceContextService;
+    const repository: IntegrationsRepository = {
+      list: vi.fn(),
+      disconnect: vi.fn(),
+    };
+    const tiktokClient = new TikTokOAuthClient({
+      clientKey: "client-key",
+      clientSecret: "client-secret",
+      redirectUri:
+        "https://api.creonome.app/api/v1/integrations/tiktok/callback",
+    });
+    const service = new IntegrationsService(
+      workspaces,
+      repository,
+      { tiktokConfigured: true, instagramConfigured: false },
+      tiktokClient,
+    );
+
+    const { url } = service.startTikTok();
+    const parsed = new URL(url);
+    expect(`${parsed.origin}${parsed.pathname}`).toBe(
+      "https://www.tiktok.com/v2/auth/authorize/",
+    );
+    expect(parsed.searchParams.get("client_key")).toBe("client-key");
+    expect(parsed.searchParams.get("state")).toBeTruthy();
+  });
 });
 
 describe("TikTokOAuthClient", () => {

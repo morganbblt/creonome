@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import {
   IntegrationsResponseSchema,
   type IntegrationsResponse,
@@ -10,11 +16,15 @@ import {
   INTEGRATIONS_REPOSITORY,
   type IntegrationsRepository,
 } from "./integrations.repository.js";
+import type { TikTokOAuthClient } from "./tiktok-oauth.client.js";
 
 type IntegrationConfiguration = {
   tiktokConfigured: boolean;
   instagramConfigured: boolean;
 };
+
+const TIKTOK_UNAVAILABLE_MESSAGE =
+  "TikTok OAuth requires the Creonome developer app credentials and final callback domain";
 
 @Injectable()
 export class IntegrationsService {
@@ -24,6 +34,7 @@ export class IntegrationsService {
     @Inject(INTEGRATIONS_REPOSITORY)
     private readonly repository: IntegrationsRepository,
     private readonly configuration: IntegrationConfiguration,
+    private readonly tiktokClient: TikTokOAuthClient | null = null,
   ) {}
 
   async list(principal: AuthPrincipal): Promise<IntegrationsResponse> {
@@ -57,6 +68,13 @@ export class IntegrationsService {
         };
       }),
     });
+  }
+
+  startTikTok(): { url: string } {
+    if (!this.configuration.tiktokConfigured || !this.tiktokClient) {
+      throw new ServiceUnavailableException(TIKTOK_UNAVAILABLE_MESSAGE);
+    }
+    return { url: this.tiktokClient.createAuthorizationUrl(randomUUID()) };
   }
 
   async disconnect(principal: AuthPrincipal, connectionId: string) {
