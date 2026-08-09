@@ -114,7 +114,7 @@ describe("ProjectWorkspace", () => {
     ).toHaveLength(1);
     await user.click(screen.getByRole("tab", { name: "Script" }));
     expect(screen.getByText(project.script!.hook)).toBeTruthy();
-    expect(screen.getAllByTestId("script-segment")).toHaveLength(3);
+    expect(screen.getAllByTestId("script-block")).toHaveLength(3);
     expect(screen.queryByRole("heading", { name: "01 · Silence" })).toBeNull();
     expect(screen.getByText("Built the first visual sequence.")).toBeTruthy();
     expect(screen.getByText("Current level", { exact: false })).toBeTruthy();

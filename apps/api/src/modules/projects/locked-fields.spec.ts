@@ -1,16 +1,22 @@
 import { BadRequestException } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
 import {
+  applyScriptLocks,
   applyStoryboardLocks,
+  buildScriptLockPromptLines,
   buildStoryboardLockPromptLines,
+  findScriptLockViolations,
   findStoryboardLockViolations,
   findVideoLockViolations,
   parseSceneFieldLock,
   sceneFieldLockKey,
   validateLockedFieldNames,
+  validateScriptLockedFieldNames,
+  type GeneratedScriptBlocks,
 } from "./locked-fields.js";
 import type {
   GeneratedStoryboard,
+  ProjectScriptRecord,
   ProjectStoryboardRecord,
   ProjectVideoRecord,
 } from "./projects.repository.js";
@@ -288,6 +294,124 @@ describe("buildStoryboardLockPromptLines", () => {
     const strict = buildStoryboardLockPromptLines(["title"], previous, true);
     expect(strict[0]).toContain("STRICT REQUIREMENT");
     expect(strict.some((line) => line.includes(previous.title))).toBe(true);
+  });
+});
+
+function scriptRecord(
+  overrides: Partial<ProjectScriptRecord> = {},
+): ProjectScriptRecord {
+  return {
+    id: "script-1",
+    projectId: "project-1",
+    title: "The silence before the drop",
+    hook: "Hold the empty room.",
+    body: "Lower the needle, wait for the first kick, then reveal the session.",
+    callToAction: "What arrives after your silence?",
+    caption: "The room is part of the arrangement.",
+    platforms: ["tiktok", "instagram"],
+    durationSeconds: 30,
+    ...overrides,
+  };
+}
+
+function generatedScriptBlocks(
+  overrides: Partial<GeneratedScriptBlocks> = {},
+): GeneratedScriptBlocks {
+  const previous = scriptRecord();
+  return {
+    hook: previous.hook,
+    body: previous.body,
+    callToAction: previous.callToAction,
+    caption: previous.caption,
+    ...overrides,
+  };
+}
+
+describe("validateScriptLockedFieldNames", () => {
+  it("accepts legal script block names that are not the field being changed", () => {
+    expect(() =>
+      validateScriptLockedFieldNames("body", ["hook", "callToAction"]),
+    ).not.toThrow();
+  });
+
+  it("rejects an illegal script field name", () => {
+    expect(() => validateScriptLockedFieldNames("body", ["title"])).toThrow(
+      BadRequestException,
+    );
+  });
+
+  it("rejects locking the very block being changed", () => {
+    expect(() => validateScriptLockedFieldNames("hook", ["hook"])).toThrow(
+      BadRequestException,
+    );
+  });
+});
+
+describe("findScriptLockViolations", () => {
+  it("returns no violations when nothing is locked or there is no previous script", () => {
+    expect(
+      findScriptLockViolations(null, generatedScriptBlocks(), ["hook"]),
+    ).toEqual([]);
+    expect(
+      findScriptLockViolations(scriptRecord(), generatedScriptBlocks(), []),
+    ).toEqual([]);
+  });
+
+  it("allows an unlocked block to change while a locked one survives", () => {
+    const previous = scriptRecord();
+    const next = generatedScriptBlocks({ body: "A completely new body." });
+    const violations = findScriptLockViolations(previous, next, ["hook"]);
+    expect(violations).toEqual([]);
+    expect(next.body).toBe("A completely new body.");
+  });
+
+  it("reports a clear violation when a locked block changes", () => {
+    const previous = scriptRecord();
+    const next = generatedScriptBlocks({ hook: "A different hook entirely." });
+    const violations = findScriptLockViolations(previous, next, ["hook"]);
+    expect(violations).toEqual([
+      { field: "hook", message: expect.stringContaining('"hook"') },
+    ]);
+  });
+});
+
+describe("applyScriptLocks", () => {
+  it("force-overwrites locked blocks with the previous script's values", () => {
+    const previous = scriptRecord();
+    const generated = generatedScriptBlocks({
+      hook: "Deterministic fallback hook",
+      body: "Deterministic fallback body",
+    });
+
+    const result = applyScriptLocks(generated, ["hook"], previous);
+
+    expect(result.hook).toBe(previous.hook);
+    // Unlocked field is left as the deterministic generator produced it.
+    expect(result.body).toBe("Deterministic fallback body");
+  });
+
+  it("is a no-op when there is no previous script or nothing is locked", () => {
+    const generated = generatedScriptBlocks({ hook: "Untouched" });
+    expect(applyScriptLocks(generated, ["hook"], null)).toBe(generated);
+    expect(applyScriptLocks(generated, [], scriptRecord())).toBe(generated);
+  });
+});
+
+describe("buildScriptLockPromptLines", () => {
+  it("returns nothing when there is nothing to lock", () => {
+    expect(buildScriptLockPromptLines([], scriptRecord())).toEqual([]);
+    expect(buildScriptLockPromptLines(["hook"], null)).toEqual([]);
+  });
+
+  it("includes the previous value and escalates wording on a strict retry", () => {
+    const previous = scriptRecord();
+    const normal = buildScriptLockPromptLines(["hook"], previous, false);
+    expect(normal.some((line) => line.includes(previous.hook))).toBe(true);
+    expect(normal[0]).not.toContain("STRICT REQUIREMENT");
+
+    const strict = buildScriptLockPromptLines(["hook"], previous, true);
+    expect(strict[0]).toContain("STRICT REQUIREMENT");
+    expect(strict.some((line) => line.includes(previous.hook))).toBe(true);
   });
 });
 

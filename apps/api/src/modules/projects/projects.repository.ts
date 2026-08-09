@@ -197,6 +197,62 @@ export type CreateVideoUpgradeInput = {
   jobId?: string;
 };
 
+/**
+ * `{project, storyboard}` view of the storyboard currently persisted for a
+ * project, with no `job` attached — used by the scene-level edit routes
+ * below, which run synchronously and never create a generation job.
+ */
+export type CurrentStoryboardRecord = {
+  project: WorkflowProjectRecord;
+  storyboard: ProjectStoryboardRecord;
+};
+
+export type UpdateStoryboardSceneInput = {
+  workspaceId: string;
+  projectId: string;
+  userId: string;
+  storyboardId: string;
+  sceneId: string;
+  /** The regenerated scene's fields (bible §15.4), replacing the row in place. */
+  generated: GeneratedStoryboardScene;
+  /**
+   * `scene:<position>:<field>` lock keys (bible §9.6) recorded on the new
+   * project_versions row, matching the format `findStoryboardLockViolations`
+   * already uses for the whole-storyboard `/upgrade` regeneration.
+   */
+  lockedFields: string[];
+};
+
+export type ReorderStoryboardScenesInput = {
+  workspaceId: string;
+  projectId: string;
+  userId: string;
+  storyboardId: string;
+  /** The full set of scene ids on this storyboard, in their new order. */
+  orderedSceneIds: string[];
+};
+
+/** `{project, script}` view mirroring {@link CurrentStoryboardRecord}. */
+export type CurrentScriptRecord = {
+  project: WorkflowProjectRecord;
+  script: ProjectScriptRecord;
+};
+
+export type UpdateScriptBlocksInput = {
+  workspaceId: string;
+  projectId: string;
+  userId: string;
+  scriptId: string;
+  generated: {
+    hook: string;
+    body: string;
+    callToAction: string | null;
+    caption: string | null;
+  };
+  /** Script block names (bible §9.6) recorded on the new project_versions row. */
+  lockedFields: string[];
+};
+
 export interface ProjectsRepository {
   list(workspaceId: string): Promise<ProjectSummaryRecord[]>;
   findById(
@@ -218,6 +274,19 @@ export interface ProjectsRepository {
   createStoryboardUpgrade(
     input: CreateStoryboardUpgradeInput,
   ): Promise<StoryboardUpgradeRecord | null>;
+  /**
+   * Regenerates exactly one scene in place (bible §15.4), bumping the
+   * project version without cloning the whole storyboard row — the other
+   * scenes' rows (and ids) are left untouched, which is also what keeps
+   * {@link reorderStoryboardScenes} able to address scenes by a stable id.
+   */
+  updateStoryboardScene(
+    input: UpdateStoryboardSceneInput,
+  ): Promise<CurrentStoryboardRecord | null>;
+  /** Purely mechanical: renumbers `position` to match `orderedSceneIds`. */
+  reorderStoryboardScenes(
+    input: ReorderStoryboardScenesInput,
+  ): Promise<CurrentStoryboardRecord | null>;
   findVideoUpgradeByIdempotency(
     workspaceId: string,
     idempotencyKey: string,
@@ -233,6 +302,10 @@ export interface ProjectsRepository {
   createVideoUpgrade(
     input: CreateVideoUpgradeInput,
   ): Promise<VideoUpgradeRecord | null>;
+  /** Regenerates the script blocks in place (bible §15.3); the script row's id never changes. */
+  updateScriptBlocks(
+    input: UpdateScriptBlocksInput,
+  ): Promise<CurrentScriptRecord | null>;
 }
 
 export const PROJECTS_REPOSITORY = Symbol("PROJECTS_REPOSITORY");

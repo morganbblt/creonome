@@ -20,16 +20,34 @@ import { CREONOME_DATABASE } from "../database/database.module.js";
 import type {
   CreateStoryboardUpgradeInput,
   CreateVideoUpgradeInput,
+  CurrentScriptRecord,
+  CurrentStoryboardRecord,
   ProjectDetailRecord,
   ProjectJobRecord,
   ProjectVideoRecord,
   ProjectsRepository,
   ProjectSummaryRecord,
+  ReorderStoryboardScenesInput,
   StoryboardSourceRecord,
   StoryboardUpgradeRecord,
+  UpdateScriptBlocksInput,
+  UpdateStoryboardSceneInput,
   VideoSourceRecord,
   VideoUpgradeRecord,
 } from "./projects.repository.js";
+
+/**
+ * `database.batch()` requires a provably non-empty tuple type
+ * (`[T, ...T[]]`), which a plain `.map()`-built array doesn't structurally
+ * satisfy. The batches below always have at least a version-insert and a
+ * project-update, so this assertion is safe.
+ */
+function asBatch<T>(items: T[]): [T, ...T[]] {
+  if (items.length === 0) {
+    throw new Error("Cannot batch an empty list of queries");
+  }
+  return items as [T, ...T[]];
+}
 
 const summarySelection = {
   id: projects.id,
@@ -557,6 +575,237 @@ export class NeonProjectsRepository implements ProjectsRepository {
     };
   }
 
+  async updateStoryboardScene(
+    input: UpdateStoryboardSceneInput,
+  ): Promise<CurrentStoryboardRecord | null> {
+    const database = this.requireDatabase();
+    const [project] = await database
+      .select(workflowProjectSelection)
+      .from(projects)
+      .where(
+        and(
+          eq(projects.workspaceId, input.workspaceId),
+          eq(projects.id, input.projectId),
+        ),
+      )
+      .limit(1);
+    if (!project) return null;
+
+    const [storyboardRow] = await database
+      .select(storyboardSelection)
+      .from(storyboards)
+      .where(
+        and(
+          eq(storyboards.id, input.storyboardId),
+          eq(storyboards.projectId, input.projectId),
+        ),
+      )
+      .limit(1);
+    const [targetScene] = await database
+      .select({
+        position: storyboardScenes.position,
+        durationSeconds: storyboardScenes.durationSeconds,
+      })
+      .from(storyboardScenes)
+      .where(
+        and(
+          eq(storyboardScenes.id, input.sceneId),
+          eq(storyboardScenes.storyboardId, input.storyboardId),
+        ),
+      )
+      .limit(1);
+    if (!storyboardRow || !targetScene) return null;
+
+    const now = new Date();
+    const version = project.currentVersion + 1;
+    const projectVersionId = randomUUID();
+    // The storyboard's total duration is derived from its scenes; only the
+    // target scene's duration is actually changing here, so recompute the
+    // total instead of requiring the caller to keep it in sync.
+    const newTotalDuration =
+      (storyboardRow.durationSeconds ?? 0) -
+      targetScene.durationSeconds +
+      input.generated.durationSeconds;
+
+    await database.batch([
+      database
+        .update(storyboardScenes)
+        .set({ ...input.generated })
+        .where(eq(storyboardScenes.id, input.sceneId)),
+      database
+        .update(storyboards)
+        .set({ durationSeconds: newTotalDuration, updatedAt: now })
+        .where(eq(storyboards.id, input.storyboardId)),
+      database.insert(projectVersions).values({
+        id: projectVersionId,
+        projectId: input.projectId,
+        version,
+        level: "storyboard",
+        parentVersion: project.currentVersion,
+        changeSource: "storyboard_scene_regeneration",
+        changeSummary: `Regenerated scene ${targetScene.position} of the storyboard`,
+        lockedFields: input.lockedFields,
+        snapshot: {
+          storyboardId: input.storyboardId,
+          sceneId: input.sceneId,
+        },
+        createdByUserId: input.userId,
+        createdAt: now,
+      }),
+      database
+        .update(projects)
+        .set({ currentVersion: version, updatedAt: now })
+        .where(
+          and(
+            eq(projects.id, input.projectId),
+            eq(projects.workspaceId, input.workspaceId),
+          ),
+        ),
+    ] as const);
+
+    const sceneRows = await database
+      .select(sceneSelection)
+      .from(storyboardScenes)
+      .where(eq(storyboardScenes.storyboardId, input.storyboardId))
+      .orderBy(asc(storyboardScenes.position));
+    let startSeconds = 0;
+    const scenes = sceneRows.map((scene) => {
+      const result = { ...scene, startSeconds };
+      startSeconds += scene.durationSeconds ?? 0;
+      return result;
+    });
+
+    return {
+      project: { ...project, currentVersion: version, updatedAt: now },
+      storyboard: {
+        ...storyboardRow,
+        durationSeconds: newTotalDuration,
+        scenes,
+      },
+    };
+  }
+
+  async reorderStoryboardScenes(
+    input: ReorderStoryboardScenesInput,
+  ): Promise<CurrentStoryboardRecord | null> {
+    const database = this.requireDatabase();
+    const [project] = await database
+      .select(workflowProjectSelection)
+      .from(projects)
+      .where(
+        and(
+          eq(projects.workspaceId, input.workspaceId),
+          eq(projects.id, input.projectId),
+        ),
+      )
+      .limit(1);
+    if (!project) return null;
+
+    const [storyboardRow] = await database
+      .select(storyboardSelection)
+      .from(storyboards)
+      .where(
+        and(
+          eq(storyboards.id, input.storyboardId),
+          eq(storyboards.projectId, input.projectId),
+        ),
+      )
+      .limit(1);
+    if (!storyboardRow) return null;
+
+    const existingScenes = await database
+      .select({ id: storyboardScenes.id })
+      .from(storyboardScenes)
+      .where(eq(storyboardScenes.storyboardId, input.storyboardId));
+    const existingIds = new Set(existingScenes.map((scene) => scene.id));
+    const requestedIds = new Set(input.orderedSceneIds);
+    const isValidPermutation =
+      existingIds.size === input.orderedSceneIds.length &&
+      requestedIds.size === input.orderedSceneIds.length &&
+      [...existingIds].every((id) => requestedIds.has(id));
+    if (!isValidPermutation) {
+      // Not a 404 — the storyboard exists, but the requested order doesn't
+      // match its actual scene ids. The caller maps this to a 400.
+      return null;
+    }
+
+    const now = new Date();
+    const version = project.currentVersion + 1;
+    const projectVersionId = randomUUID();
+
+    // Two-phase renumbering avoids transiently violating the
+    // (storyboardId, position) unique constraint when scenes swap places:
+    // every row first moves to a distinct negative placeholder (which can
+    // never collide with the positive positions already in use), then all
+    // rows get their final positive position once every placeholder is in
+    // place.
+    const placeholderUpdates = input.orderedSceneIds.map((sceneId, index) =>
+      database
+        .update(storyboardScenes)
+        .set({ position: -1 * (index + 1) })
+        .where(eq(storyboardScenes.id, sceneId)),
+    );
+    const finalUpdates = input.orderedSceneIds.map((sceneId, index) =>
+      database
+        .update(storyboardScenes)
+        .set({ position: index + 1 })
+        .where(eq(storyboardScenes.id, sceneId)),
+    );
+
+    await database.batch(
+      asBatch([
+        ...placeholderUpdates,
+        ...finalUpdates,
+        database
+          .update(storyboards)
+          .set({ updatedAt: now })
+          .where(eq(storyboards.id, input.storyboardId)),
+        database.insert(projectVersions).values({
+          id: projectVersionId,
+          projectId: input.projectId,
+          version,
+          level: "storyboard",
+          parentVersion: project.currentVersion,
+          changeSource: "storyboard_reorder",
+          changeSummary: "Reordered the storyboard scenes",
+          lockedFields: [],
+          snapshot: {
+            storyboardId: input.storyboardId,
+            order: input.orderedSceneIds,
+          },
+          createdByUserId: input.userId,
+          createdAt: now,
+        }),
+        database
+          .update(projects)
+          .set({ currentVersion: version, updatedAt: now })
+          .where(
+            and(
+              eq(projects.id, input.projectId),
+              eq(projects.workspaceId, input.workspaceId),
+            ),
+          ),
+      ]),
+    );
+
+    const sceneRows = await database
+      .select(sceneSelection)
+      .from(storyboardScenes)
+      .where(eq(storyboardScenes.storyboardId, input.storyboardId))
+      .orderBy(asc(storyboardScenes.position));
+    let startSeconds = 0;
+    const scenes = sceneRows.map((scene) => {
+      const result = { ...scene, startSeconds };
+      startSeconds += scene.durationSeconds ?? 0;
+      return result;
+    });
+
+    return {
+      project: { ...project, currentVersion: version, updatedAt: now },
+      storyboard: { ...storyboardRow, scenes },
+    };
+  }
+
   async findVideoUpgradeByIdempotency(
     workspaceId: string,
     idempotencyKey: string,
@@ -913,6 +1162,87 @@ export class NeonProjectsRepository implements ProjectsRepository {
       .limit(1);
     const video = videoRow ? toVideoRecord(videoRow) : null;
     return project && video ? { project, video, job } : null;
+  }
+
+  async updateScriptBlocks(
+    input: UpdateScriptBlocksInput,
+  ): Promise<CurrentScriptRecord | null> {
+    const database = this.requireDatabase();
+    const [project] = await database
+      .select(workflowProjectSelection)
+      .from(projects)
+      .where(
+        and(
+          eq(projects.workspaceId, input.workspaceId),
+          eq(projects.id, input.projectId),
+        ),
+      )
+      .limit(1);
+    if (!project) return null;
+
+    const [scriptRow] = await database
+      .select({ id: scripts.id })
+      .from(scripts)
+      .where(
+        and(
+          eq(scripts.id, input.scriptId),
+          eq(scripts.projectId, input.projectId),
+        ),
+      )
+      .limit(1);
+    if (!scriptRow) return null;
+
+    const now = new Date();
+    const version = project.currentVersion + 1;
+    const projectVersionId = randomUUID();
+
+    await database.batch([
+      database
+        .update(scripts)
+        .set({
+          hook: input.generated.hook,
+          body: input.generated.body,
+          callToAction: input.generated.callToAction,
+          caption: input.generated.caption,
+          projectVersionId,
+          updatedAt: now,
+        })
+        .where(eq(scripts.id, input.scriptId)),
+      database.insert(projectVersions).values({
+        id: projectVersionId,
+        projectId: input.projectId,
+        version,
+        level: "script",
+        parentVersion: project.currentVersion,
+        changeSource: "script_block_edit",
+        changeSummary: "Regenerated a script block from a targeted edit",
+        lockedFields: input.lockedFields,
+        snapshot: { scriptId: input.scriptId },
+        createdByUserId: input.userId,
+        createdAt: now,
+      }),
+      database
+        .update(projects)
+        .set({ currentVersion: version, updatedAt: now })
+        .where(
+          and(
+            eq(projects.id, input.projectId),
+            eq(projects.workspaceId, input.workspaceId),
+          ),
+        ),
+    ] as const);
+
+    const [script] = await database
+      .select(scriptSelection)
+      .from(scripts)
+      .where(eq(scripts.id, input.scriptId))
+      .limit(1);
+    if (!script) return null;
+
+    return {
+      project: { ...project, currentVersion: version, updatedAt: now },
+      script,
+    };
   }
 
   private requireDatabase(): CreonomeDatabase {

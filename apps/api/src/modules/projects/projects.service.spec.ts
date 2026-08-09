@@ -33,10 +33,13 @@ function createService(detail: Record<string, unknown> | null = null) {
     findExistingStoryboardUpgrade: vi.fn(),
     findStoryboardSource: vi.fn(),
     createStoryboardUpgrade: vi.fn(),
+    updateStoryboardScene: vi.fn(),
+    reorderStoryboardScenes: vi.fn(),
     findVideoUpgradeByIdempotency: vi.fn(),
     findExistingVideoUpgrade: vi.fn(),
     findVideoSource: vi.fn(),
     createVideoUpgrade: vi.fn(),
+    updateScriptBlocks: vi.fn(),
   };
 
   return { service: new ProjectsService(workspaces, repository), repository };

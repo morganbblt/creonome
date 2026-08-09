@@ -128,6 +128,93 @@ export const UpgradeVideoResultSchema = z.object({
   credits: CreditsResponseSchema,
 });
 
+/**
+ * The four editable "blocks" of a script (bible §15.3). `title`,
+ * `platforms` and `durationSeconds` are deliberately excluded — they are
+ * metadata rather than spoken/visual content, so `PATCH /projects/:id/script`
+ * never touches them. Kept in the shared contract (unlike the storyboard's
+ * server-only allow-list in locked-fields.ts) because these are literally
+ * the field names already on {@link ScriptDraftSchema}, not a separately
+ * evolving allow-list.
+ */
+export const SCRIPT_BLOCK_FIELDS = [
+  "hook",
+  "body",
+  "callToAction",
+  "caption",
+] as const;
+export const ScriptBlockFieldSchema = z.enum(SCRIPT_BLOCK_FIELDS);
+export type ScriptBlockField = z.infer<typeof ScriptBlockFieldSchema>;
+
+/**
+ * Input for `PATCH /projects/:id/script` (bible §15.3): regenerates every
+ * script block from a targeted instruction, preserving any block listed in
+ * `lockedFields` exactly (bible §9.6). Synchronous and free, like
+ * `POST /opportunities/:id/modify` — unlike storyboard/video `/upgrade`,
+ * a single script edit is small and fast enough not to need the Cloud
+ * Tasks queue or a credit reservation.
+ */
+export const RegenerateScriptBlockInputSchema = z.object({
+  field: ScriptBlockFieldSchema,
+  instruction: z.string().trim().min(3).max(600),
+  lockedFields: z.array(ScriptBlockFieldSchema).max(3).default([]),
+});
+export type RegenerateScriptBlockInput = z.infer<
+  typeof RegenerateScriptBlockInputSchema
+>;
+
+export const RegenerateScriptBlockResultSchema = z.object({
+  project: ProjectSchema,
+  script: ScriptDraftSchema,
+});
+export type RegenerateScriptBlockResult = z.infer<
+  typeof RegenerateScriptBlockResultSchema
+>;
+
+/**
+ * Input for `PATCH /projects/:id/storyboard/scenes/:sceneId` (bible §15.4):
+ * regenerates one scene in place. `lockedFields` are plain
+ * STORYBOARD_SCENE_LOCKABLE_FIELDS names (unprefixed — the scene is already
+ * scoped by the URL param), matching apps/api's
+ * locked-fields.ts#STORYBOARD_SCENE_LOCKABLE_FIELDS. Like the script block
+ * edit above, this is synchronous and free.
+ */
+export const RegenerateStoryboardSceneInputSchema = z.object({
+  instruction: z.string().trim().min(3).max(600).optional(),
+  lockedFields: z.array(z.string().trim().min(1).max(60)).max(11).default([]),
+});
+export type RegenerateStoryboardSceneInput = z.infer<
+  typeof RegenerateStoryboardSceneInputSchema
+>;
+
+export const RegenerateStoryboardSceneResultSchema = z.object({
+  project: ProjectSchema,
+  storyboard: ProjectStoryboardSchema,
+});
+export type RegenerateStoryboardSceneResult = z.infer<
+  typeof RegenerateStoryboardSceneResultSchema
+>;
+
+/**
+ * Input for `PATCH /projects/:id/storyboard/scenes/reorder`: a full
+ * permutation of the storyboard's current scene ids in their new order.
+ * Purely mechanical (no generation, no locks to check).
+ */
+export const ReorderStoryboardScenesInputSchema = z.object({
+  sceneIds: z.array(z.uuid()).min(1).max(8),
+});
+export type ReorderStoryboardScenesInput = z.infer<
+  typeof ReorderStoryboardScenesInputSchema
+>;
+
+export const ReorderStoryboardScenesResultSchema = z.object({
+  project: ProjectSchema,
+  storyboard: ProjectStoryboardSchema,
+});
+export type ReorderStoryboardScenesResult = z.infer<
+  typeof ReorderStoryboardScenesResultSchema
+>;
+
 export type Project = z.infer<typeof ProjectSchema>;
 export type ProjectDetail = z.infer<typeof ProjectDetailSchema>;
 export type ProjectLevel = z.infer<typeof ProjectLevelSchema>;

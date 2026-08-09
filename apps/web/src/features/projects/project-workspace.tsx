@@ -15,7 +15,8 @@ import {
 import { buttonVariants } from "@/src/components/ui/button";
 import { cn } from "@/src/lib/utils";
 import { ProjectExportButton } from "./project-export-button";
-import { splitScriptSegments } from "./script-segments";
+import { ScriptEditor } from "./script-editor";
+import { StoryboardEditor } from "./storyboard-editor";
 import { StoryboardUpgrade } from "./storyboard-upgrade";
 import { VideoUpgrade } from "./video-upgrade";
 
@@ -182,194 +183,16 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
 
             {project.script ? (
               <TabsContent value="script">
-                <Card
-                  className="gap-0 overflow-hidden p-0"
-                  aria-labelledby="script-title"
-                >
-                  <div className="flex min-h-[76px] flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
-                    <div>
-                      <p className="m-0 mb-1.5 font-mono text-[9px] tracking-[0.08em] text-muted-foreground uppercase">
-                        Script · latest
-                      </p>
-                      <h2
-                        id="script-title"
-                        className="m-0 text-[17px] font-semibold tracking-[-0.02em] text-foreground"
-                      >
-                        {project.script.title}
-                      </h2>
-                    </div>
-                    <span className="font-mono text-[9px] text-muted-foreground uppercase">
-                      {project.script.durationSeconds ?? "—"} sec ·{" "}
-                      {project.script.platforms.join(" / ")}
-                    </span>
-                  </div>
-                  <div className="p-6 max-[620px]:p-3.5">
-                    <div className="rounded-[6px] border-l-[3px] border-foreground bg-secondary/60 p-5 max-[620px]:p-4">
-                      <span className="font-mono text-[9px] tracking-[0.08em] text-muted-foreground">
-                        HOOK · 00:00
-                      </span>
-                      <blockquote className="m-0 mt-3 text-2xl leading-[1.2] font-semibold tracking-[-0.02em] text-foreground">
-                        {project.script.hook}
-                      </blockquote>
-                    </div>
-                    <div className="border-b border-border py-7 max-[620px]:py-5">
-                      <span className="font-mono text-[9px] tracking-[0.08em] text-muted-foreground">
-                        BODY
-                      </span>
-                      {splitScriptSegments(project.script.body).map(
-                        (segment, index) => (
-                          <p
-                            data-testid="script-segment"
-                            key={`${index}-${segment}`}
-                            className="mt-3 max-w-[680px] text-[15px] leading-[1.75] whitespace-pre-wrap text-foreground"
-                          >
-                            {segment}
-                          </p>
-                        ),
-                      )}
-                    </div>
-                    {project.script.callToAction ? (
-                      <div className="grid grid-cols-[70px_1fr] gap-4 border-b border-border py-4.5">
-                        <span className="font-mono text-[9px] tracking-[0.08em] text-muted-foreground">
-                          CTA
-                        </span>
-                        <p className="m-0 text-[12.5px] leading-[1.55] text-muted-foreground">
-                          {project.script.callToAction}
-                        </p>
-                      </div>
-                    ) : null}
-                    {project.script.caption ? (
-                      <div className="grid grid-cols-[70px_1fr] gap-4 py-4.5">
-                        <span className="font-mono text-[9px] tracking-[0.08em] text-muted-foreground">
-                          CAPTION
-                        </span>
-                        <p className="m-0 text-[12.5px] leading-[1.55] text-muted-foreground">
-                          {project.script.caption}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                </Card>
+                <ScriptEditor projectId={project.id} script={project.script} />
               </TabsContent>
             ) : null}
 
             {project.storyboard ? (
               <TabsContent value="storyboard">
-                <Card
-                  className="gap-0 overflow-hidden p-0"
-                  aria-labelledby="storyboard-title"
-                >
-                  <div className="flex min-h-[76px] flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
-                    <div>
-                      <p className="m-0 mb-1.5 font-mono text-[9px] tracking-[0.08em] text-muted-foreground uppercase">
-                        Storyboard · {project.storyboard.aspectRatio}
-                      </p>
-                      <h2
-                        id="storyboard-title"
-                        className="m-0 text-[17px] font-semibold tracking-[-0.02em] text-foreground"
-                      >
-                        Visual sequence
-                      </h2>
-                    </div>
-                    <span className="font-mono text-[9px] text-muted-foreground uppercase">
-                      {project.storyboard.scenes.length} scenes ·{" "}
-                      {project.storyboard.durationSeconds ?? "—"} sec
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-2.5 p-4.5">
-                    {project.storyboard.scenes.map((scene) => (
-                      <article
-                        className="grid grid-cols-[92px_1fr] gap-4.5 rounded-[8px] border border-border p-2.5 max-[620px]:grid-cols-[68px_1fr] max-[620px]:gap-3"
-                        key={scene.id}
-                      >
-                        <div className="flex h-29 flex-col justify-between rounded-[6px] bg-secondary p-2.5 font-mono text-[9px] text-muted-foreground max-[620px]:h-24">
-                          <span>{String(scene.position).padStart(2, "0")}</span>
-                          <em className="self-end not-italic">
-                            {String(scene.startSeconds).padStart(2, "0")}s →{" "}
-                            {String(
-                              scene.startSeconds + (scene.durationSeconds ?? 0),
-                            ).padStart(2, "0")}
-                            s
-                          </em>
-                        </div>
-                        <div className="py-1.5 pr-2 pl-0">
-                          <p className="m-0 mb-1.5 font-mono text-[8.5px] text-muted-foreground uppercase">
-                            {scene.shotType ?? "Shot"}
-                          </p>
-                          <h3 className="m-0 mb-2 text-[13px] font-semibold text-foreground">
-                            {String(scene.position).padStart(2, "0")} ·{" "}
-                            {scene.heading}
-                          </h3>
-                          <p className="m-0 text-xs leading-[1.5] text-muted-foreground">
-                            {scene.description}
-                          </p>
-                          {scene.onScreenText ? (
-                            <blockquote className="m-0 mt-2.5 border-l-2 border-input pl-2.5 font-mono text-[10.5px] leading-[1.5] text-muted-foreground">
-                              “{scene.onScreenText}”
-                            </blockquote>
-                          ) : null}
-                          {scene.voiceover ? (
-                            <small className="mt-2.5 block font-mono text-[9px] text-muted-foreground/80">
-                              VO · {scene.voiceover}
-                            </small>
-                          ) : null}
-                          <dl className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3">
-                            {scene.bRoll ? (
-                              <div className="min-w-0">
-                                <dt className="mb-1 font-mono text-[8px] text-muted-foreground">
-                                  B-roll
-                                </dt>
-                                <dd className="m-0 text-[10px] leading-[1.4] text-muted-foreground">
-                                  {scene.bRoll}
-                                </dd>
-                              </div>
-                            ) : null}
-                            {scene.transition ? (
-                              <div className="min-w-0">
-                                <dt className="mb-1 font-mono text-[8px] text-muted-foreground">
-                                  Transition
-                                </dt>
-                                <dd className="m-0 text-[10px] leading-[1.4] text-muted-foreground">
-                                  {scene.transition}
-                                </dd>
-                              </div>
-                            ) : null}
-                            {scene.requiredAsset ? (
-                              <div className="min-w-0">
-                                <dt className="mb-1 font-mono text-[8px] text-muted-foreground">
-                                  Asset
-                                </dt>
-                                <dd className="m-0 text-[10px] leading-[1.4] text-muted-foreground">
-                                  {scene.requiredAsset}
-                                </dd>
-                              </div>
-                            ) : null}
-                            {scene.sound ? (
-                              <div className="min-w-0">
-                                <dt className="mb-1 font-mono text-[8px] text-muted-foreground">
-                                  Sound
-                                </dt>
-                                <dd className="m-0 text-[10px] leading-[1.4] text-muted-foreground">
-                                  {scene.sound}
-                                </dd>
-                              </div>
-                            ) : null}
-                            {scene.editingNote ? (
-                              <div className="min-w-0">
-                                <dt className="mb-1 font-mono text-[8px] text-muted-foreground">
-                                  Edit
-                                </dt>
-                                <dd className="m-0 text-[10px] leading-[1.4] text-muted-foreground">
-                                  {scene.editingNote}
-                                </dd>
-                              </div>
-                            ) : null}
-                          </dl>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </Card>
+                <StoryboardEditor
+                  projectId={project.id}
+                  storyboard={project.storyboard}
+                />
               </TabsContent>
             ) : null}
 
