@@ -14,7 +14,7 @@ import { VertexStructuredGenerator } from "./vertex-structured.generator.js";
       useFactory: (config: ConfigService) => {
         const project = config.get<string>("GOOGLE_CLOUD_PROJECT");
         const apiKey = config.get<string>("GEMINI_API_KEY");
-        const model = config.get<string>("GEMINI_MODEL") ?? "gemini-3.5-flash";
+        const model = config.get<string>("GEMINI_MODEL") ?? "gemini-3.6-flash";
         if (config.get<string>("NODE_ENV") !== "production" && apiKey) {
           return new GeminiStructuredGenerator({ apiKey, model });
         }
@@ -25,7 +25,7 @@ import { VertexStructuredGenerator } from "./vertex-structured.generator.js";
               project,
               location: config.get<string>("GOOGLE_CLOUD_LOCATION") ?? "global",
             }),
-            config.get<string>("VERTEX_AI_MODEL") ?? "gemini-3.5-flash",
+            config.get<string>("VERTEX_AI_MODEL") ?? "gemini-3.6-flash",
           );
         }
         return apiKey

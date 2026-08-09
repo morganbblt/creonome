@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import {
   AttachStoryboardSceneAssetResultSchema,
   QueuedGenerationJobSchema,
@@ -242,6 +243,8 @@ export class ProjectWorkflowService {
     private readonly enqueue: GenerationJobEnqueueService,
     @Inject(JOBS_REPOSITORY)
     private readonly jobs: JobsRepository,
+    @Inject(ConfigService)
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -1255,7 +1258,7 @@ export class ProjectWorkflowService {
       });
       return {
         provider: "vertex-ai",
-        model: "gemini-3.5-flash",
+        model: this.config.get<string>("VERTEX_AI_MODEL") ?? "gemini-3.6-flash",
         storyboard,
       };
     } catch {

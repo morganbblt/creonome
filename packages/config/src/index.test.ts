@@ -31,9 +31,9 @@ describe("API environment", () => {
     });
 
     expect(env.DATABASE_URL).toContain("postgresql://");
-    expect(env.GEMINI_MODEL).toBe("gemini-3.5-flash");
+    expect(env.GEMINI_MODEL).toBe("gemini-3.6-flash");
     expect(env.GOOGLE_CLOUD_LOCATION).toBe("global");
-    expect(env.VERTEX_AI_MODEL).toBe("gemini-3.5-flash");
+    expect(env.VERTEX_AI_MODEL).toBe("gemini-3.6-flash");
     expect(env.VIDEO_PROVIDER).toBe("auto");
     expect(env.VEO_BACKEND).toBe("auto");
     expect(env.VEO_VERTEX_LOCATION).toBe("us-central1");
@@ -50,6 +50,16 @@ describe("API environment", () => {
     const env = parseApiEnv({ INTERNAL_JOB_TOKEN: "a-trusted-secret" });
 
     expect(env.INTERNAL_JOB_TOKEN).toBe("a-trusted-secret");
+  });
+
+  it("keeps GEMINI_MODEL and VERTEX_AI_MODEL in sync by default", () => {
+    // ai.module.ts picks GEMINI_MODEL (direct Gemini API) outside
+    // production and VERTEX_AI_MODEL (Vertex AI) in production. If these
+    // two defaults ever drift apart, switching environments silently
+    // switches model versions too.
+    const env = parseApiEnv({});
+
+    expect(env.GEMINI_MODEL).toBe(env.VERTEX_AI_MODEL);
   });
 });
 
