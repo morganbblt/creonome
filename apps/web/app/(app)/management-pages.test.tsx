@@ -4,12 +4,6 @@ import IntegrationsPage from "./settings/integrations/page";
 import BillingPage from "./settings/billing/page";
 import PrivacyPage from "./settings/privacy/page";
 
-vi.mock("next/navigation", () => ({
-  notFound: () => {
-    throw new Error("NEXT_NOT_FOUND");
-  },
-}));
-
 const getPrivacy = vi.fn().mockResolvedValue({
   preferences: {
     modelTrainingOptIn: false,
@@ -24,8 +18,19 @@ vi.mock("@/src/lib/api/server-client", () => ({
 }));
 
 describe("management pages", () => {
-  it("keeps the future payment page out of the MVP", () => {
-    expect(() => BillingPage()).toThrow("NEXT_NOT_FOUND");
+  it("renders demo-labeled billing content instead of 404ing", () => {
+    render(<BillingPage />);
+    expect(screen.getByRole("heading", { name: "Billing" })).toBeTruthy();
+    expect(
+      screen.getByText(
+        "MVP demo · Demo data — payments are not enabled for the hackathon.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Studio")).toBeTruthy();
+    expect(screen.getByText("Label")).toBeTruthy();
+    expect(screen.getAllByText("Current plan").length).toBeGreaterThan(0);
+    expect(screen.getByText("Visa •••• 4417")).toBeTruthy();
+    expect(screen.getAllByText(/€29/).length).toBeGreaterThan(0);
   });
 
   it("renders provider states", () => {

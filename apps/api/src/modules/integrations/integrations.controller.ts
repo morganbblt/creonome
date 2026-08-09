@@ -29,11 +29,12 @@ export class IntegrationsController {
   }
 
   @Get("tiktok/start")
-  @ApiOperation({ summary: "TikTok OAuth placeholder pending app credentials" })
-  startTikTok(): never {
-    throw new ServiceUnavailableException(
-      "TikTok OAuth requires the Creonome developer app credentials and final callback domain",
-    );
+  @ApiOperation({
+    summary:
+      "Start the TikTok OAuth authorization flow (behind FEATURE_SOCIAL_CONNECTIONS)",
+  })
+  startTikTok(): { url: string } {
+    return this.integrations.startTikTok();
   }
 
   @Get("instagram/start")

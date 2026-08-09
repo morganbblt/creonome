@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOutIcon, PlugIcon, ShieldIcon } from "lucide-react";
+import { CreditCardIcon, LogOutIcon, PlugIcon, ShieldIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/src/components/ui/avatar";
@@ -53,6 +53,12 @@ export function AccountMenu({
             {name}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/settings/billing">
+              <CreditCardIcon />
+              Billing
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings/integrations">
               <PlugIcon />
