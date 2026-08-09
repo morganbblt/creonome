@@ -1,4 +1,9 @@
-import type { OnboardingState } from "@creonome/contracts";
+import type {
+  CreatorDna,
+  CreditsResponse,
+  OnboardingCalibrationSet,
+  OnboardingState,
+} from "@creonome/contracts";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OnboardingWorkspace } from "./onboarding-workspace";
@@ -26,6 +31,40 @@ const profile = {
   targetAudience: "Curious electronic listeners and independent creators.",
   boundaries: ["No fake urgency"],
 };
+const dna: CreatorDna = {
+  version: 1,
+  summary: "A confirmed Creator DNA built from three analyzed sources.",
+  confirmed: true,
+  traits: [
+    {
+      id: "0198f3a2-82dd-7000-8000-000000000090",
+      category: "signature",
+      label: "Creative signature",
+      value: profile.creativeSignature,
+      layer: "declared",
+      confidence: 1,
+      evidence: {},
+    },
+    {
+      id: "0198f3a2-82dd-7000-8000-000000000091",
+      category: "boundary",
+      label: "Boundary 1",
+      value: "No fake urgency",
+      layer: "forbidden",
+      confidence: 1,
+      evidence: {},
+    },
+  ],
+  peopleReferenceImage: null,
+};
+const calibrationSet: OnboardingCalibrationSet = {
+  concepts: Array.from({ length: 6 }, (_, index) => ({
+    id: `calibration-${index + 1}`,
+    title: `Mini-concept ${index + 1}`,
+    description: `A short calibration concept detailed enough to react to, number ${index + 1}.`,
+  })),
+};
+const credits: CreditsResponse = { balance: 20, reserved: 0, available: 20 };
 
 function onboardingState(
   step: OnboardingState["step"] = "upload",
@@ -178,7 +217,7 @@ describe("OnboardingWorkspace", () => {
     );
   });
 
-  it("saves creator corrections and enters the workspace", async () => {
+  it("saves creator corrections and moves into the Creator DNA review step", async () => {
     const completed = {
       ...onboardingState("profile"),
       status: "complete" as const,
@@ -186,7 +225,8 @@ describe("OnboardingWorkspace", () => {
     };
     const request = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(Response.json(completed));
+      .mockResolvedValueOnce(Response.json(completed))
+      .mockResolvedValue(Response.json(dna));
     vi.stubGlobal("fetch", request);
     render(<OnboardingWorkspace initialState={onboardingState("profile")} />);
 
@@ -197,15 +237,81 @@ describe("OnboardingWorkspace", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Confirm profile" }));
 
-    expect((await screen.findByRole("status")).textContent).toContain(
-      "Profile saved",
-    );
+    expect(
+      await screen.findByText("Here is what we captured."),
+    ).toBeTruthy();
     expect(request).toHaveBeenCalledWith(
       "/api/creonome/onboarding/profile",
       expect.objectContaining({
         method: "PUT",
         body: expect.stringContaining("A corrected signature"),
       }),
+    );
+    expect(request).toHaveBeenCalledWith(
+      "/api/creonome/creator-dna",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    expect(await screen.findByText(dna.summary)).toBeTruthy();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("walks through DNA review, calibration and the summary before opening the workspace", async () => {
+    const completed = {
+      ...onboardingState("profile"),
+      status: "complete" as const,
+      step: "complete" as const,
+    };
+    const request = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === "/api/creonome/onboarding/profile") {
+        return Response.json(completed);
+      }
+      if (url === "/api/creonome/creator-dna") {
+        return Response.json(dna);
+      }
+      if (url === "/api/creonome/onboarding/calibration") {
+        return Response.json(calibrationSet);
+      }
+      if (url === "/api/creonome/onboarding/calibration/responses") {
+        return Response.json({ saved: 6 });
+      }
+      if (url === "/api/creonome/credits") {
+        return Response.json(credits);
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal("fetch", request);
+    render(<OnboardingWorkspace initialState={onboardingState("profile")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm profile" }));
+    await screen.findByText(dna.summary);
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await screen.findByText("React to six quick concepts.");
+    for (const concept of calibrationSet.concepts) {
+      await screen.findByText(concept.title);
+    }
+    for (const button of screen.getAllByRole("button", {
+      name: "Feels like me",
+    })) {
+      fireEvent.click(button);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(
+      await screen.findByText("Here is your Creator DNA at a glance."),
+    ).toBeTruthy();
+    expect(request).toHaveBeenCalledWith(
+      "/api/creonome/onboarding/calibration/responses",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining("feels_like_me"),
+      }),
+    );
+    expect(await screen.findByText(String(credits.available))).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Generate my first opportunities" }),
     );
     expect(push).toHaveBeenCalledWith("/today");
   });

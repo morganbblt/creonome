@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { GoogleGenAI } from "@google/genai";
+import { AiModule } from "../ai/ai.module.js";
+import { CreatorDnaModule } from "../creator-dna/creator-dna.module.js";
 import { WorkspacesModule } from "../workspaces/workspaces.module.js";
 import { NeonOnboardingRepository } from "./neon-onboarding.repository.js";
 import { OnboardingController } from "./onboarding.controller.js";
@@ -10,7 +12,7 @@ import { OnboardingService } from "./onboarding.service.js";
 import { VertexOnboardingIntelligence } from "./vertex-onboarding.intelligence.js";
 
 @Module({
-  imports: [WorkspacesModule],
+  imports: [AiModule, CreatorDnaModule, WorkspacesModule],
   controllers: [OnboardingController],
   providers: [
     OnboardingService,

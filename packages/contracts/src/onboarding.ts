@@ -69,6 +69,46 @@ export const UpdateOnboardingAssetInputSchema = z.object({
 
 export const UpdateOnboardingProfileInputSchema = OnboardingProfileSchema;
 
+/**
+ * Bible screen #17 calibration step: three response options a creator can
+ * give to a short generated mini-concept during onboarding. These are
+ * persisted as memory candidate signal (see
+ * apps/api/src/modules/onboarding/onboarding-mapping.ts's
+ * calibrationResponseConfidence/calibrationResponseContent) rather than
+ * driving generation directly, the same way explicit opportunity feedback
+ * (always_do/never_use) becomes memory candidate signal today.
+ */
+export const OnboardingCalibrationResponseValueSchema = z.enum([
+  "feels_like_me",
+  "future_direction",
+  "not_for_me",
+]);
+
+export const OnboardingCalibrationConceptSchema = z.object({
+  id: z.string().trim().min(1).max(60),
+  title: z.string().trim().min(3).max(120),
+  description: z.string().trim().min(12).max(320),
+});
+
+/** Always exactly six mini-concepts, per bible screen #17. */
+export const OnboardingCalibrationSetSchema = z.object({
+  concepts: z.array(OnboardingCalibrationConceptSchema).length(6),
+});
+
+export const OnboardingCalibrationResponseInputSchema =
+  OnboardingCalibrationConceptSchema.extend({
+    conceptId: z.string().trim().min(1).max(60),
+    response: OnboardingCalibrationResponseValueSchema,
+  }).omit({ id: true });
+
+export const SubmitOnboardingCalibrationResponsesInputSchema = z.object({
+  responses: z.array(OnboardingCalibrationResponseInputSchema).min(1).max(6),
+});
+
+export const SubmitOnboardingCalibrationResponsesResultSchema = z.object({
+  saved: z.number().int().nonnegative(),
+});
+
 export type OnboardingAsset = z.infer<typeof OnboardingAssetSchema>;
 export type OnboardingAssetInsight = z.infer<
   typeof OnboardingAssetInsightSchema
@@ -85,4 +125,22 @@ export type UpdateOnboardingAssetInput = z.infer<
 >;
 export type UpdateOnboardingProfileInput = z.infer<
   typeof UpdateOnboardingProfileInputSchema
+>;
+export type OnboardingCalibrationResponseValue = z.infer<
+  typeof OnboardingCalibrationResponseValueSchema
+>;
+export type OnboardingCalibrationConcept = z.infer<
+  typeof OnboardingCalibrationConceptSchema
+>;
+export type OnboardingCalibrationSet = z.infer<
+  typeof OnboardingCalibrationSetSchema
+>;
+export type OnboardingCalibrationResponseInput = z.infer<
+  typeof OnboardingCalibrationResponseInputSchema
+>;
+export type SubmitOnboardingCalibrationResponsesInput = z.infer<
+  typeof SubmitOnboardingCalibrationResponsesInputSchema
+>;
+export type SubmitOnboardingCalibrationResponsesResult = z.infer<
+  typeof SubmitOnboardingCalibrationResponsesResultSchema
 >;

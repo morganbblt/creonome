@@ -1,5 +1,6 @@
 import type {
   OnboardingAssetInsight,
+  OnboardingCalibrationResponseInput,
   OnboardingProfile,
   OnboardingRepresentativeness,
   OnboardingState,
@@ -57,6 +58,15 @@ export interface OnboardingRepository {
     context: WorkspaceContext,
     profile: OnboardingProfile,
   ): Promise<void>;
+  /**
+   * Persists bible screen #17 calibration responses as memory candidate
+   * signal (same pending-review path explicit opportunity feedback writes
+   * to, see memory-candidates.service.ts) and returns how many were saved.
+   */
+  saveCalibrationResponses(
+    context: WorkspaceContext,
+    responses: OnboardingCalibrationResponseInput[],
+  ): Promise<number>;
 }
 
 export const ONBOARDING_REPOSITORY = Symbol("ONBOARDING_REPOSITORY");

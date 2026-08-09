@@ -1,6 +1,8 @@
 import type { OnboardingProfile } from "@creonome/contracts";
 import { describe, expect, it } from "vitest";
 import {
+  calibrationResponseConfidence,
+  calibrationResponseContent,
   classifyBoundary,
   deriveOnboardingStep,
   profileToTraitInputs,
@@ -127,5 +129,35 @@ describe("classifyBoundary", () => {
     // normalizes the string, so "No !" reduces to an empty phrase once
     // the "no " prefix and the "!" are both peeled off.
     expect(classifyBoundary("No !")).toBe("other");
+  });
+});
+
+describe("calibration response mapping", () => {
+  it("gives an unambiguous affirmation the same confidence as an unambiguous rejection", () => {
+    expect(calibrationResponseConfidence("feels_like_me")).toBe(
+      calibrationResponseConfidence("not_for_me"),
+    );
+  });
+
+  it("gives the softer, exploratory response a lower confidence", () => {
+    expect(Number(calibrationResponseConfidence("future_direction"))).toBeLessThan(
+      Number(calibrationResponseConfidence("feels_like_me")),
+    );
+  });
+
+  it("formats confidence as a fixed 3-decimal string", () => {
+    expect(calibrationResponseConfidence("feels_like_me")).toBe("0.650");
+  });
+
+  it("summarizes a calibration response as durable memory content", () => {
+    const content = calibrationResponseContent({
+      title: "One gesture, one drop",
+      description: "Film one decisive production gesture.",
+      response: "feels_like_me",
+    });
+
+    expect(content).toContain("One gesture, one drop");
+    expect(content).toContain("feels like me");
+    expect(content).toContain("Film one decisive production gesture.");
   });
 });

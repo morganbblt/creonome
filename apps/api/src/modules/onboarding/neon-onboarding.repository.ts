@@ -6,6 +6,7 @@ import {
   OnboardingRepresentativenessSchema,
   OnboardingStatusSchema,
   type OnboardingAsset,
+  type OnboardingCalibrationResponseInput,
   type OnboardingProfile,
   type OnboardingRepresentativeness,
   type OnboardingState,
@@ -16,6 +17,7 @@ import {
   creatorProfiles,
   type CreonomeDatabase,
   dnaTraits,
+  memoryCandidates,
   sourceAssets,
   users,
 } from "@creonome/db";
@@ -23,6 +25,8 @@ import { and, asc, desc, eq, inArray, max } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import type { WorkspaceContext } from "../workspaces/workspace.repository.js";
 import {
+  calibrationResponseConfidence,
+  calibrationResponseContent,
   deriveOnboardingStep,
   profileToTraitInputs,
 } from "./onboarding-mapping.js";
@@ -293,6 +297,36 @@ export class NeonOnboardingRepository implements OnboardingRepository {
     profile: OnboardingProfile,
   ): Promise<void> {
     return this.saveProfile(context, profile, true, "declared", "complete");
+  }
+
+  async saveCalibrationResponses(
+    context: WorkspaceContext,
+    responses: OnboardingCalibrationResponseInput[],
+  ): Promise<number> {
+    if (responses.length === 0) return 0;
+    const database = this.requireDatabase();
+    const now = new Date();
+    await database.insert(memoryCandidates).values(
+      responses.map((response) => ({
+        id: randomUUID(),
+        workspaceId: context.workspaceId,
+        creatorProfileId: context.creatorProfileId,
+        provider: "creonome",
+        kind: "creator",
+        scope: "creator",
+        confidence: calibrationResponseConfidence(response.response),
+        content: calibrationResponseContent(response),
+        evidence: {
+          source: "onboarding_calibration",
+          conceptId: response.conceptId,
+          response: response.response,
+          title: response.title,
+        },
+        status: "pending",
+        createdAt: now,
+      })),
+    );
+    return responses.length;
   }
 
   private async getCurrentProfile(

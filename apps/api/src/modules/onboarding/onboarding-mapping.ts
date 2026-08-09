@@ -1,5 +1,6 @@
 import type {
   DnaTraitLayer,
+  OnboardingCalibrationResponseValue,
   OnboardingProfile,
   OnboardingStatus,
   OnboardingStep,
@@ -141,4 +142,47 @@ export function profileToTraitInputs(
     ...trait,
     position: index + 1,
   }));
+}
+
+/**
+ * Bible screen #17 calibration: heuristic confidence (0..1, written as a
+ * fixed 3-decimal string to match the memory_candidates numeric(4,3)
+ * column) that a calibration response reflects a durable creator
+ * preference. Mirrors the flat per-source-type heuristic
+ * neon-opportunities.repository.ts already uses for explicit feedback
+ * (FEEDBACK_MEMORY_CANDIDATE_CONFIDENCE) -- no scoring model exists yet.
+ * "feels_like_me" and "not_for_me" are unambiguous creator signal (same
+ * confidence as an explicit always_do/never_use); "future_direction" is a
+ * softer, exploratory signal and gets a lower default.
+ */
+const CALIBRATION_RESPONSE_CONFIDENCE: Record<
+  OnboardingCalibrationResponseValue,
+  number
+> = {
+  feels_like_me: 0.65,
+  future_direction: 0.5,
+  not_for_me: 0.65,
+};
+
+const CALIBRATION_RESPONSE_COPY: Record<
+  OnboardingCalibrationResponseValue,
+  string
+> = {
+  feels_like_me: "feels like me",
+  future_direction: "a future direction to explore",
+  not_for_me: "not for me",
+};
+
+export function calibrationResponseConfidence(
+  response: OnboardingCalibrationResponseValue,
+): string {
+  return CALIBRATION_RESPONSE_CONFIDENCE[response].toFixed(3);
+}
+
+export function calibrationResponseContent(input: {
+  title: string;
+  description: string;
+  response: OnboardingCalibrationResponseValue;
+}): string {
+  return `Onboarding calibration: creator marked "${input.title}" as ${CALIBRATION_RESPONSE_COPY[input.response]}. Concept: ${input.description}`;
 }
