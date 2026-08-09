@@ -7,12 +7,15 @@ import {
   UnprocessableEntityException,
 } from "@nestjs/common";
 import {
+  AttachStoryboardSceneAssetResultSchema,
   QueuedGenerationJobSchema,
   RegenerateScriptBlockResultSchema,
   RegenerateStoryboardSceneResultSchema,
   ReorderStoryboardScenesResultSchema,
   UpgradeProjectResultSchema,
   UpgradeVideoResultSchema,
+  type AttachStoryboardSceneAssetInput,
+  type AttachStoryboardSceneAssetResult,
   type QueuedGenerationJob,
   type RegenerateScriptBlockInput,
   type RegenerateScriptBlockResult,
@@ -1132,6 +1135,65 @@ export class ProjectWorkflowService {
         updatedAt: updated.project.updatedAt.toISOString(),
       },
       storyboard: updated.storyboard,
+    });
+  }
+
+  /**
+   * `PATCH /projects/:id/storyboard/scenes/:sceneId/asset` (P2.4): attaches
+   * or detaches one Library asset on a single scene. Purely mechanical (no
+   * generation, no locks), like {@link reorderStoryboardScenes} above --
+   * unlike {@link regenerateStoryboardScene}, this never calls the
+   * generator, so the scene's AI-generated fields (and every other scene)
+   * are left exactly as they were.
+   */
+  async attachStoryboardSceneAsset(
+    principal: AuthPrincipal,
+    projectId: string,
+    sceneId: string,
+    input: AttachStoryboardSceneAssetInput,
+  ): Promise<AttachStoryboardSceneAssetResult> {
+    const context = await this.workspaces.resolve(principal);
+    const current = await this.repository.findExistingStoryboardUpgrade(
+      context.workspaceId,
+      projectId,
+    );
+    if (!current) {
+      throw new NotFoundException("A storyboard-ready project was not found");
+    }
+    const targetScene = current.storyboard.scenes.find(
+      (scene) => scene.id === sceneId,
+    );
+    if (!targetScene) {
+      throw new NotFoundException(
+        "This scene was not found on the current storyboard",
+      );
+    }
+
+    const outcome = await this.repository.attachStoryboardSceneAsset({
+      workspaceId: context.workspaceId,
+      projectId,
+      userId: context.userId,
+      storyboardId: current.storyboard.id,
+      sceneId,
+      assetId: input.assetId,
+    });
+    if (outcome.outcome === "asset_not_found") {
+      throw new BadRequestException(
+        "This asset was not found in the current workspace",
+      );
+    }
+    if (outcome.outcome === "scene_not_found") {
+      throw new NotFoundException(
+        "This scene was not found on the current storyboard",
+      );
+    }
+
+    return AttachStoryboardSceneAssetResultSchema.parse({
+      project: {
+        ...outcome.record.project,
+        updatedAt: outcome.record.project.updatedAt.toISOString(),
+      },
+      storyboard: outcome.record.storyboard,
     });
   }
 

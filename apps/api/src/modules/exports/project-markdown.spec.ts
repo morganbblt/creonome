@@ -50,6 +50,7 @@ const project: ProjectDetail = {
         sound: "room tone",
         editingNote: "hold the first frame",
         referenceFrameUrl: null,
+        assetId: null,
         durationSeconds: 7,
       },
     ],

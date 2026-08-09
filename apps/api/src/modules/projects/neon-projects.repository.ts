@@ -18,6 +18,8 @@ import {
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { CREONOME_DATABASE } from "../database/database.module.js";
 import type {
+  AttachStoryboardSceneAssetOutcome,
+  AttachStoryboardSceneAssetRepoInput,
   CreateStoryboardUpgradeInput,
   CreateVideoUpgradeInput,
   CurrentScriptRecord,
@@ -153,6 +155,7 @@ const sceneSelection = {
   editingNote: storyboardScenes.editingNote,
   referenceFrameUrl: storyboardScenes.referenceFrameUrl,
   durationSeconds: storyboardScenes.durationSeconds,
+  assetId: storyboardScenes.assetId,
 };
 
 function toVideoRecord(row: VideoSelectionRow): ProjectVideoRecord | null {
@@ -513,7 +516,10 @@ export class NeonProjectsRepository implements ProjectsRepository {
             createdAt: _createdAt,
             ...scene
           }) => {
-            const result = { ...scene, startSeconds };
+            // A freshly (re)generated storyboard never carries an attached
+            // asset -- that's only ever set afterwards, via
+            // attachStoryboardSceneAsset (P2.4).
+            const result = { ...scene, assetId: null, startSeconds };
             startSeconds += scene.durationSeconds;
             return result;
           },
@@ -803,6 +809,120 @@ export class NeonProjectsRepository implements ProjectsRepository {
     return {
       project: { ...project, currentVersion: version, updatedAt: now },
       storyboard: { ...storyboardRow, scenes },
+    };
+  }
+
+  async attachStoryboardSceneAsset(
+    input: AttachStoryboardSceneAssetRepoInput,
+  ): Promise<AttachStoryboardSceneAssetOutcome> {
+    const database = this.requireDatabase();
+    const [project] = await database
+      .select(workflowProjectSelection)
+      .from(projects)
+      .where(
+        and(
+          eq(projects.workspaceId, input.workspaceId),
+          eq(projects.id, input.projectId),
+        ),
+      )
+      .limit(1);
+    if (!project) return { outcome: "scene_not_found" };
+
+    const [storyboardRow] = await database
+      .select(storyboardSelection)
+      .from(storyboards)
+      .where(
+        and(
+          eq(storyboards.id, input.storyboardId),
+          eq(storyboards.projectId, input.projectId),
+        ),
+      )
+      .limit(1);
+    const [targetScene] = await database
+      .select({ position: storyboardScenes.position })
+      .from(storyboardScenes)
+      .where(
+        and(
+          eq(storyboardScenes.id, input.sceneId),
+          eq(storyboardScenes.storyboardId, input.storyboardId),
+        ),
+      )
+      .limit(1);
+    if (!storyboardRow || !targetScene) return { outcome: "scene_not_found" };
+
+    if (input.assetId) {
+      const [asset] = await database
+        .select({ id: sourceAssets.id })
+        .from(sourceAssets)
+        .where(
+          and(
+            eq(sourceAssets.id, input.assetId),
+            eq(sourceAssets.workspaceId, input.workspaceId),
+          ),
+        )
+        .limit(1);
+      if (!asset) return { outcome: "asset_not_found" };
+    }
+
+    const now = new Date();
+    const version = project.currentVersion + 1;
+    const projectVersionId = randomUUID();
+
+    await database.batch([
+      database
+        .update(storyboardScenes)
+        .set({ assetId: input.assetId })
+        .where(eq(storyboardScenes.id, input.sceneId)),
+      database.insert(projectVersions).values({
+        id: projectVersionId,
+        projectId: input.projectId,
+        version,
+        level: "storyboard",
+        parentVersion: project.currentVersion,
+        changeSource: input.assetId
+          ? "storyboard_scene_asset_attached"
+          : "storyboard_scene_asset_detached",
+        changeSummary: input.assetId
+          ? `Attached a Library asset to scene ${targetScene.position}`
+          : `Detached the Library asset from scene ${targetScene.position}`,
+        lockedFields: [],
+        snapshot: {
+          storyboardId: input.storyboardId,
+          sceneId: input.sceneId,
+          assetId: input.assetId,
+        },
+        createdByUserId: input.userId,
+        createdAt: now,
+      }),
+      database
+        .update(projects)
+        .set({ currentVersion: version, updatedAt: now })
+        .where(
+          and(
+            eq(projects.id, input.projectId),
+            eq(projects.workspaceId, input.workspaceId),
+          ),
+        ),
+    ] as const);
+
+    const sceneRows = await database
+      .select(sceneSelection)
+      .from(storyboardScenes)
+      .where(eq(storyboardScenes.storyboardId, input.storyboardId))
+      .orderBy(asc(storyboardScenes.position));
+    let startSeconds = 0;
+    const scenes = sceneRows.map((scene) => {
+      const result = { ...scene, startSeconds };
+      startSeconds += scene.durationSeconds ?? 0;
+      return result;
+    });
+
+    return {
+      outcome: "ok",
+      record: {
+        project: { ...project, currentVersion: version, updatedAt: now },
+        storyboard: { ...storyboardRow, scenes },
+      },
     };
   }
 

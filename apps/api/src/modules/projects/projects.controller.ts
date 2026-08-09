@@ -18,6 +18,7 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type {
+  AttachStoryboardSceneAssetResult,
   ProjectDetail,
   ProjectList,
   QueuedGenerationJob,
@@ -31,6 +32,7 @@ import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import type { FastifyReply } from "fastify";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import {
+  AttachStoryboardSceneAssetDto,
   RegenerateScriptBlockDto,
   RegenerateStoryboardSceneDto,
   ReorderStoryboardScenesDto,
@@ -156,6 +158,25 @@ export class ProjectsController {
     @Body() input: RegenerateStoryboardSceneDto,
   ): Promise<RegenerateStoryboardSceneResult> {
     return this.workflow.regenerateStoryboardScene(
+      principal,
+      projectId,
+      sceneId,
+      input,
+    );
+  }
+
+  @Patch(":id/storyboard/scenes/:sceneId/asset")
+  @ApiOperation({
+    summary: "Attach or detach a Library asset on one storyboard scene",
+  })
+  @ApiOkResponse({ description: "The updated project and storyboard" })
+  attachStoryboardSceneAsset(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("id") projectId: string,
+    @Param("sceneId") sceneId: string,
+    @Body() input: AttachStoryboardSceneAssetDto,
+  ): Promise<AttachStoryboardSceneAssetResult> {
+    return this.workflow.attachStoryboardSceneAsset(
       principal,
       projectId,
       sceneId,

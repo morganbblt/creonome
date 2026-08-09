@@ -1,0 +1,3 @@
+ALTER TABLE "storyboard_scenes" ADD COLUMN "asset_id" uuid;--> statement-breakpoint
+ALTER TABLE "storyboard_scenes" ADD CONSTRAINT "storyboard_scenes_asset_id_source_assets_id_fk" FOREIGN KEY ("asset_id") REFERENCES "public"."source_assets"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "storyboard_scenes_asset_idx" ON "storyboard_scenes" USING btree ("asset_id");

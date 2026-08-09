@@ -41,6 +41,7 @@ const upgrade = {
         sound: "Room tone only",
         editingNote: "Keep the first frame still for two seconds.",
         referenceFrameUrl: null,
+        assetId: null,
         durationSeconds: 30,
       },
     ],

@@ -92,6 +92,13 @@
       "when": 1785882358850,
       "tag": "20260804222558_add_dna_traits_layer",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786285120977,
+      "tag": "20260809141840_add_storyboard_scene_asset_reference",
+      "breakpoints": true
     }
   ]
 }

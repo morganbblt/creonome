@@ -46,6 +46,7 @@ function storyboardRecord(
         sound: "Room tone only",
         editingNote: "Keep the first frame still for two seconds.",
         referenceFrameUrl: null,
+        assetId: null,
         durationSeconds: 8,
       },
       {
@@ -63,6 +64,7 @@ function storyboardRecord(
         sound: "Needle contact and vinyl noise",
         editingNote: "Let the contact transient lead the next cut.",
         referenceFrameUrl: null,
+        assetId: null,
         durationSeconds: 9,
       },
     ],

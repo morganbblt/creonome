@@ -1,11 +1,17 @@
 "use client";
 
 import {
+  AttachStoryboardSceneAssetResultSchema,
   RegenerateStoryboardSceneResultSchema,
   ReorderStoryboardScenesResultSchema,
   type ProjectStoryboard,
 } from "@creonome/contracts";
-import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PaperclipIcon,
+  SparklesIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/src/components/ui/button";
@@ -21,6 +27,7 @@ import {
 } from "@/src/components/ui/dialog";
 import { Textarea } from "@/src/components/ui/textarea";
 import { GenerationToast } from "../generation/generation-toast";
+import { AssetPicker } from "./asset-picker";
 import {
   STORYBOARD_SCENE_LOCKABLE_FIELDS,
   type StoryboardSceneLockableField,
@@ -67,6 +74,7 @@ export function StoryboardEditor({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [pickerSceneId, setPickerSceneId] = useState<string | null>(null);
 
   const orderedScenes = order
     .map((id) => storyboard.scenes.find((scene) => scene.id === id))
@@ -159,6 +167,41 @@ export function StoryboardEditor({
   const editingScene = orderedScenes.find(
     (scene) => scene.id === editingSceneId,
   );
+  const pickerScene = orderedScenes.find((scene) => scene.id === pickerSceneId);
+
+  /**
+   * Attaches (or, with `assetId: null`, detaches) a Library asset on one
+   * scene via `PATCH .../storyboard/scenes/:sceneId/asset` (P2.4) — a
+   * separate, purely mechanical endpoint from the regenerate one above, so
+   * picking an asset never triggers an AI rewrite of the scene's content.
+   * Returns whether it succeeded; AssetPicker decides how to react.
+   */
+  async function attachSceneAsset(
+    sceneId: string,
+    assetId: string | null,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `/api/creonome/projects/${projectId}/storyboard/scenes/${sceneId}/asset`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assetId }),
+        },
+      );
+      if (!response.ok) return false;
+      AttachStoryboardSceneAssetResultSchema.parse(await response.json());
+      setSuccess(
+        assetId
+          ? "Library asset attached to this scene."
+          : "Library asset detached from this scene.",
+      );
+      router.refresh();
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   return (
     <Card
@@ -254,16 +297,28 @@ export function StoryboardEditor({
                 VO · {scene.voiceover}
               </small>
             ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-1 gap-1.5 self-start"
-              onClick={() => openSceneEditor(scene.id)}
-            >
-              <SparklesIcon className="size-3.5" aria-hidden="true" />
-              Regenerate this scene
-            </Button>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => openSceneEditor(scene.id)}
+              >
+                <SparklesIcon className="size-3.5" aria-hidden="true" />
+                Regenerate this scene
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setPickerSceneId(scene.id)}
+              >
+                <PaperclipIcon className="size-3.5" aria-hidden="true" />
+                {scene.assetId ? "Change attached asset" : "Attach asset"}
+              </Button>
+            </div>
           </article>
         ))}
       </div>
@@ -335,6 +390,19 @@ export function StoryboardEditor({
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <AssetPicker
+        open={pickerSceneId !== null}
+        currentAssetId={pickerScene?.assetId ?? null}
+        onOpenChange={(open) => {
+          if (!open) setPickerSceneId(null);
+        }}
+        onAttach={(assetId) =>
+          pickerSceneId
+            ? attachSceneAsset(pickerSceneId, assetId)
+            : Promise.resolve(false)
+        }
+      />
 
       {success ? (
         <div className="px-4.5 pb-4.5">

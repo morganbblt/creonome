@@ -810,6 +810,17 @@ export const storyboardScenes = pgTable(
     sound: text("sound"),
     editingNote: text("editing_note"),
     referenceFrameUrl: text("reference_frame_url"),
+    // Nullable reference to a Library asset the creator explicitly attached
+    // to this scene (P2.4) -- distinct from `requiredAsset` above, which is
+    // an AI-generated free-text description of what footage a scene needs,
+    // not a link to an actual uploaded/registered asset. `onDelete: "set
+    // null"` mirrors `exports.generatedAssetId` (the established pattern
+    // for an optional asset reference elsewhere in this schema): deleting
+    // the underlying source asset detaches it from the scene rather than
+    // deleting or blocking deletion of the scene.
+    assetId: uuid("asset_id").references(() => sourceAssets.id, {
+      onDelete: "set null",
+    }),
     durationSeconds: integer("duration_seconds").notNull(),
     createdAt: createdAt(),
   },
@@ -819,6 +830,7 @@ export const storyboardScenes = pgTable(
       table.position,
     ),
     index("storyboard_scenes_storyboard_idx").on(table.storyboardId),
+    index("storyboard_scenes_asset_idx").on(table.assetId),
     check("storyboard_scenes_position_check", sql`${table.position} > 0`),
     check(
       "storyboard_scenes_duration_check",

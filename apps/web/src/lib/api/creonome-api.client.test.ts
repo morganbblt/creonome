@@ -122,6 +122,45 @@ describe("CreonomeApiClient", () => {
     );
   });
 
+  it("loads one asset's detail, including its analysis evidence when present", async () => {
+    const asset = {
+      id: "0198f3a2-82dd-7000-8000-000000000043",
+      projectId: null,
+      name: "private-rush.mov",
+      kind: "video",
+      mimeType: "video/quicktime",
+      byteSize: 4_200_000,
+      durationSeconds: null,
+      status: "ready",
+      source: "upload",
+      createdAt: "2026-08-02T10:00:00.000Z",
+      analysis: {
+        summary: "A steady handheld walkthrough of a small ceramics studio.",
+        disciplines: ["ceramics"],
+        genres: ["studio vlog"],
+        creativeSignature: "Warm, unhurried narration over practical b-roll.",
+        themes: ["craft"],
+        targetAudience: "Hobbyist makers.",
+        boundaries: [],
+        evidence: ["Steady handheld camera work throughout the clip."],
+      },
+    } as const;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json(asset));
+    const client = new CreonomeApiClient(
+      "https://api.creonome.app/api/v1",
+      async () => "neon-jwt",
+      request,
+    );
+
+    await expect(client.getAsset(asset.id)).resolves.toEqual(asset);
+    expect(request).toHaveBeenCalledWith(
+      `https://api.creonome.app/api/v1/assets/${asset.id}`,
+      expect.any(Object),
+    );
+  });
+
   it("loads the project index and a workspace-scoped project detail", async () => {
     const project = {
       id: "0198f3a2-82dd-7000-8000-000000000020",

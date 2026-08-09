@@ -53,6 +53,7 @@ const source: VideoSourceRecord = {
         sound: "Room tone",
         editingNote: "Keep the opening still.",
         referenceFrameUrl: null,
+        assetId: null,
         durationSeconds: 8,
       },
     ],
