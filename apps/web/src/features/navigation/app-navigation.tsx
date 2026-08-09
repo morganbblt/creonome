@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/src/lib/utils";
-import { isNavigationItemActive, primaryNavigationItems } from "./navigation-state";
+import {
+  isNavigationItemActive,
+  primaryNavigationItems,
+} from "./navigation-state";
 
 export function AppNavigation({ className }: { className?: string }) {
   const pathname = usePathname();

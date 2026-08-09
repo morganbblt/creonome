@@ -30,7 +30,9 @@ describe("OnboardingCalibrationView", () => {
     for (const concept of concepts) {
       expect(screen.getByText(concept.title)).toBeTruthy();
     }
-    expect(screen.getAllByRole("button", { name: "Feels like me" })).toHaveLength(6);
+    expect(
+      screen.getAllByRole("button", { name: "Feels like me" }),
+    ).toHaveLength(6);
     expect(
       screen.getAllByRole("button", { name: "A future direction" }),
     ).toHaveLength(6);

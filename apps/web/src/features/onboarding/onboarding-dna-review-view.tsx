@@ -54,8 +54,8 @@ export function OnboardingDnaReviewView({
           Here is what we captured.
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Every trait shows how confident we are and where it came from.
-          Nothing here is final — refine it any time from Creator DNA.
+          Every trait shows how confident we are and where it came from. Nothing
+          here is final — refine it any time from Creator DNA.
         </p>
       </div>
 

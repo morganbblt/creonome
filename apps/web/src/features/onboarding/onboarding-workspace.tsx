@@ -58,12 +58,7 @@ import { OnboardingDnaReviewView } from "./onboarding-dna-review-view";
 import { OnboardingSummaryView } from "./onboarding-summary-view";
 
 type View =
-  | "source"
-  | "upload"
-  | "profile"
-  | "dna-review"
-  | "calibration"
-  | "summary";
+  "source" | "upload" | "profile" | "dna-review" | "calibration" | "summary";
 type LocalFailure = { id: string; fileName: string; message: string };
 
 const representationLabels: Record<OnboardingRepresentativeness, string> = {
@@ -244,9 +239,7 @@ export function OnboardingWorkspace({
     Record<string, OnboardingCalibrationResponseValue>
   >({});
   const [calibrationLoading, setCalibrationLoading] = useState(false);
-  const [calibrationError, setCalibrationError] = useState<string | null>(
-    null,
-  );
+  const [calibrationError, setCalibrationError] = useState<string | null>(null);
   const [calibrationSubmitting, setCalibrationSubmitting] = useState(false);
 
   const [credits, setCredits] = useState<CreditsResponse | null>(null);

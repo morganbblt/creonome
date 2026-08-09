@@ -140,9 +140,9 @@ describe("calibration response mapping", () => {
   });
 
   it("gives the softer, exploratory response a lower confidence", () => {
-    expect(Number(calibrationResponseConfidence("future_direction"))).toBeLessThan(
-      Number(calibrationResponseConfidence("feels_like_me")),
-    );
+    expect(
+      Number(calibrationResponseConfidence("future_direction")),
+    ).toBeLessThan(Number(calibrationResponseConfidence("feels_like_me")));
   });
 
   it("formats confidence as a fixed 3-decimal string", () => {

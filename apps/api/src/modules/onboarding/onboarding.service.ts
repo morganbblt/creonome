@@ -97,8 +97,7 @@ const localCalibrationConcepts: Array<{
   },
   {
     title: "A slower, unpolished take",
-    description:
-      "Post an unedited rehearsal moment instead of a finished cut.",
+    description: "Post an unedited rehearsal moment instead of a finished cut.",
   },
   {
     title: "Answer a comment on camera",
@@ -304,7 +303,8 @@ export class OnboardingService {
     principal: AuthPrincipal,
     rawInput: SubmitOnboardingCalibrationResponsesInput,
   ): Promise<SubmitOnboardingCalibrationResponsesResult> {
-    const input = SubmitOnboardingCalibrationResponsesInputSchema.parse(rawInput);
+    const input =
+      SubmitOnboardingCalibrationResponsesInputSchema.parse(rawInput);
     const context = await this.workspaces.resolve(principal);
     const saved = await this.repository.saveCalibrationResponses(
       context,

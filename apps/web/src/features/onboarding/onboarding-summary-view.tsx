@@ -125,8 +125,7 @@ export function OnboardingSummaryView({
         <Button disabled={generating} onClick={onGenerate} type="button">
           {generating ? (
             <>
-              <Loader2Icon className="animate-spin" /> Opening your
-              workspace…
+              <Loader2Icon className="animate-spin" /> Opening your workspace…
             </>
           ) : (
             <>

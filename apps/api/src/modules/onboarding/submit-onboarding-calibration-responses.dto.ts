@@ -15,9 +15,7 @@ import {
   ValidateNested,
 } from "class-validator";
 
-class OnboardingCalibrationResponseItemDto
-  implements OnboardingCalibrationResponseInput
-{
+class OnboardingCalibrationResponseItemDto implements OnboardingCalibrationResponseInput {
   @IsString()
   @MinLength(1)
   @MaxLength(60)
@@ -37,9 +35,7 @@ class OnboardingCalibrationResponseItemDto
   response!: OnboardingCalibrationResponseValue;
 }
 
-export class SubmitOnboardingCalibrationResponsesDto
-  implements SubmitOnboardingCalibrationResponsesInput
-{
+export class SubmitOnboardingCalibrationResponsesDto implements SubmitOnboardingCalibrationResponsesInput {
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(6)

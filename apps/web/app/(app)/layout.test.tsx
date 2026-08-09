@@ -78,9 +78,9 @@ describe("authenticated app layout", () => {
     await user.click(screen.getByRole("button", { name: "Morgan Boubault" }));
 
     expect(
-      (
-        await screen.findByRole("menuitem", { name: /credits/i })
-      ).getAttribute("href"),
+      (await screen.findByRole("menuitem", { name: /credits/i })).getAttribute(
+        "href",
+      ),
     ).toBe("/credits");
   });
 });

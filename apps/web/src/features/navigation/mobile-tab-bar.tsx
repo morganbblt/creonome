@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/src/lib/utils";
-import { isNavigationItemActive, primaryNavigationItems } from "./navigation-state";
+import {
+  isNavigationItemActive,
+  primaryNavigationItems,
+} from "./navigation-state";
 
 /**
  * The mobile equivalent of the desktop header nav: a bottom tab bar with the

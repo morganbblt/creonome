@@ -237,9 +237,7 @@ describe("OnboardingWorkspace", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Confirm profile" }));
 
-    expect(
-      await screen.findByText("Here is what we captured."),
-    ).toBeTruthy();
+    expect(await screen.findByText("Here is what we captured.")).toBeTruthy();
     expect(request).toHaveBeenCalledWith(
       "/api/creonome/onboarding/profile",
       expect.objectContaining({

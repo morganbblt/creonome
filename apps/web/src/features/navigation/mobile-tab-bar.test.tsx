@@ -32,7 +32,9 @@ describe("MobileTabBar", () => {
     render(<MobileTabBar />);
 
     expect(
-      screen.getByRole("link", { name: "Projects" }).getAttribute("aria-current"),
+      screen
+        .getByRole("link", { name: "Projects" })
+        .getAttribute("aria-current"),
     ).toBe("page");
     expect(
       screen.getByRole("link", { name: "Today" }).getAttribute("aria-current"),

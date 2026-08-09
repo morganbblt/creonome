@@ -64,8 +64,8 @@ export function OnboardingCalibrationView({
           React to six quick concepts.
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          There are no wrong answers — this sharpens what Creonome generates
-          for you next.
+          There are no wrong answers — this sharpens what Creonome generates for
+          you next.
         </p>
       </div>
 

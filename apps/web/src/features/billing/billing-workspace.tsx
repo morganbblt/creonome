@@ -46,8 +46,7 @@ function PlanCard({ plan }: { plan: BillingPlan }) {
 }
 
 export function BillingWorkspace() {
-  const { notice, creditBalance, plans, invoices, paymentMethod } =
-    mockBilling;
+  const { notice, creditBalance, plans, invoices, paymentMethod } = mockBilling;
 
   return (
     <main className="mx-auto w-full max-w-[720px] px-5.5 py-8.5 pb-14">
@@ -81,7 +80,10 @@ export function BillingWorkspace() {
         </div>
       </section>
 
-      <section aria-labelledby="billing-payment-method-heading" className="mb-6">
+      <section
+        aria-labelledby="billing-payment-method-heading"
+        className="mb-6"
+      >
         <h2
           className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase"
           id="billing-payment-method-heading"
