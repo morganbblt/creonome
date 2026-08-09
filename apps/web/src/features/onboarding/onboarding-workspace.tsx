@@ -37,7 +37,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -51,6 +51,7 @@ import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import { Progress } from "@/src/components/ui/progress";
 import { Textarea } from "@/src/components/ui/textarea";
+import { AnalyticsEvent, track } from "@/src/lib/analytics/analytics";
 import { cn } from "@/src/lib/utils";
 import { BrandWordmark } from "../brand/brand-wordmark";
 import { OnboardingCalibrationView } from "./onboarding-calibration-view";
@@ -244,6 +245,33 @@ export function OnboardingWorkspace({
 
   const [credits, setCredits] = useState<CreditsResponse | null>(null);
   const [finishing, setFinishing] = useState(false);
+
+  const assetsImportedTracked = useRef(initialState.assets.length >= 3);
+  const dnaConfirmedTracked = useRef(false);
+
+  // Activation event: onboarding started. Fires once, only when this
+  // creator is genuinely arriving at the first step -- reloading mid-flow
+  // (e.g. resuming at "upload" or "profile") is not a new onboarding start.
+  useEffect(() => {
+    if (initialView(initialState) === "source") {
+      track(AnalyticsEvent.OnboardingStarted);
+    }
+    // Mount-only: initialState is the prop this component was created with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Activation event: at least 3 assets imported. Fires once, the first
+  // time the imported-asset count crosses the threshold the product bible
+  // uses for a "noticeably sharper profile" (see footerHint below).
+  useEffect(() => {
+    if (assetsImportedTracked.current) return;
+    if (state.assets.length >= 3) {
+      assetsImportedTracked.current = true;
+      track(AnalyticsEvent.OnboardingAssetsImported, {
+        assetCount: state.assets.length,
+      });
+    }
+  }, [state.assets.length]);
 
   function useRemoteState(next: unknown) {
     const parsed = OnboardingStateSchema.parse(next);
@@ -505,6 +533,15 @@ export function OnboardingWorkspace({
   }
 
   async function startCalibration() {
+    // Activation event: DNA confirmed. This is the "Continue" action off
+    // the post-profile DNA review step -- fires once even if the creator
+    // navigates back to that step and continues again.
+    if (!dnaConfirmedTracked.current) {
+      dnaConfirmedTracked.current = true;
+      track(AnalyticsEvent.CreatorDnaConfirmed, {
+        traitCount: dna?.traits.length ?? 0,
+      });
+    }
     setView("calibration");
     // Already generated once (e.g. the creator went back and forward
     // between dna-review and calibration) -- don't regenerate and lose

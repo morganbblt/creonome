@@ -7,6 +7,14 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
 }));
 
+const { track } = vi.hoisted(() => ({ track: vi.fn() }));
+vi.mock("@/src/lib/analytics/analytics", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/src/lib/analytics/analytics")
+  >("@/src/lib/analytics/analytics");
+  return { ...actual, track };
+});
+
 import { demoOpportunities } from "../../../src/features/opportunities/demo-opportunities";
 import { TodayBatchGenerator } from "./today-batch-generator";
 
@@ -30,6 +38,7 @@ const generatedBatch = {
 describe("TodayBatchGenerator", () => {
   beforeEach(() => {
     refresh.mockReset();
+    track.mockReset();
     vi.stubGlobal("fetch", vi.fn());
   });
 
@@ -55,6 +64,10 @@ describe("TodayBatchGenerator", () => {
 
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
     expect(onGenerated).toHaveBeenCalledWith(generatedBatch);
+    expect(track).toHaveBeenCalledWith("opportunity_batch_generated", {
+      directions: "Closer to my DNA,More experimental",
+      opportunityCount: generatedBatch.opportunities.length,
+    });
     expect(fetch).toHaveBeenCalledWith(
       "/api/creonome/opportunities/batches",
       expect.objectContaining({
@@ -105,5 +118,40 @@ describe("TodayBatchGenerator", () => {
       string
     >;
     expect(secondKey["Idempotency-Key"]).not.toBe(firstKey["Idempotency-Key"]);
+  });
+
+  it("fires opportunity_batch_generated once the queued job succeeds", async () => {
+    const queued = {
+      job: {
+        id: "0198f3a2-82dd-7000-8000-0000000000a1",
+        kind: "opportunity_batch",
+        provider: "gemini",
+        model: "gemini-3.5-flash",
+        status: "queued",
+        progress: 0,
+        createdAt: "2026-08-02T10:00:00.000Z",
+        updatedAt: "2026-08-02T10:00:00.000Z",
+      },
+      credits: { balance: 57, reserved: 3, available: 54 },
+    };
+    const succeeded = {
+      ...queued.job,
+      status: "succeeded",
+      progress: 100,
+      completedAt: "2026-08-02T10:00:05.000Z",
+    };
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(Response.json(queued))
+      .mockResolvedValueOnce(Response.json(succeeded));
+    render(<TodayBatchGenerator />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /3 new opportunities/i }),
+    );
+
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(track).toHaveBeenCalledWith("opportunity_batch_generated", {
+      directions: "Closer to my DNA",
+    });
   });
 });
