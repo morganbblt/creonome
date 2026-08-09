@@ -377,6 +377,12 @@ export class NeonProjectsRepository implements ProjectsRepository {
       ...scene,
       createdAt: now,
     }));
+    // A storyboard (or a video built on top of one) already existing on
+    // this project means this call is regenerating an already-produced
+    // level rather than creating it for the first time (bible §9.6).
+    const isRegeneration =
+      source.project.currentLevel === "storyboard" ||
+      source.project.currentLevel === "video";
 
     const insertVersion = database.insert(projectVersions).values({
       id: projectVersionId,
@@ -384,8 +390,13 @@ export class NeonProjectsRepository implements ProjectsRepository {
       version,
       level: "storyboard",
       parentVersion: source.project.currentVersion,
-      changeSource: "storyboard_generation",
-      changeSummary: "Generated a shootable storyboard from the latest script",
+      changeSource: isRegeneration
+        ? "storyboard_regeneration"
+        : "storyboard_generation",
+      changeSummary: isRegeneration
+        ? "Regenerated the storyboard from the latest script"
+        : "Generated a shootable storyboard from the latest script",
+      lockedFields: input.lockedFields,
       snapshot: {
         scriptId: source.script.id,
         storyboardId,
@@ -732,6 +743,9 @@ export class NeonProjectsRepository implements ProjectsRepository {
     const jobId = input.jobId ?? randomUUID();
     const assetId = randomUUID();
     const artifact = input.artifact;
+    // A video already existing on this project means this call is
+    // regenerating an already-produced level (bible §9.6).
+    const isRegeneration = source.project.currentLevel === "video";
     const video: ProjectVideoRecord = {
       id: assetId,
       projectId: input.projectId,
@@ -754,10 +768,17 @@ export class NeonProjectsRepository implements ProjectsRepository {
         version,
         level: "video",
         parentVersion: source.project.currentVersion,
-        changeSource: "video_generation",
-        changeSummary: artifact.simulated
-          ? "Generated a vertical-video preview with the resilient MVP fallback"
-          : "Generated a production vertical-video render with Veo",
+        changeSource: isRegeneration
+          ? "video_regeneration"
+          : "video_generation",
+        changeSummary: isRegeneration
+          ? artifact.simulated
+            ? "Regenerated the vertical-video preview with the resilient MVP fallback"
+            : "Regenerated a production vertical-video render with Veo"
+          : artifact.simulated
+            ? "Generated a vertical-video preview with the resilient MVP fallback"
+            : "Generated a production vertical-video render with Veo",
+        lockedFields: input.lockedFields,
         snapshot: {
           storyboardId: source.storyboard.id,
           generatedAssetId: assetId,

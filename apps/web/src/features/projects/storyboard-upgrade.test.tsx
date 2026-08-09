@@ -185,4 +185,81 @@ describe("StoryboardUpgrade", () => {
       firstHeaders["Idempotency-Key"],
     );
   });
+
+  it("offers a regenerate affordance with lock toggles when a storyboard already exists", async () => {
+    const request = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(upgrade), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+
+    render(
+      <StoryboardUpgrade
+        projectId={projectId}
+        storyboard={upgrade.storyboard}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /regenerate storyboard · 4 cr/i }),
+    );
+    expect(
+      screen.getByText(/lock any field below to keep it unchanged/i),
+    ).toBeTruthy();
+
+    // Lock the title and the only scene, leave aspectRatio unlocked.
+    fireEvent.click(screen.getByLabelText(/^title/i));
+    fireEvent.click(screen.getByLabelText(/lock scene 1/i));
+    fireEvent.click(
+      screen.getByRole("button", { name: /confirm and generate/i }),
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledOnce());
+    const body = JSON.parse(
+      (request.mock.calls[0]?.[1] as RequestInit).body as string,
+    );
+    expect(body.targetLevel).toBe("storyboard");
+    expect(body.lockedFields).toEqual(
+      expect.arrayContaining([
+        "title",
+        "scene:1:heading",
+        "scene:1:voiceover",
+        "scene:1:durationSeconds",
+      ]),
+    );
+    expect(body.lockedFields).not.toContain("aspectRatio");
+  });
+
+  it("omits lockedFields entirely on a first-time generation with no storyboard yet", async () => {
+    const request = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(upgrade), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+
+    render(<StoryboardUpgrade projectId={projectId} />);
+    expect(
+      screen.queryByText(/lock fields to keep them unchanged/i),
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /generate storyboard · 4 cr/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /confirm and generate/i }),
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledOnce());
+    const body = JSON.parse(
+      (request.mock.calls[0]?.[1] as RequestInit).body as string,
+    );
+    expect(body).toEqual({
+      targetLevel: "storyboard",
+      confirmedCreditCost: true,
+    });
+  });
 });

@@ -455,7 +455,7 @@ describe("ProjectWorkflowService.upgrade (video)", () => {
     const result = await service.upgrade(
       principal,
       projectId,
-      { targetLevel: "video", confirmedCreditCost: true },
+      { targetLevel: "video", confirmedCreditCost: true, lockedFields: [] },
       "upgrade-video-1",
     );
 
@@ -479,27 +479,45 @@ describe("ProjectWorkflowService.upgrade (video)", () => {
     expect(repository.createVideoUpgrade).not.toHaveBeenCalled();
   });
 
-  it("returns an existing video without reserving credits or queueing a job", async () => {
-    const { service, credits, repository, enqueue } = setup({
+  it("regenerates an already-produced video instead of returning the cached one", async () => {
+    const { service, credits, enqueue, repository, videoProvider } = setup({
       videoExisting: true,
     });
 
-    await expect(
-      service.upgrade(
-        principal,
-        projectId,
-        { targetLevel: "video", confirmedCreditCost: true },
-        "upgrade-video-existing",
-      ),
-    ).resolves.toMatchObject({
-      project: { currentLevel: "video" },
-    });
-    expect(repository.findExistingVideoUpgrade).toHaveBeenCalledWith(
-      context.workspaceId,
+    const result = await service.upgrade(
+      principal,
       projectId,
+      {
+        targetLevel: "video",
+        confirmedCreditCost: true,
+        lockedFields: ["durationSeconds"],
+      },
+      "upgrade-video-new-request",
     );
-    expect(credits.reserve).not.toHaveBeenCalled();
-    expect(enqueue.createAndEnqueue).not.toHaveBeenCalled();
+
+    // A fresh idempotency key against an already-produced level reserves
+    // credits and queues a new job — it does not short-circuit to the
+    // previous artifact. Only a literal retry of the *same* idempotency
+    // key does that (see "finishes an idempotent video commit ...").
+    expect(credits.reserve).toHaveBeenCalledWith(
+      context.workspaceId,
+      12,
+      "upgrade-video-new-request:reserve",
+      expect.stringMatching(/video/i),
+    );
+    expect(enqueue.createAndEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "video_render",
+        projectId,
+        idempotencyKey: "upgrade-video-new-request",
+        input: expect.objectContaining({
+          lockedFields: ["durationSeconds"],
+        }),
+      }),
+    );
+    expect(result).toMatchObject({ job: { status: "queued" } });
+    expect(videoProvider.generate).not.toHaveBeenCalled();
+    expect(repository.createVideoUpgrade).not.toHaveBeenCalled();
   });
 
   it("finishes an idempotent video commit without re-queueing", async () => {
@@ -509,7 +527,7 @@ describe("ProjectWorkflowService.upgrade (video)", () => {
       service.upgrade(
         principal,
         projectId,
-        { targetLevel: "video", confirmedCreditCost: true },
+        { targetLevel: "video", confirmedCreditCost: true, lockedFields: [] },
         "upgrade-video-resume",
       ),
     ).resolves.toMatchObject({ video: { simulated: true } });
@@ -533,7 +551,7 @@ describe("ProjectWorkflowService.upgrade (video)", () => {
       service.upgrade(
         principal,
         projectId,
-        { targetLevel: "video", confirmedCreditCost: true },
+        { targetLevel: "video", confirmedCreditCost: true, lockedFields: [] },
         "upgrade-video-queue-down",
       ),
     ).rejects.toMatchObject({
@@ -586,6 +604,83 @@ describe("ProjectWorkflowService.executeQueuedVideoUpgrade", () => {
     );
     expect(credits.commit).toHaveBeenCalledTimes(1);
     expect(credits.release).not.toHaveBeenCalled();
+  });
+
+  it("carries a locked field through a video regeneration while an unlocked field changes freely", async () => {
+    const { service, repository, credits, jobs, videoProvider } = setup({
+      videoExisting: true,
+    });
+    vi.mocked(jobs.findByIdUnscoped).mockResolvedValueOnce(
+      queuedJob("video_render", {
+        input: {
+          workspaceId: context.workspaceId,
+          userId: context.userId,
+          creatorProfileId: context.creatorProfileId,
+          projectId,
+          lockedFields: ["width"],
+        },
+      }),
+    );
+    // width matches the previous render (locked, compliant); height differs
+    // (unlocked, allowed to change).
+    vi.mocked(videoProvider.generate).mockResolvedValueOnce({
+      ...deterministicVideo,
+      height: 1280,
+    });
+
+    await service.executeQueuedVideoUpgrade(videoJobId);
+
+    expect(videoProvider.generate).toHaveBeenCalledTimes(1); // compliant, no retry
+    expect(repository.createVideoUpgrade).toHaveBeenCalledWith(
+      expect.objectContaining({
+        artifact: expect.objectContaining({
+          width: deterministicVideo.width, // the locked field survived
+          height: 1280, // the unlocked field was allowed to change
+        }),
+        lockedFields: ["width"],
+      }),
+    );
+    expect(credits.commit).toHaveBeenCalled();
+    expect(jobs.markFailed).not.toHaveBeenCalled();
+  });
+
+  it("retries once, then fails clearly instead of silently persisting a locked-field violation on a video render", async () => {
+    const { service, repository, credits, jobs, videoProvider } = setup({
+      videoExisting: true,
+    });
+    vi.mocked(jobs.findByIdUnscoped).mockResolvedValueOnce(
+      queuedJob("video_render", {
+        input: {
+          workspaceId: context.workspaceId,
+          userId: context.userId,
+          creatorProfileId: context.creatorProfileId,
+          projectId,
+          lockedFields: ["width"],
+        },
+      }),
+    );
+    // Both attempts ignore the lock and change the locked width.
+    vi.mocked(videoProvider.generate)
+      .mockResolvedValueOnce({ ...deterministicVideo, width: 720 })
+      .mockResolvedValueOnce({ ...deterministicVideo, width: 810 });
+
+    await service.executeQueuedVideoUpgrade(videoJobId);
+
+    expect(videoProvider.generate).toHaveBeenCalledTimes(2);
+    expect(repository.createVideoUpgrade).not.toHaveBeenCalled();
+    expect(credits.commit).not.toHaveBeenCalled();
+    expect(jobs.markFailed).toHaveBeenCalledWith(
+      videoJobId,
+      "failed_final",
+      "LOCKED_FIELD_VIOLATION",
+      expect.stringContaining("width"),
+    );
+    expect(credits.release).toHaveBeenCalledWith(
+      context.workspaceId,
+      12,
+      "upgrade-video-1:release",
+      expect.stringMatching(/failed/i),
+    );
   });
 
   it("rejects a video whose render fails the pre-publish content gate and releases the reservation", async () => {
@@ -653,7 +748,11 @@ describe("ProjectWorkflowService.upgrade (storyboard)", () => {
     const result = await service.upgrade(
       principal,
       projectId,
-      { targetLevel: "storyboard", confirmedCreditCost: true },
+      {
+        targetLevel: "storyboard",
+        confirmedCreditCost: true,
+        lockedFields: [],
+      },
       "upgrade-storyboard-1",
     );
 
@@ -676,28 +775,45 @@ describe("ProjectWorkflowService.upgrade (storyboard)", () => {
     expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
   });
 
-  it("returns an existing storyboard without reserving credits", async () => {
-    const { service, repository, credits, enqueue } = setup({
+  it("regenerates an already-produced storyboard instead of returning the cached one", async () => {
+    const { service, repository, credits, enqueue, generator } = setup({
       existing: true,
     });
 
-    await expect(
-      service.upgrade(
-        principal,
-        projectId,
-        { targetLevel: "storyboard", confirmedCreditCost: true },
-        "upgrade-storyboard-existing",
-      ),
-    ).resolves.toMatchObject({
-      project: { currentLevel: "storyboard" },
-      credits: { balance: 58, reserved: 0 },
-    });
-    expect(repository.findExistingStoryboardUpgrade).toHaveBeenCalledWith(
-      context.workspaceId,
+    const result = await service.upgrade(
+      principal,
       projectId,
+      {
+        targetLevel: "storyboard",
+        confirmedCreditCost: true,
+        lockedFields: ["title"],
+      },
+      "upgrade-storyboard-new-request",
     );
-    expect(credits.reserve).not.toHaveBeenCalled();
-    expect(enqueue.createAndEnqueue).not.toHaveBeenCalled();
+
+    // A fresh idempotency key against an already-produced level reserves
+    // credits and queues a new job — it does not short-circuit to the
+    // previous artifact. Only a literal retry of the *same* idempotency
+    // key does that (see "finishes an idempotent credit commit ...").
+    expect(credits.reserve).toHaveBeenCalledWith(
+      context.workspaceId,
+      4,
+      "upgrade-storyboard-new-request:reserve",
+      expect.stringMatching(/storyboard/i),
+    );
+    expect(enqueue.createAndEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "storyboard",
+        projectId,
+        idempotencyKey: "upgrade-storyboard-new-request",
+        input: expect.objectContaining({
+          lockedFields: ["title"],
+        }),
+      }),
+    );
+    expect(result).toMatchObject({ job: { status: "queued" } });
+    expect(generator.generate).not.toHaveBeenCalled();
+    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
   });
 
   it("finishes an idempotent credit commit without regenerating", async () => {
@@ -709,7 +825,11 @@ describe("ProjectWorkflowService.upgrade (storyboard)", () => {
       service.upgrade(
         principal,
         projectId,
-        { targetLevel: "storyboard", confirmedCreditCost: true },
+        {
+          targetLevel: "storyboard",
+          confirmedCreditCost: true,
+          lockedFields: [],
+        },
         "upgrade-storyboard-resume",
       ),
     ).resolves.toMatchObject({ credits: { balance: 54, reserved: 0 } });
@@ -730,7 +850,11 @@ describe("ProjectWorkflowService.upgrade (storyboard)", () => {
       service.upgrade(
         principal,
         projectId,
-        { targetLevel: "storyboard", confirmedCreditCost: true },
+        {
+          targetLevel: "storyboard",
+          confirmedCreditCost: true,
+          lockedFields: [],
+        },
         "upgrade-storyboard-missing",
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -744,7 +868,11 @@ describe("ProjectWorkflowService.upgrade (storyboard)", () => {
       service.upgrade(
         principal,
         projectId,
-        { targetLevel: "storyboard", confirmedCreditCost: true },
+        {
+          targetLevel: "storyboard",
+          confirmedCreditCost: true,
+          lockedFields: [],
+        },
         "",
       ),
     ).rejects.toBeInstanceOf(HttpException);
@@ -808,6 +936,90 @@ describe("ProjectWorkflowService.executeQueuedStoryboardUpgrade", () => {
           "Hard constraints, must not violate under any circumstance: No alcohol brand promotions.",
         ),
       }),
+    );
+  });
+
+  it("carries a locked field through a regeneration while an unlocked field changes freely", async () => {
+    const { service, repository, credits, jobs, generator } = setup({
+      existing: true,
+    });
+    vi.mocked(jobs.findByIdUnscoped).mockResolvedValueOnce(
+      queuedJob("storyboard", {
+        input: {
+          workspaceId: context.workspaceId,
+          userId: context.userId,
+          creatorProfileId: context.creatorProfileId,
+          projectId,
+          lockedFields: ["title"],
+        },
+      }),
+    );
+    // The model complies with the lock (title unchanged from the previous
+    // version) but is free to change the unlocked aspectRatio.
+    vi.mocked(generator.generate).mockResolvedValueOnce({
+      ...generated,
+      aspectRatio: "1:1",
+    });
+
+    await service.executeQueuedStoryboardUpgrade(storyboardJobId);
+
+    expect(generator.generate).toHaveBeenCalledTimes(1); // compliant on the first attempt, no retry
+    expect(repository.createStoryboardUpgrade).toHaveBeenCalledWith(
+      expect.objectContaining({
+        generated: expect.objectContaining({
+          title: generated.title, // the locked field survived
+          aspectRatio: "1:1", // the unlocked field was allowed to change
+        }),
+        lockedFields: ["title"],
+      }),
+    );
+    expect(credits.commit).toHaveBeenCalled();
+    expect(jobs.markFailed).not.toHaveBeenCalled();
+  });
+
+  it("retries once with a stricter prompt, then fails clearly instead of silently persisting a locked-field violation", async () => {
+    const { service, repository, credits, jobs, generator } = setup({
+      existing: true,
+    });
+    vi.mocked(jobs.findByIdUnscoped).mockResolvedValueOnce(
+      queuedJob("storyboard", {
+        input: {
+          workspaceId: context.workspaceId,
+          userId: context.userId,
+          creatorProfileId: context.creatorProfileId,
+          projectId,
+          lockedFields: ["title"],
+        },
+      }),
+    );
+    // Both attempts ignore the lock and change the locked title.
+    vi.mocked(generator.generate)
+      .mockResolvedValueOnce({ ...generated, title: "Ignoring the lock v1" })
+      .mockResolvedValueOnce({ ...generated, title: "Ignoring the lock v2" });
+
+    await service.executeQueuedStoryboardUpgrade(storyboardJobId);
+
+    expect(generator.generate).toHaveBeenCalledTimes(2);
+    expect(generator.generate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        prompt: expect.stringContaining("STRICT REQUIREMENT"),
+      }),
+    );
+    // The violating result must never be persisted as a success.
+    expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
+    expect(credits.commit).not.toHaveBeenCalled();
+    expect(jobs.markFailed).toHaveBeenCalledWith(
+      storyboardJobId,
+      "failed_final",
+      "LOCKED_FIELD_VIOLATION",
+      expect.stringContaining("title"),
+    );
+    expect(credits.release).toHaveBeenCalledWith(
+      context.workspaceId,
+      4,
+      "upgrade-storyboard-1:release",
+      expect.stringMatching(/failed/i),
     );
   });
 

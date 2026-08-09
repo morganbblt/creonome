@@ -156,6 +156,14 @@ export type CreateStoryboardUpgradeInput = {
   model: string;
   generated: GeneratedStoryboard;
   /**
+   * Field names (bible §9.6) the caller asked to preserve across this
+   * generation, e.g. "title" or "scene:2:voiceover". Recorded on the new
+   * project_versions row for the version-history UI; lock *enforcement*
+   * itself happens earlier, in ProjectWorkflowService, before this method
+   * is called.
+   */
+  lockedFields: string[];
+  /**
    * The generation_jobs row already inserted as "queued" by the public
    * controller action before the Cloud Tasks task ran. When provided, this
    * method updates that row to "succeeded" instead of inserting a new one.
@@ -175,6 +183,12 @@ export type CreateVideoUpgradeInput = {
   projectId: string;
   idempotencyKey: string;
   artifact: import("./video/video-provider.js").GeneratedVideoArtifact;
+  /**
+   * Field names (bible §9.6) the caller asked to preserve across this
+   * render, e.g. "durationSeconds". Recorded on the new project_versions
+   * row; enforcement happens earlier, in ProjectWorkflowService.
+   */
+  lockedFields: string[];
   /**
    * The generation_jobs row already inserted as "queued" by the public
    * controller action before the Cloud Tasks task ran. When provided, this

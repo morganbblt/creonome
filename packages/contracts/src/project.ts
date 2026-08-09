@@ -96,9 +96,22 @@ export const ProjectDetailSchema = ProjectSummarySchema.extend({
   latestJob: GenerationJobSchema.nullable(),
 });
 
+/**
+ * Field-locking granularity for a `/projects/:id/upgrade` regeneration
+ * request (bible §9.6). Locking is per-target-level:
+ *  - storyboard: top-level fields ("title", "aspectRatio", "durationSeconds")
+ *    plus a per-scene lock addressed by 1-based position, e.g.
+ *    "scene:2:voiceover" (see STORYBOARD_SCENE_LOCKABLE_FIELDS below).
+ *  - video: technical output fields ("durationSeconds", "width", "height").
+ * The exact set of legal field names per level is enforced server-side in
+ * apps/api/src/modules/projects/locked-fields.ts (kept out of the shared
+ * contract so the API can evolve the allow-list without a contract bump);
+ * this schema only bounds the shape (a short list of short strings).
+ */
 export const UpgradeProjectInputSchema = z.object({
   targetLevel: z.enum(["storyboard", "video"]),
   confirmedCreditCost: z.literal(true),
+  lockedFields: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
 });
 
 export const UpgradeProjectResultSchema = z.object({

@@ -5,11 +5,13 @@ import {
   ProjectDetailSchema,
   QueuedGenerationJobSchema,
   UpgradeVideoResultSchema,
+  type ProjectVideo,
   type UpgradeVideoResult,
 } from "@creonome/contracts";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Button } from "@/src/components/ui/button";
+import { Checkbox } from "@/src/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +23,17 @@ import {
 } from "@/src/components/ui/dialog";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
-import { pollGenerationJob } from "../generation/poll-generation-job";
+import {
+  GenerationJobFailedError,
+  pollGenerationJob,
+} from "../generation/poll-generation-job";
+
+/** Mirrors apps/api/src/modules/projects/locked-fields.ts VIDEO_LOCKABLE_FIELDS. */
+const VIDEO_LOCKABLE_FIELDS = [
+  ["durationSeconds", "Duration"],
+  ["width", "Width"],
+  ["height", "Height"],
+] as const;
 
 function videoErrorMessage(status: number): string {
   if (status === 401 || status === 403) {
@@ -47,7 +59,20 @@ function createIdempotencyKey(projectId: string): string {
   return `video-${projectId}-${suffix}`;
 }
 
-export function VideoUpgrade({ projectId }: { projectId: string }) {
+export function VideoUpgrade({
+  projectId,
+  video,
+}: {
+  projectId: string;
+  /**
+   * The current video, when one already exists. Its presence is what
+   * distinguishes a first-time render (nothing to lock yet) from a
+   * regeneration of an already-produced level (bible §9.6) — passing it
+   * turns on the lock-toggle affordance and switches the button/dialog
+   * copy to "regenerate".
+   */
+  video?: ProjectVideo | null;
+}) {
   const router = useRouter();
   const key = useRef<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -55,6 +80,19 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
   const [phase, setPhase] = useState<"queued" | "running" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<UpgradeVideoResult | null>(null);
+  const [lockedFieldsState, setLockedFieldsState] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const isRegeneration = Boolean(video);
+
+  function toggleLock(field: string, checked: boolean) {
+    setLockedFieldsState((current) => {
+      const next = new Set(current);
+      if (checked) next.add(field);
+      else next.delete(field);
+      return next;
+    });
+  }
 
   async function generateVideo() {
     setOpen(false);
@@ -62,6 +100,7 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
     setPhase("running");
     setError(null);
     key.current ??= createIdempotencyKey(projectId);
+    const lockedFields = [...lockedFieldsState];
 
     try {
       const response = await fetch(
@@ -75,6 +114,7 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
           body: JSON.stringify({
             targetLevel: "video",
             confirmedCreditCost: true,
+            ...(lockedFields.length > 0 ? { lockedFields } : {}),
           }),
         },
       );
@@ -143,10 +183,17 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
       setReceipt(upgrade);
       key.current = null;
       router.refresh();
-    } catch {
-      setError(
-        "The video response could not be verified. Your storyboard is intact; reload the project before retrying.",
-      );
+    } catch (thrown) {
+      if (thrown instanceof GenerationJobFailedError) {
+        // Carries a clear, structured message straight from the job (e.g.
+        // a QUALITY_GATE_REJECTED or LOCKED_FIELD_VIOLATION rejection) —
+        // surface it instead of a generic fallback.
+        setError(thrown.job.errorMessage ?? "Video generation failed.");
+      } else {
+        setError(
+          "The video response could not be verified. Your storyboard is intact; reload the project before retrying.",
+        );
+      }
     } finally {
       setPending(false);
       setPhase(null);
@@ -158,23 +205,53 @@ export function VideoUpgrade({ projectId }: { projectId: string }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button type="button" disabled={pending}>
-            {pending ? "Rendering…" : "Generate video · 12 cr"}
+            {pending
+              ? "Rendering…"
+              : isRegeneration
+                ? "Regenerate video · 12 cr"
+                : "Generate video · 12 cr"}
           </Button>
         </DialogTrigger>
         <DialogContent aria-label="Video generation">
           <DialogHeader>
             <DialogTitle>
-              Turn this storyboard into a vertical motion preview
+              {isRegeneration
+                ? "Regenerate this video"
+                : "Turn this storyboard into a vertical motion preview"}
             </DialogTitle>
             <DialogDescription>
-              Creonome attempts a real 9:16 Veo render first, with the resilient
-              deterministic preview ready if the provider is unavailable.
+              {isRegeneration
+                ? "A new render is generated from the storyboard. Lock any field below to keep it unchanged."
+                : "Creonome attempts a real 9:16 Veo render first, with the resilient deterministic preview ready if the provider is unavailable."}
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             12 credits will be reserved. They are only charged if the video
             preview is rendered.
           </p>
+          {video ? (
+            <div className="flex flex-col gap-3 rounded-[8px] border border-border p-3.5">
+              <p className="m-0 font-mono text-[9px] tracking-[0.1em] text-muted-foreground uppercase">
+                Lock fields to keep them unchanged
+              </p>
+              <div className="flex flex-wrap gap-x-5 gap-y-2.5">
+                {VIDEO_LOCKABLE_FIELDS.map(([field, fieldLabel]) => (
+                  <label
+                    key={field}
+                    className="flex items-center gap-2 text-[12px] text-foreground"
+                  >
+                    <Checkbox
+                      checked={lockedFieldsState.has(field)}
+                      onCheckedChange={(checked) =>
+                        toggleLock(field, checked === true)
+                      }
+                    />
+                    {fieldLabel} — {video[field]}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <DialogFooter>
             <Button
               type="button"

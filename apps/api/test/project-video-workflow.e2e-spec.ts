@@ -331,7 +331,11 @@ describe("Storyboard → Video workflow", () => {
     const queuedStoryboardJob = await service.upgrade(
       principal,
       projectId,
-      { targetLevel: "storyboard", confirmedCreditCost: true },
+      {
+        targetLevel: "storyboard",
+        confirmedCreditCost: true,
+        lockedFields: [],
+      },
       "e2e-storyboard-generation",
     );
     expect(queuedStoryboardJob).toMatchObject({ job: { status: "queued" } });
@@ -344,7 +348,7 @@ describe("Storyboard → Video workflow", () => {
     const queuedVideoJob = await service.upgrade(
       principal,
       projectId,
-      { targetLevel: "video", confirmedCreditCost: true },
+      { targetLevel: "video", confirmedCreditCost: true, lockedFields: [] },
       "e2e-video-generation",
     );
     expect(queuedVideoJob).toMatchObject({ job: { status: "queued" } });
