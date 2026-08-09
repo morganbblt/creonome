@@ -1,4 +1,5 @@
 import { HttpException, NotFoundException } from "@nestjs/common";
+import type { ConfigService } from "@nestjs/config";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
@@ -285,6 +286,9 @@ function setup(options?: {
       .fn()
       .mockResolvedValue(queuedJob({ status: "failed_retryable" })),
   };
+  const config = {
+    get: vi.fn().mockReturnValue("gemini-3.6-flash"),
+  } as unknown as ConfigService;
 
   return {
     service: new OpportunityWorkflowService(
@@ -296,6 +300,7 @@ function setup(options?: {
       creatorDna,
       enqueue,
       jobs,
+      config,
     ),
     repository,
     credits,
@@ -304,6 +309,7 @@ function setup(options?: {
     creatorDna,
     enqueue,
     jobs,
+    config,
   };
 }
 
@@ -491,7 +497,7 @@ describe("OpportunityWorkflowService.executeQueuedScriptUpgrade", () => {
     expect(repository.createScriptUpgrade).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: "vertex-ai",
-        model: "gemini-3.5-flash",
+        model: "gemini-3.6-flash",
         jobId,
       }),
     );

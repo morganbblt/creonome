@@ -4,6 +4,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from "@nestjs/common";
+import type { ConfigService } from "@nestjs/config";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
@@ -549,6 +550,9 @@ function setup(options?: {
     markSucceeded: vi.fn(),
     markFailed: vi.fn(),
   };
+  const config = {
+    get: vi.fn().mockReturnValue("gemini-3.6-flash"),
+  } as unknown as ConfigService;
 
   return {
     service: new ProjectWorkflowService(
@@ -561,6 +565,7 @@ function setup(options?: {
       creatorDna,
       enqueue,
       jobs,
+      config,
     ),
     repository,
     credits,
@@ -570,6 +575,7 @@ function setup(options?: {
     creatorDna,
     enqueue,
     jobs,
+    config,
   };
 }
 
@@ -1018,7 +1024,7 @@ describe("ProjectWorkflowService.executeQueuedStoryboardUpgrade", () => {
         projectId,
         idempotencyKey: "upgrade-storyboard-1",
         provider: "vertex-ai",
-        model: "gemini-3.5-flash",
+        model: "gemini-3.6-flash",
         generated,
         jobId: storyboardJobId,
       }),

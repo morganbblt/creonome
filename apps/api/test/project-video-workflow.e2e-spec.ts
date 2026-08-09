@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { ConfigService } from "@nestjs/config";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../src/modules/ai/structured-generator.js";
 import type { AuthPrincipal } from "../src/modules/auth/auth-token-verifier.js";
@@ -327,6 +328,9 @@ describe("Storyboard → Video workflow", () => {
       creatorDna,
       enqueue,
       jobsRepository,
+      {
+        get: vi.fn().mockReturnValue("gemini-3.6-flash"),
+      } as unknown as ConfigService,
     );
 
     const queuedStoryboardJob = await service.upgrade(

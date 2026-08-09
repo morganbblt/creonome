@@ -32,7 +32,7 @@ import { VertexOnboardingIntelligence } from "./vertex-onboarding.intelligence.j
         });
         return new VertexOnboardingIntelligence(
           client,
-          config.get<string>("VERTEX_AI_MODEL") ?? "gemini-3.5-flash",
+          config.get<string>("VERTEX_AI_MODEL") ?? "gemini-3.6-flash",
         );
       },
     },

@@ -61,12 +61,18 @@ const ApiEnvSchema = z.object({
   DATABASE_URL: OptionalPostgresUrlSchema,
   NEON_AUTH_JWKS_URL: OptionalHttpUrlSchema,
   GEMINI_API_KEY: OptionalSecretSchema,
-  GEMINI_MODEL: z.string().min(1).default("gemini-3.5-flash"),
+  // GEMINI_MODEL (direct Gemini API, used outside production when
+  // GEMINI_API_KEY is set) and VERTEX_AI_MODEL (Vertex AI, used in
+  // production — see ai.module.ts) must stay pinned to the same model
+  // version so the two code paths are interchangeable. See
+  // index.test.ts's "keeps GEMINI_MODEL and VERTEX_AI_MODEL in sync"
+  // assertion.
+  GEMINI_MODEL: z.string().min(1).default("gemini-3.6-flash"),
   MEM0_API_KEY: OptionalSecretSchema,
   MEM0_BASE_URL: z.url().default("https://api.mem0.ai"),
   GOOGLE_CLOUD_PROJECT: z.string().min(1).default("creonome"),
   GOOGLE_CLOUD_LOCATION: z.string().min(1).default("global"),
-  VERTEX_AI_MODEL: z.string().min(1).default("gemini-3.5-flash"),
+  VERTEX_AI_MODEL: z.string().min(1).default("gemini-3.6-flash"),
   VIDEO_PROVIDER: z.enum(["auto", "veo", "deterministic"]).default("auto"),
   VEO_BACKEND: z.enum(["auto", "vertex", "gemini"]).default("auto"),
   VEO_VERTEX_LOCATION: z.string().min(1).default("us-central1"),

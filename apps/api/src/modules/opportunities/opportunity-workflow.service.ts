@@ -5,6 +5,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import {
   OpportunityRevisionSchema,
   QueuedGenerationJobSchema,
@@ -130,6 +131,8 @@ export class OpportunityWorkflowService {
     private readonly enqueue: GenerationJobEnqueueService,
     @Inject(JOBS_REPOSITORY)
     private readonly jobs: JobsRepository,
+    @Inject(ConfigService)
+    private readonly config: ConfigService,
   ) {}
 
   async modify(
@@ -421,7 +424,11 @@ export class OpportunityWorkflowService {
         schema: GeneratedScriptSchema,
         jsonSchema: generatedScriptJsonSchema,
       });
-      return { provider: "vertex-ai", model: "gemini-3.5-flash", script };
+      return {
+        provider: "vertex-ai",
+        model: this.config.get<string>("VERTEX_AI_MODEL") ?? "gemini-3.6-flash",
+        script,
+      };
     } catch {
       return {
         provider: "creonome",
