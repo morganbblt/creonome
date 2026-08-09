@@ -23,4 +23,7 @@ export const AnalyticsEvent = {
 export type AnalyticsEvent =
   (typeof AnalyticsEvent)[keyof typeof AnalyticsEvent];
 
-export type AnalyticsProperties = Record<string, string | number | boolean | null>;
+export type AnalyticsProperties = Record<
+  string,
+  string | number | boolean | null
+>;

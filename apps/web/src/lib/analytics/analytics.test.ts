@@ -55,11 +55,9 @@ describe("createAnalyticsClient", () => {
       }),
     );
     expect(posthog.capture).toHaveBeenCalledTimes(2);
-    expect(posthog.capture).toHaveBeenNthCalledWith(
-      1,
-      "onboarding_started",
-      { entryStep: "source" },
-    );
+    expect(posthog.capture).toHaveBeenNthCalledWith(1, "onboarding_started", {
+      entryStep: "source",
+    });
     expect(posthog.capture).toHaveBeenNthCalledWith(2, "opportunity_saved", {
       opportunityId: "abc",
     });
@@ -90,8 +88,7 @@ describe("getAnalyticsClient / track", () => {
     vi.resetModules();
     if (originalKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY;
     else process.env.NEXT_PUBLIC_POSTHOG_KEY = originalKey;
-    if (originalHost === undefined)
-      delete process.env.NEXT_PUBLIC_POSTHOG_HOST;
+    if (originalHost === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_HOST;
     else process.env.NEXT_PUBLIC_POSTHOG_HOST = originalHost;
   });
 

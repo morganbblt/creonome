@@ -308,76 +308,74 @@ describe("OpportunityWorkspace", () => {
 
   it("fires opportunity_upgraded_to_script once a queued script job finishes", async () => {
     const projectId = "0198f3a2-82dd-7000-8000-000000000020";
-    const request = vi
-      .fn<typeof fetch>()
-      .mockImplementation(async (input) => {
-        const url = typeof input === "string" ? input : input.toString();
-        if (url === `/api/creonome/opportunities/${opportunity.id}/upgrade`) {
-          return Response.json({
-            job: {
-              id: "0198f3a2-82dd-7000-8000-000000000023",
-              kind: "script",
-              provider: "gemini",
-              model: "gemini-3.6-flash",
-              status: "queued",
-              progress: 0,
-              createdAt: "2026-08-02T12:03:00.000Z",
-              updatedAt: "2026-08-02T12:03:00.000Z",
-              projectId,
-            },
-            credits: { balance: 56, reserved: 2, available: 54 },
-          });
-        }
-        if (url === `/api/creonome/jobs/0198f3a2-82dd-7000-8000-000000000023`) {
-          return Response.json({
+    const request = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === `/api/creonome/opportunities/${opportunity.id}/upgrade`) {
+        return Response.json({
+          job: {
             id: "0198f3a2-82dd-7000-8000-000000000023",
             kind: "script",
             provider: "gemini",
             model: "gemini-3.6-flash",
-            status: "succeeded",
-            progress: 100,
+            status: "queued",
+            progress: 0,
             createdAt: "2026-08-02T12:03:00.000Z",
-            updatedAt: "2026-08-02T12:04:00.000Z",
-            completedAt: "2026-08-02T12:04:00.000Z",
+            updatedAt: "2026-08-02T12:03:00.000Z",
             projectId,
-          });
-        }
-        if (url === `/api/creonome/projects/${projectId}`) {
-          return Response.json({
-            id: projectId,
-            opportunityId: opportunity.id,
+          },
+          credits: { balance: 56, reserved: 2, available: 54 },
+        });
+      }
+      if (url === `/api/creonome/jobs/0198f3a2-82dd-7000-8000-000000000023`) {
+        return Response.json({
+          id: "0198f3a2-82dd-7000-8000-000000000023",
+          kind: "script",
+          provider: "gemini",
+          model: "gemini-3.6-flash",
+          status: "succeeded",
+          progress: 100,
+          createdAt: "2026-08-02T12:03:00.000Z",
+          updatedAt: "2026-08-02T12:04:00.000Z",
+          completedAt: "2026-08-02T12:04:00.000Z",
+          projectId,
+        });
+      }
+      if (url === `/api/creonome/projects/${projectId}`) {
+        return Response.json({
+          id: projectId,
+          opportunityId: opportunity.id,
+          title: opportunity.title,
+          status: "active",
+          currentLevel: "script",
+          currentVersion: 2,
+          updatedAt: "2026-08-02T12:04:00.000Z",
+          platform: "tiktok",
+          score: opportunity.score,
+          hasScript: true,
+          hasStoryboard: false,
+          hasVideo: false,
+          script: {
+            id: "0198f3a2-82dd-7000-8000-000000000022",
+            projectId,
             title: opportunity.title,
-            status: "active",
-            currentLevel: "script",
-            currentVersion: 2,
-            updatedAt: "2026-08-02T12:04:00.000Z",
-            platform: "tiktok",
-            score: opportunity.score,
-            hasScript: true,
-            hasStoryboard: false,
-            hasVideo: false,
-            script: {
-              id: "0198f3a2-82dd-7000-8000-000000000022",
-              projectId,
-              title: opportunity.title,
-              hook: "Let the room breathe. Then drop the needle.",
-              body: "[0:00-0:08] Hold for two seconds. [0:08-0:15] Lower the needle. [0:15-0:35] Reveal the kick.",
-              callToAction: "What comes after your silence?",
-              caption: "The room is part of the arrangement.",
-              platforms: ["tiktok", "instagram"],
-              durationSeconds: 35,
-            },
-            storyboard: null,
-            video: null,
-            versions: [],
-            latestJob: null,
-          });
-        }
-        if (url === "/api/creonome/credits") {
-          return Response.json({ balance: 56, reserved: 0, available: 56 });
-        }
-        throw new Error(`unexpected fetch: ${url}`);
-      });
+            hook: "Let the room breathe. Then drop the needle.",
+            body: "[0:00-0:08] Hold for two seconds. [0:08-0:15] Lower the needle. [0:15-0:35] Reveal the kick.",
+            callToAction: "What comes after your silence?",
+            caption: "The room is part of the arrangement.",
+            platforms: ["tiktok", "instagram"],
+            durationSeconds: 35,
+          },
+          storyboard: null,
+          video: null,
+          versions: [],
+          latestJob: null,
+        });
+      }
+      if (url === "/api/creonome/credits") {
+        return Response.json({ balance: 56, reserved: 0, available: 56 });
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
     vi.stubGlobal("fetch", request);
     render(<OpportunityWorkspace opportunity={opportunity} />);
 

@@ -89,9 +89,7 @@ describe("TodayOpportunityCard", () => {
     );
     fireEvent.click(screen.getByRole("menuitem", { name: /save for later/i }));
 
-    expect(
-      await screen.findByText(/could not be saved/i),
-    ).toBeTruthy();
+    expect(await screen.findByText(/could not be saved/i)).toBeTruthy();
     expect(track).not.toHaveBeenCalled();
   });
 });

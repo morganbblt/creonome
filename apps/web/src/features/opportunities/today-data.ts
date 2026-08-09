@@ -74,6 +74,10 @@ export async function loadTodayOpportunities(
       opportunities: batch.opportunities.map(presentOpportunity),
     };
   } catch {
-    return { source: "demo", fallback: false, opportunities: demoOpportunities };
+    return {
+      source: "demo",
+      fallback: false,
+      opportunities: demoOpportunities,
+    };
   }
 }
