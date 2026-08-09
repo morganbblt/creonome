@@ -5,11 +5,13 @@ import {
   ProjectDetailSchema,
   QueuedGenerationJobSchema,
   UpgradeProjectResultSchema,
+  type ProjectStoryboard,
   type UpgradeProjectResult,
 } from "@creonome/contracts";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Button } from "@/src/components/ui/button";
+import { Checkbox } from "@/src/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +23,31 @@ import {
 } from "@/src/components/ui/dialog";
 import { GenerationToast } from "../generation/generation-toast";
 import { publishCreditBalance } from "../navigation/credit-balance";
-import { pollGenerationJob } from "../generation/poll-generation-job";
+import {
+  GenerationJobFailedError,
+  pollGenerationJob,
+} from "../generation/poll-generation-job";
+
+/**
+ * Mirrors the per-scene field set the API accepts for a `"scene:<pos>:<field>"`
+ * lock key (see apps/api/src/modules/projects/locked-fields.ts,
+ * STORYBOARD_SCENE_LOCKABLE_FIELDS). Kept in sync manually — a full
+ * per-field scene editor is a separate, not-yet-done task, so today the UI
+ * only offers "lock this whole scene", which expands to every field below.
+ */
+const STORYBOARD_SCENE_LOCKABLE_FIELDS = [
+  "heading",
+  "description",
+  "shotType",
+  "voiceover",
+  "onScreenText",
+  "bRoll",
+  "transition",
+  "requiredAsset",
+  "sound",
+  "editingNote",
+  "durationSeconds",
+] as const;
 
 function storyboardErrorMessage(status: number): string {
   if (status === 401 || status === 403) {
@@ -47,7 +73,20 @@ function createIdempotencyKey(projectId: string): string {
   return `storyboard-${projectId}-${suffix}`;
 }
 
-export function StoryboardUpgrade({ projectId }: { projectId: string }) {
+export function StoryboardUpgrade({
+  projectId,
+  storyboard,
+}: {
+  projectId: string;
+  /**
+   * The current storyboard, when one already exists. Its presence is what
+   * distinguishes a first-time generation (nothing to lock yet) from a
+   * regeneration of an already-produced level (bible §9.6) — passing it
+   * turns on the lock-toggle affordance and switches the button/dialog
+   * copy to "regenerate".
+   */
+  storyboard?: ProjectStoryboard | null;
+}) {
   const router = useRouter();
   const key = useRef<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -56,6 +95,41 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<UpgradeProjectResult | null>(null);
   const [sceneCount, setSceneCount] = useState<number | null>(null);
+  const [lockedTopLevel, setLockedTopLevel] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [lockedScenes, setLockedScenes] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const isRegeneration = Boolean(storyboard);
+
+  function toggleTopLevelLock(field: string, checked: boolean) {
+    setLockedTopLevel((current) => {
+      const next = new Set(current);
+      if (checked) next.add(field);
+      else next.delete(field);
+      return next;
+    });
+  }
+
+  function toggleSceneLock(position: number, checked: boolean) {
+    setLockedScenes((current) => {
+      const next = new Set(current);
+      if (checked) next.add(position);
+      else next.delete(position);
+      return next;
+    });
+  }
+
+  function buildLockedFields(): string[] {
+    const fields: string[] = [...lockedTopLevel];
+    for (const position of lockedScenes) {
+      for (const field of STORYBOARD_SCENE_LOCKABLE_FIELDS) {
+        fields.push(`scene:${position}:${field}`);
+      }
+    }
+    return fields;
+  }
 
   async function generateStoryboard() {
     setOpen(false);
@@ -63,6 +137,7 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
     setPhase("running");
     setError(null);
     key.current ??= createIdempotencyKey(projectId);
+    const lockedFields = buildLockedFields();
 
     try {
       const response = await fetch(
@@ -76,6 +151,7 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
           body: JSON.stringify({
             targetLevel: "storyboard",
             confirmedCreditCost: true,
+            ...(lockedFields.length > 0 ? { lockedFields } : {}),
           }),
         },
       );
@@ -145,10 +221,17 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
       setReceipt(upgrade);
       key.current = null;
       router.refresh();
-    } catch {
-      setError(
-        "The storyboard response could not be verified. Your script is intact; reload the project before retrying.",
-      );
+    } catch (thrown) {
+      if (thrown instanceof GenerationJobFailedError) {
+        // Carries a clear, structured message straight from the job (e.g.
+        // a QUALITY_GATE_REJECTED or LOCKED_FIELD_VIOLATION rejection) —
+        // surface it instead of a generic fallback.
+        setError(thrown.job.errorMessage ?? "Storyboard generation failed.");
+      } else {
+        setError(
+          "The storyboard response could not be verified. Your script is intact; reload the project before retrying.",
+        );
+      }
     } finally {
       setPending(false);
       setPhase(null);
@@ -160,23 +243,80 @@ export function StoryboardUpgrade({ projectId }: { projectId: string }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button type="button" disabled={pending}>
-            {pending ? "Generating…" : "Generate storyboard · 4 cr"}
+            {pending
+              ? "Generating…"
+              : isRegeneration
+                ? "Regenerate storyboard · 4 cr"
+                : "Generate storyboard · 4 cr"}
           </Button>
         </DialogTrigger>
         <DialogContent aria-label="Storyboard generation">
           <DialogHeader>
             <DialogTitle>
-              Turn this script into a shootable sequence
+              {isRegeneration
+                ? "Regenerate this storyboard"
+                : "Turn this script into a shootable sequence"}
             </DialogTitle>
             <DialogDescription>
-              Timecodes, framing, action, audio, assets and edit notes for every
-              scene.
+              {isRegeneration
+                ? "A new version is generated from the script. Lock any field below to keep it unchanged."
+                : "Timecodes, framing, action, audio, assets and edit notes for every scene."}
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             4 credits will be reserved. They are only charged if the storyboard
             is generated.
           </p>
+          {storyboard ? (
+            <div className="flex flex-col gap-3 rounded-[8px] border border-border p-3.5">
+              <p className="m-0 font-mono text-[9px] tracking-[0.1em] text-muted-foreground uppercase">
+                Lock fields to keep them unchanged
+              </p>
+              <div className="flex flex-wrap gap-x-5 gap-y-2.5">
+                {(
+                  [
+                    ["title", `Title — "${storyboard.title}"`],
+                    ["aspectRatio", `Aspect ratio — ${storyboard.aspectRatio}`],
+                    [
+                      "durationSeconds",
+                      `Duration — ${storyboard.durationSeconds ?? "—"}s`,
+                    ],
+                  ] as const
+                ).map(([field, fieldLabel]) => (
+                  <label
+                    key={field}
+                    className="flex items-center gap-2 text-[12px] text-foreground"
+                  >
+                    <Checkbox
+                      checked={lockedTopLevel.has(field)}
+                      onCheckedChange={(checked) =>
+                        toggleTopLevelLock(field, checked === true)
+                      }
+                    />
+                    {fieldLabel}
+                  </label>
+                ))}
+              </div>
+              {storyboard.scenes.length > 0 ? (
+                <div className="flex flex-col gap-2 border-t border-border pt-3">
+                  {storyboard.scenes.map((scene) => (
+                    <label
+                      key={scene.id}
+                      className="flex items-center gap-2 text-[12px] text-foreground"
+                    >
+                      <Checkbox
+                        checked={lockedScenes.has(scene.position)}
+                        onCheckedChange={(checked) =>
+                          toggleSceneLock(scene.position, checked === true)
+                        }
+                      />
+                      Lock scene {scene.position} — {scene.heading}
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <DialogFooter>
             <Button
               type="button"

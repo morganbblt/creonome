@@ -137,15 +137,14 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
             ) : null}
 
             <div className="ml-auto flex flex-wrap items-start justify-end gap-3">
-              {project.script &&
-              !project.storyboard &&
-              project.currentLevel === "script" ? (
-                <StoryboardUpgrade projectId={project.id} />
+              {project.script ? (
+                <StoryboardUpgrade
+                  projectId={project.id}
+                  storyboard={project.storyboard}
+                />
               ) : null}
-              {project.storyboard &&
-              !project.video &&
-              project.currentLevel === "storyboard" ? (
-                <VideoUpgrade projectId={project.id} />
+              {project.storyboard ? (
+                <VideoUpgrade projectId={project.id} video={project.video} />
               ) : null}
               <ProjectExportButton projectId={project.id} />
             </div>

@@ -35,8 +35,18 @@ import {
 } from "../quality-gate/quality-gate.service.js";
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
+  applyStoryboardLocks,
+  buildStoryboardLockPromptLines,
+  findStoryboardLockViolations,
+  findVideoLockViolations,
+  LockViolationError,
+  validateLockedFieldNames,
+} from "./locked-fields.js";
+import {
   PROJECTS_REPOSITORY,
   type GeneratedStoryboard,
+  type ProjectStoryboardRecord,
+  type ProjectVideoRecord,
   type ProjectsRepository,
   type StoryboardSourceRecord,
   type StoryboardUpgradeRecord,
@@ -185,13 +195,19 @@ export class ProjectWorkflowService {
    * to the `creonome-generation` Cloud Tasks queue instead of running it
    * inline — video generation in particular used to run dangerously close
    * to the Cloud Run request timeout (VEO_TIMEOUT_MS is 240s against a
-   * 300s limit). Idempotent replays and already-upgraded projects still
-   * return the finished result immediately.
+   * 300s limit). A genuine retry of the same request (identical
+   * Idempotency-Key) still short-circuits to the already-finished result
+   * without regenerating or spending credits twice. A *new* request
+   * (fresh Idempotency-Key) against a project that already has a
+   * storyboard or video regenerates that level instead of returning the
+   * old artifact — see {@link executeQueuedStoryboardUpgrade} and
+   * {@link executeQueuedVideoUpgrade}, which also enforce any
+   * `lockedFields` the caller asked to preserve (bible §9.6).
    */
   async upgrade(
     principal: AuthPrincipal,
     projectId: string,
-    _input: UpgradeProjectInput,
+    input: UpgradeProjectInput,
     idempotencyKey: string,
   ): Promise<UpgradeProjectResult | UpgradeVideoResult | QueuedGenerationJob> {
     const normalizedKey = idempotencyKey.trim();
@@ -200,10 +216,12 @@ export class ProjectWorkflowService {
         "A valid Idempotency-Key header is required",
       );
     }
+    const lockedFields = input.lockedFields ?? [];
+    validateLockedFieldNames(input.targetLevel, lockedFields);
 
     const context = await this.workspaces.resolve(principal);
-    if (_input.targetLevel === "video") {
-      return this.upgradeVideo(context, projectId, normalizedKey, principal);
+    if (input.targetLevel === "video") {
+      return this.upgradeVideo(context, projectId, normalizedKey, lockedFields);
     }
     const idempotent = await this.repository.findStoryboardUpgradeByIdempotency(
       context.workspaceId,
@@ -219,17 +237,9 @@ export class ProjectWorkflowService {
       return this.toContract(idempotent, credits);
     }
 
-    const existing = await this.repository.findExistingStoryboardUpgrade(
-      context.workspaceId,
-      projectId,
-    );
-    if (existing) {
-      return this.toContract(
-        existing,
-        await this.credits.getAccount(principal),
-      );
-    }
-
+    // Deliberately no short-circuit on an already-produced storyboard: a
+    // fresh request (new idempotency key) regenerates it, creating a new
+    // project_versions row rather than silently replaying the old one.
     const source = await this.repository.findStoryboardSource(
       context.workspaceId,
       projectId,
@@ -260,6 +270,7 @@ export class ProjectWorkflowService {
           userId: context.userId,
           creatorProfileId: context.creatorProfileId,
           projectId,
+          lockedFields,
         },
       });
       return QueuedGenerationJobSchema.parse({
@@ -309,9 +320,11 @@ export class ProjectWorkflowService {
       creatorProfileId: string;
       userId: string;
       projectId: string;
+      lockedFields?: string[];
     };
     const workspaceId = context.workspaceId ?? job.workspaceId;
     const projectId = context.projectId ?? job.projectId!;
+    const lockedFields = context.lockedFields ?? [];
     const cost = creditCosts.storyboard;
 
     let persisted = false;
@@ -323,7 +336,41 @@ export class ProjectWorkflowService {
       if (!source) {
         throw new NotFoundException("A script-ready project was not found");
       }
-      const generated = await this.generateStoryboard(source, context);
+      // Only present when this call is regenerating an already-produced
+      // storyboard; used purely to diff against locked fields, never to
+      // short-circuit the regeneration.
+      const previous = await this.repository.findExistingStoryboardUpgrade(
+        workspaceId,
+        projectId,
+      );
+      const previousStoryboard = previous?.storyboard ?? null;
+
+      let generated = await this.generateStoryboard(source, context, {
+        lockedFields,
+        previous: previousStoryboard,
+      });
+      let lockViolations = findStoryboardLockViolations(
+        previousStoryboard,
+        generated.storyboard,
+        lockedFields,
+      );
+      if (lockViolations.length > 0) {
+        // One retry with a stricter, more explicit prompt before giving up.
+        generated = await this.generateStoryboard(source, context, {
+          lockedFields,
+          previous: previousStoryboard,
+          strict: true,
+        });
+        lockViolations = findStoryboardLockViolations(
+          previousStoryboard,
+          generated.storyboard,
+          lockedFields,
+        );
+        if (lockViolations.length > 0) {
+          throw new LockViolationError(lockViolations);
+        }
+      }
+
       const gate = await this.qualityGate.evaluateStoryboard(
         context.creatorProfileId,
         generated.storyboard,
@@ -340,6 +387,7 @@ export class ProjectWorkflowService {
         provider: generated.provider,
         model: generated.model,
         generated: generated.storyboard,
+        lockedFields,
         jobId,
       });
       if (!upgrade) {
@@ -363,10 +411,17 @@ export class ProjectWorkflowService {
         return;
       }
       const isQualityGateRejection = error instanceof QualityGateRejectedError;
+      const isLockViolation = error instanceof LockViolationError;
       await this.jobs.markFailed(
         jobId,
-        isQualityGateRejection ? "failed_final" : "failed_retryable",
-        isQualityGateRejection ? "QUALITY_GATE_REJECTED" : "GENERATION_FAILED",
+        isQualityGateRejection || isLockViolation
+          ? "failed_final"
+          : "failed_retryable",
+        isLockViolation
+          ? "LOCKED_FIELD_VIOLATION"
+          : isQualityGateRejection
+            ? "QUALITY_GATE_REJECTED"
+            : "GENERATION_FAILED",
         error instanceof Error ? error.message : "Storyboard generation failed",
       );
       await this.credits.release(
@@ -386,7 +441,7 @@ export class ProjectWorkflowService {
     },
     projectId: string,
     idempotencyKey: string,
-    principal: AuthPrincipal,
+    lockedFields: string[],
   ): Promise<UpgradeVideoResult | QueuedGenerationJob> {
     const idempotent = await this.repository.findVideoUpgradeByIdempotency(
       context.workspaceId,
@@ -402,17 +457,9 @@ export class ProjectWorkflowService {
       return this.toVideoContract(idempotent, credits);
     }
 
-    const existing = await this.repository.findExistingVideoUpgrade(
-      context.workspaceId,
-      projectId,
-    );
-    if (existing) {
-      return this.toVideoContract(
-        existing,
-        await this.credits.getAccount(principal),
-      );
-    }
-
+    // Deliberately no short-circuit on an already-produced video: a fresh
+    // request (new idempotency key) regenerates it instead of silently
+    // replaying the old one.
     const source = await this.repository.findVideoSource(
       context.workspaceId,
       projectId,
@@ -443,6 +490,7 @@ export class ProjectWorkflowService {
           userId: context.userId,
           creatorProfileId: context.creatorProfileId,
           projectId,
+          lockedFields,
         },
       });
       return QueuedGenerationJobSchema.parse({
@@ -493,9 +541,11 @@ export class ProjectWorkflowService {
       creatorProfileId: string;
       userId: string;
       projectId: string;
+      lockedFields?: string[];
     };
     const workspaceId = context.workspaceId ?? job.workspaceId;
     const projectId = context.projectId ?? job.projectId!;
+    const lockedFields = context.lockedFields ?? [];
     const cost = creditCosts.video;
 
     let persisted = false;
@@ -507,12 +557,45 @@ export class ProjectWorkflowService {
       if (!source) {
         throw new NotFoundException("A storyboard-ready project was not found");
       }
-      const artifact = await this.videoProvider.generate({
+      // Only present when this call is regenerating an already-produced
+      // video; used purely to diff against locked fields, never to
+      // short-circuit the regeneration.
+      const previous = await this.repository.findExistingVideoUpgrade(
+        workspaceId,
+        projectId,
+      );
+      const previousVideo: ProjectVideoRecord | null = previous?.video ?? null;
+
+      let artifact = await this.videoProvider.generate({
         workspaceId,
         projectId,
         idempotencyKey: job.idempotencyKey,
         source,
       });
+      let lockViolations = findVideoLockViolations(
+        previousVideo,
+        artifact,
+        lockedFields,
+      );
+      if (lockViolations.length > 0) {
+        // The video provider takes no textual instructions to "try
+        // harder" with, unlike the storyboard's LLM prompt — a plain
+        // retry is the best available second attempt.
+        artifact = await this.videoProvider.generate({
+          workspaceId,
+          projectId,
+          idempotencyKey: job.idempotencyKey,
+          source,
+        });
+        lockViolations = findVideoLockViolations(
+          previousVideo,
+          artifact,
+          lockedFields,
+        );
+        if (lockViolations.length > 0) {
+          throw new LockViolationError(lockViolations);
+        }
+      }
       const gate = await this.qualityGate.evaluateVideo(
         context.creatorProfileId,
         {
@@ -530,6 +613,7 @@ export class ProjectWorkflowService {
         projectId,
         idempotencyKey: job.idempotencyKey,
         artifact,
+        lockedFields,
         jobId,
       });
       if (!upgrade) {
@@ -553,10 +637,17 @@ export class ProjectWorkflowService {
         return;
       }
       const isQualityGateRejection = error instanceof QualityGateRejectedError;
+      const isLockViolation = error instanceof LockViolationError;
       await this.jobs.markFailed(
         jobId,
-        isQualityGateRejection ? "failed_final" : "failed_retryable",
-        isQualityGateRejection ? "QUALITY_GATE_REJECTED" : "GENERATION_FAILED",
+        isQualityGateRejection || isLockViolation
+          ? "failed_final"
+          : "failed_retryable",
+        isLockViolation
+          ? "LOCKED_FIELD_VIOLATION"
+          : isQualityGateRejection
+            ? "QUALITY_GATE_REJECTED"
+            : "GENERATION_FAILED",
         error instanceof Error ? error.message : "Video generation failed",
       );
       await this.credits.release(
@@ -588,6 +679,11 @@ export class ProjectWorkflowService {
   private async generateStoryboard(
     source: StoryboardSourceRecord,
     context: { workspaceId: string; creatorProfileId: string },
+    lockOptions: {
+      lockedFields: string[];
+      previous: ProjectStoryboardRecord | null;
+      strict?: boolean;
+    } = { lockedFields: [], previous: null },
   ): Promise<{
     provider: string;
     model: string;
@@ -609,6 +705,11 @@ export class ProjectWorkflowService {
           "Every scene needs a precise frame, action, audio, transition, required asset and edit instruction.",
           "Keep it feasible for an independent music creator in one studio session.",
           "Scene durations must add up to the storyboard duration.",
+          ...buildStoryboardLockPromptLines(
+            lockOptions.lockedFields,
+            lockOptions.previous,
+            lockOptions.strict,
+          ),
           buildHardConstraintsPromptLine(dna?.traits ?? []),
         ].join("\n"),
         schema: GeneratedStoryboardSchema,
@@ -620,10 +721,19 @@ export class ProjectWorkflowService {
         storyboard,
       };
     } catch {
+      // The deterministic fallback is a fixed template with no prompt
+      // channel to "try harder" on locked fields with, so force them to
+      // match the previous version instead of returning content that
+      // would only fail the lock check again on a channel that can never
+      // improve.
       return {
         provider: "creonome",
         model: "deterministic-storyboard-v1",
-        storyboard: this.localStoryboard(source),
+        storyboard: applyStoryboardLocks(
+          this.localStoryboard(source),
+          lockOptions.lockedFields,
+          lockOptions.previous,
+        ),
       };
     }
   }

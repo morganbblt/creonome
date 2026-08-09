@@ -91,4 +91,69 @@ describe("VideoUpgrade", () => {
       }),
     );
   });
+
+  it("offers a regenerate affordance with lock toggles when a video already exists", async () => {
+    const request = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+
+    render(<VideoUpgrade projectId={projectId} video={result.video} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /regenerate video · 12 cr/i }),
+    );
+    expect(
+      screen.getByText(/lock any field below to keep it unchanged/i),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText(/^width/i));
+    fireEvent.click(
+      screen.getByRole("button", { name: /confirm and generate/i }),
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledOnce());
+    const body = JSON.parse(
+      (request.mock.calls[0]?.[1] as RequestInit).body as string,
+    );
+    expect(body).toEqual({
+      targetLevel: "video",
+      confirmedCreditCost: true,
+      lockedFields: ["width"],
+    });
+  });
+
+  it("omits lockedFields entirely on a first-time render with no video yet", async () => {
+    const request = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+
+    render(<VideoUpgrade projectId={projectId} />);
+    expect(
+      screen.queryByText(/lock fields to keep them unchanged/i),
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /generate video · 12 cr/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /confirm and generate/i }),
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledOnce());
+    const body = JSON.parse(
+      (request.mock.calls[0]?.[1] as RequestInit).body as string,
+    );
+    expect(body).toEqual({
+      targetLevel: "video",
+      confirmedCreditCost: true,
+    });
+  });
 });
