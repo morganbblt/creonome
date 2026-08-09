@@ -580,6 +580,14 @@ export const opportunityBatches = pgTable(
     idempotencyKey: text("idempotency_key"),
     size: integer("size").notNull().default(3),
     status: text("status").notNull().default("available"),
+    /**
+     * True when the structured AI generator failed for this batch and it
+     * was substituted with the fixed local fallback set (see
+     * opportunity-generation.service.ts). Mirrors project_videos-style
+     * `simulated` disclosure so clients can render an honest banner
+     * instead of silently presenting canned copy as a real generation.
+     */
+    fallback: boolean("fallback").notNull().default(false),
     availableAt: timestamp("available_at", {
       mode: "date",
       withTimezone: true,

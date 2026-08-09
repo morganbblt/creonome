@@ -6,7 +6,7 @@ import { TodayCarousel } from "./today-carousel";
 export const metadata: Metadata = { title: "Today" };
 
 export default async function TodayPage() {
-  const { opportunities, source } = await loadTodayOpportunities(
+  const { opportunities, source, fallback } = await loadTodayOpportunities(
     createServerApiClient(),
   );
 
@@ -40,6 +40,17 @@ export default async function TodayPage() {
         >
           MVP demo · Live generation is reconnecting. Preview these three routes
           now, or create a persisted batch below.
+        </p>
+      ) : null}
+
+      {source === "api" && fallback ? (
+        <p
+          className="mb-4 rounded-control border border-border bg-secondary px-3.5 py-2.5 font-mono text-[11px] leading-[1.5] text-muted-foreground"
+          role="status"
+        >
+          MVP demo · This batch used a fixed local fallback because live
+          generation was unavailable. Generate a new batch below once it
+          reconnects.
         </p>
       ) : null}
 

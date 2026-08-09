@@ -28,6 +28,16 @@ export const OpportunitySchema = z.object({
 
 export const OpportunityBatchSchema = z.object({
   generatedAt: z.iso.datetime(),
+  /**
+   * Mirrors the video pipeline's `simulated` disclosure (see project.ts):
+   * true when the structured AI generator failed and this batch was
+   * substituted with the fixed local fallback set instead of a real
+   * generation (see opportunity-generation.service.ts's
+   * `executeQueuedBatch`/`localOpportunities`). The web UI renders an
+   * honest banner whenever this is true, matching the existing
+   * network-fallback ("MVP demo") banner pattern.
+   */
+  fallback: z.boolean(),
   opportunities: z.array(OpportunitySchema).length(3),
 });
 

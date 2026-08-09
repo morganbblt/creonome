@@ -99,6 +99,13 @@
       "when": 1786285120977,
       "tag": "20260809141840_add_storyboard_scene_asset_reference",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1786287188123,
+      "tag": "20260809145308_add_opportunity_batch_fallback_flag",
+      "breakpoints": true
     }
   ]
 }

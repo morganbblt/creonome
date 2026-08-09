@@ -12,9 +12,16 @@ const principal: AuthPrincipal = {
   subject: "0198f3a2-82dd-7000-8000-000000000001",
 };
 
+const strategyByPosition = {
+  1: "signature",
+  2: "stretch",
+  3: "repeatable",
+} as const;
+
 const records: OpportunityRecord[] = [1, 2, 3].map((position) => ({
   id: `0198f3a2-82dd-7000-8000-00000000000${position + 1}`,
   position,
+  strategy: strategyByPosition[position as 1 | 2 | 3],
   title: `Concept ${position}`,
   pitch: "A sufficiently detailed creative direction for this weekly route.",
   scoreOverall: 90 - position,
@@ -31,6 +38,7 @@ const records: OpportunityRecord[] = [1, 2, 3].map((position) => ({
   projectId: position === 1 ? "0198f3a2-82dd-7000-8000-000000000020" : null,
   projectCurrentLevel: position === 1 ? "storyboard" : null,
   availableAt: new Date("2026-08-02T09:00:00.000Z"),
+  fallback: false,
   trendSignal:
     position === 1
       ? {
@@ -100,6 +108,7 @@ describe("OpportunitiesService", () => {
   it("returns exactly three differentiated creative strategies", async () => {
     await expect(serviceWith(records).getCurrent(principal)).resolves.toEqual({
       generatedAt: "2026-08-02T09:00:00.000Z",
+      fallback: false,
       opportunities: [
         expect.objectContaining({ strategy: "signature", nextLevel: "script" }),
         expect.objectContaining({ strategy: "stretch", nextLevel: "script" }),
@@ -107,6 +116,35 @@ describe("OpportunitiesService", () => {
           strategy: "repeatable",
           nextLevel: "script",
         }),
+      ],
+    });
+  });
+
+  it("discloses the batch-level fallback flag from the persisted row", async () => {
+    const fallbackRecords = records.map((record) => ({
+      ...record,
+      fallback: true,
+    }));
+    await expect(
+      serviceWith(fallbackRecords).getCurrent(principal),
+    ).resolves.toMatchObject({ fallback: true });
+  });
+
+  it("derives strategy from the persisted column, not from array position", async () => {
+    // Simulate a batch whose column values disagree with position order --
+    // the service must read the column as-is instead of re-deriving it.
+    const shuffled = [
+      { ...records[0]!, strategy: "repeatable" as const },
+      { ...records[1]!, strategy: "signature" as const },
+      { ...records[2]!, strategy: "stretch" as const },
+    ];
+    await expect(
+      serviceWith(shuffled).getCurrent(principal),
+    ).resolves.toMatchObject({
+      opportunities: [
+        expect.objectContaining({ strategy: "repeatable" }),
+        expect.objectContaining({ strategy: "signature" }),
+        expect.objectContaining({ strategy: "stretch" }),
       ],
     });
   });
