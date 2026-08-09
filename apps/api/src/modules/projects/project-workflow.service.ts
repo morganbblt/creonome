@@ -4,12 +4,22 @@ import {
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import {
   QueuedGenerationJobSchema,
+  RegenerateScriptBlockResultSchema,
+  RegenerateStoryboardSceneResultSchema,
+  ReorderStoryboardScenesResultSchema,
   UpgradeProjectResultSchema,
   UpgradeVideoResultSchema,
   type QueuedGenerationJob,
+  type RegenerateScriptBlockInput,
+  type RegenerateScriptBlockResult,
+  type RegenerateStoryboardSceneInput,
+  type RegenerateStoryboardSceneResult,
+  type ReorderStoryboardScenesInput,
+  type ReorderStoryboardScenesResult,
   type UpgradeProjectInput,
   type UpgradeProjectResult,
   type UpgradeVideoResult,
@@ -36,15 +46,25 @@ import {
 import { WorkspaceContextService } from "../workspaces/workspace-context.service.js";
 import {
   applyStoryboardLocks,
+  buildScriptLockPromptLines,
   buildStoryboardLockPromptLines,
+  findScriptLockViolations,
   findStoryboardLockViolations,
   findVideoLockViolations,
   LockViolationError,
+  sceneFieldLockKey,
+  STORYBOARD_SCENE_LOCKABLE_FIELDS,
   validateLockedFieldNames,
+  validateScriptLockedFieldNames,
+  type GeneratedScriptBlocks,
+  type StoryboardSceneLockableField,
 } from "./locked-fields.js";
 import {
   PROJECTS_REPOSITORY,
   type GeneratedStoryboard,
+  type GeneratedStoryboardScene,
+  type ProjectSceneRecord,
+  type ProjectScriptRecord,
   type ProjectStoryboardRecord,
   type ProjectVideoRecord,
   type ProjectsRepository,
@@ -86,6 +106,76 @@ const GeneratedStoryboardSchema = z
     { message: "Scene durations must match the storyboard duration" },
   );
 
+/**
+ * The per-scene shape, factored out so both the whole-storyboard `/upgrade`
+ * schema below and the single-scene `regenerateStoryboardScene` prompt
+ * (bible §15.4) validate against the exact same JSON schema.
+ */
+const storyboardSceneJsonSchema = {
+  type: "object",
+  properties: {
+    heading: { type: "string", minLength: 1, maxLength: 160 },
+    description: { type: "string", minLength: 3, maxLength: 2_000 },
+    shotType: {
+      type: ["string", "null"],
+      minLength: 1,
+      maxLength: 120,
+    },
+    voiceover: {
+      type: ["string", "null"],
+      minLength: 1,
+      maxLength: 2_000,
+    },
+    onScreenText: {
+      type: ["string", "null"],
+      minLength: 1,
+      maxLength: 500,
+    },
+    bRoll: {
+      type: ["string", "null"],
+      minLength: 1,
+      maxLength: 1_000,
+    },
+    transition: {
+      type: ["string", "null"],
+      minLength: 1,
+      maxLength: 500,
+    },
+    requiredAsset: {
+      type: ["string", "null"],
+      minLength: 1,
+      maxLength: 500,
+    },
+    sound: {
+      type: ["string", "null"],
+      minLength: 1,
+      maxLength: 1_000,
+    },
+    editingNote: {
+      type: ["string", "null"],
+      minLength: 1,
+      maxLength: 1_000,
+    },
+    referenceFrameUrl: { type: ["string", "null"] },
+    durationSeconds: { type: "integer", minimum: 1, maximum: 600 },
+  },
+  required: [
+    "heading",
+    "description",
+    "shotType",
+    "voiceover",
+    "onScreenText",
+    "bRoll",
+    "transition",
+    "requiredAsset",
+    "sound",
+    "editingNote",
+    "referenceFrameUrl",
+    "durationSeconds",
+  ],
+  additionalProperties: false,
+};
+
 const generatedStoryboardJsonSchema = {
   type: "object",
   properties: {
@@ -96,73 +186,35 @@ const generatedStoryboardJsonSchema = {
       type: "array",
       minItems: 3,
       maxItems: 8,
-      items: {
-        type: "object",
-        properties: {
-          heading: { type: "string", minLength: 1, maxLength: 160 },
-          description: { type: "string", minLength: 3, maxLength: 2_000 },
-          shotType: {
-            type: ["string", "null"],
-            minLength: 1,
-            maxLength: 120,
-          },
-          voiceover: {
-            type: ["string", "null"],
-            minLength: 1,
-            maxLength: 2_000,
-          },
-          onScreenText: {
-            type: ["string", "null"],
-            minLength: 1,
-            maxLength: 500,
-          },
-          bRoll: {
-            type: ["string", "null"],
-            minLength: 1,
-            maxLength: 1_000,
-          },
-          transition: {
-            type: ["string", "null"],
-            minLength: 1,
-            maxLength: 500,
-          },
-          requiredAsset: {
-            type: ["string", "null"],
-            minLength: 1,
-            maxLength: 500,
-          },
-          sound: {
-            type: ["string", "null"],
-            minLength: 1,
-            maxLength: 1_000,
-          },
-          editingNote: {
-            type: ["string", "null"],
-            minLength: 1,
-            maxLength: 1_000,
-          },
-          referenceFrameUrl: { type: ["string", "null"] },
-          durationSeconds: { type: "integer", minimum: 1, maximum: 600 },
-        },
-        required: [
-          "heading",
-          "description",
-          "shotType",
-          "voiceover",
-          "onScreenText",
-          "bRoll",
-          "transition",
-          "requiredAsset",
-          "sound",
-          "editingNote",
-          "referenceFrameUrl",
-          "durationSeconds",
-        ],
-        additionalProperties: false,
-      },
+      items: storyboardSceneJsonSchema,
     },
   },
   required: ["title", "aspectRatio", "durationSeconds", "scenes"],
+  additionalProperties: false,
+};
+
+/**
+ * The four regenerable script blocks (bible §15.3) — mirrors
+ * `GeneratedScriptSchema` in opportunity-workflow.service.ts, minus
+ * `title`/`platforms`/`durationSeconds`, which `regenerateScriptBlock`
+ * never touches.
+ */
+const GeneratedScriptBlocksSchema = z.object({
+  hook: z.string().trim().min(3).max(220),
+  body: z.string().trim().min(12).max(4_000),
+  callToAction: z.string().trim().min(3).max(220).nullable(),
+  caption: z.string().trim().min(3).max(2_200).nullable(),
+});
+
+const generatedScriptBlocksJsonSchema = {
+  type: "object",
+  properties: {
+    hook: { type: "string", minLength: 3, maxLength: 220 },
+    body: { type: "string", minLength: 12, maxLength: 4_000 },
+    callToAction: { type: ["string", "null"], minLength: 3, maxLength: 220 },
+    caption: { type: ["string", "null"], minLength: 3, maxLength: 2_200 },
+  },
+  required: ["hook", "body", "callToAction", "caption"],
   additionalProperties: false,
 };
 
@@ -657,6 +709,430 @@ export class ProjectWorkflowService {
         "Video generation failed",
       );
     }
+  }
+
+  /**
+   * `PATCH /projects/:id/script` (bible §15.3): regenerates every script
+   * block (hook/body/callToAction/caption) from a targeted instruction,
+   * preserving any block in `input.lockedFields` exactly. Unlike
+   * storyboard/video `/upgrade`, this runs synchronously with no credit
+   * cost — a single script edit is small and fast, the same judgment call
+   * already made for `POST /opportunities/:id/modify`. `title`,
+   * `platforms` and `durationSeconds` are never touched by this route.
+   */
+  async regenerateScriptBlock(
+    principal: AuthPrincipal,
+    projectId: string,
+    input: RegenerateScriptBlockInput,
+  ): Promise<RegenerateScriptBlockResult> {
+    const lockedFields = input.lockedFields ?? [];
+    validateScriptLockedFieldNames(input.field, lockedFields);
+
+    const context = await this.workspaces.resolve(principal);
+    const source = await this.repository.findStoryboardSource(
+      context.workspaceId,
+      projectId,
+    );
+    if (!source) {
+      throw new NotFoundException("A script-ready project was not found");
+    }
+
+    let blocks = await this.generateScriptBlocks(source, input, context, {
+      strict: false,
+    });
+    let violations = findScriptLockViolations(
+      source.script,
+      blocks,
+      lockedFields,
+    );
+    if (violations.length > 0) {
+      // One retry with a stricter, more explicit prompt before giving up —
+      // mirrors the storyboard/video regeneration retry above.
+      blocks = await this.generateScriptBlocks(source, input, context, {
+        strict: true,
+      });
+      violations = findScriptLockViolations(
+        source.script,
+        blocks,
+        lockedFields,
+      );
+      if (violations.length > 0) {
+        throw new UnprocessableEntityException({
+          message: `Locked field(s) were changed by generation: ${violations
+            .map((violation) => violation.field)
+            .join(", ")}`,
+          violations,
+        });
+      }
+    }
+
+    const gate = await this.qualityGate.evaluateScript(
+      context.creatorProfileId,
+      blocks,
+    );
+    if (!gate.passed) {
+      throw new UnprocessableEntityException({
+        message: "The regenerated script did not pass the quality gate",
+        violations: gate.violations,
+      });
+    }
+
+    const updated = await this.repository.updateScriptBlocks({
+      workspaceId: context.workspaceId,
+      projectId,
+      userId: context.userId,
+      scriptId: source.script.id,
+      generated: blocks,
+      lockedFields,
+    });
+    if (!updated) {
+      throw new NotFoundException("A script-ready project was not found");
+    }
+
+    return RegenerateScriptBlockResultSchema.parse({
+      project: {
+        ...updated.project,
+        updatedAt: updated.project.updatedAt.toISOString(),
+      },
+      script: updated.script,
+    });
+  }
+
+  private async generateScriptBlocks(
+    source: StoryboardSourceRecord,
+    input: RegenerateScriptBlockInput,
+    context: { workspaceId: string; creatorProfileId: string },
+    options: { strict: boolean },
+  ): Promise<GeneratedScriptBlocks> {
+    const dna = await this.creatorDna
+      .getForWorkspaceContext(context)
+      .catch(() => null);
+    try {
+      return await this.generator.generate({
+        prompt: [
+          "Revise this shootable script for a vertical-video creator.",
+          `Title: ${source.script.title}`,
+          `Hook: ${source.script.hook}`,
+          `Body: ${source.script.body}`,
+          `Call to action: ${source.script.callToAction ?? "none"}`,
+          `Caption: ${source.script.caption ?? "none"}`,
+          `Focus the requested change on the "${input.field}" block; only touch other blocks if it is needed for coherence.`,
+          `Requested change: ${input.instruction}`,
+          ...buildScriptLockPromptLines(
+            input.lockedFields,
+            source.script,
+            options.strict,
+          ),
+          buildHardConstraintsPromptLine(dna?.traits ?? []),
+        ].join("\n"),
+        schema: GeneratedScriptBlocksSchema,
+        jsonSchema: generatedScriptBlocksJsonSchema,
+      });
+    } catch {
+      // Deterministic fallback: no prompt channel to "try harder" with, so
+      // only touch the targeted block (leaving every other block — locked
+      // or not — byte-identical to the previous script, which trivially
+      // satisfies any lock).
+      return this.localScriptBlocks(source.script, input);
+    }
+  }
+
+  private localScriptBlocks(
+    script: ProjectScriptRecord,
+    input: RegenerateScriptBlockInput,
+  ): GeneratedScriptBlocks {
+    const blocks: GeneratedScriptBlocks = {
+      hook: script.hook,
+      body: script.body,
+      callToAction: script.callToAction,
+      caption: script.caption,
+    };
+    const edited = `${blocks[input.field] ?? ""} — ${input.instruction.trim()}`
+      .trim()
+      .slice(0, 4_000);
+    // Explicit per-field assignment — see the matching comment in
+    // locked-fields.ts#applyScriptLocks for why a generic `blocks[field] =`
+    // doesn't type-check here.
+    if (input.field === "hook") blocks.hook = edited;
+    else if (input.field === "body") blocks.body = edited;
+    else if (input.field === "callToAction") blocks.callToAction = edited;
+    else if (input.field === "caption") blocks.caption = edited;
+    return blocks;
+  }
+
+  /**
+   * `PATCH /projects/:id/storyboard/scenes/:sceneId` (bible §15.4):
+   * regenerates exactly one scene, reusing {@link generateStoryboard}'s
+   * generation/lock/quality-gate machinery scoped to a single scene rather
+   * than duplicating it. Synchronous and free, for the same reason as
+   * {@link regenerateScriptBlock} above.
+   */
+  async regenerateStoryboardScene(
+    principal: AuthPrincipal,
+    projectId: string,
+    sceneId: string,
+    input: RegenerateStoryboardSceneInput,
+  ): Promise<RegenerateStoryboardSceneResult> {
+    const fieldLocks = input.lockedFields ?? [];
+    for (const field of fieldLocks) {
+      if (
+        !(STORYBOARD_SCENE_LOCKABLE_FIELDS as readonly string[]).includes(field)
+      ) {
+        throw new BadRequestException(
+          `"${field}" is not a lockable storyboard scene field. Use one of ${STORYBOARD_SCENE_LOCKABLE_FIELDS.join(", ")}.`,
+        );
+      }
+    }
+
+    const context = await this.workspaces.resolve(principal);
+    const current = await this.repository.findExistingStoryboardUpgrade(
+      context.workspaceId,
+      projectId,
+    );
+    if (!current) {
+      throw new NotFoundException("A storyboard-ready project was not found");
+    }
+    const targetScene = current.storyboard.scenes.find(
+      (scene) => scene.id === sceneId,
+    );
+    if (!targetScene) {
+      throw new NotFoundException(
+        "This scene was not found on the current storyboard",
+      );
+    }
+    const source = await this.repository.findStoryboardSource(
+      context.workspaceId,
+      projectId,
+    );
+    if (!source) {
+      throw new NotFoundException("A script-ready project was not found");
+    }
+
+    // Re-addressed as "scene:<position>:<field>" so the existing
+    // whole-storyboard diff/prompt helpers in locked-fields.ts can be
+    // reused verbatim instead of duplicated for the single-scene case.
+    const prefixedLockedFields = fieldLocks.map((field) =>
+      sceneFieldLockKey(
+        targetScene.position,
+        field as StoryboardSceneLockableField,
+      ),
+    );
+
+    let generatedScene = await this.generateSingleScene(
+      source,
+      current.storyboard,
+      targetScene,
+      input,
+      context,
+      { lockedFields: prefixedLockedFields, strict: false },
+    );
+    let candidate = this.spliceGeneratedScene(
+      current.storyboard,
+      targetScene.position,
+      generatedScene,
+    );
+    let violations = findStoryboardLockViolations(
+      current.storyboard,
+      candidate,
+      prefixedLockedFields,
+    );
+    if (violations.length > 0) {
+      generatedScene = await this.generateSingleScene(
+        source,
+        current.storyboard,
+        targetScene,
+        input,
+        context,
+        { lockedFields: prefixedLockedFields, strict: true },
+      );
+      candidate = this.spliceGeneratedScene(
+        current.storyboard,
+        targetScene.position,
+        generatedScene,
+      );
+      violations = findStoryboardLockViolations(
+        current.storyboard,
+        candidate,
+        prefixedLockedFields,
+      );
+      if (violations.length > 0) {
+        throw new UnprocessableEntityException({
+          message: `Locked field(s) were changed by generation: ${violations
+            .map((violation) => violation.field)
+            .join(", ")}`,
+          violations,
+        });
+      }
+    }
+
+    const gate = await this.qualityGate.evaluateStoryboard(
+      context.creatorProfileId,
+      candidate,
+    );
+    if (!gate.passed) {
+      throw new UnprocessableEntityException({
+        message: "The regenerated scene did not pass the quality gate",
+        violations: gate.violations,
+      });
+    }
+
+    const updated = await this.repository.updateStoryboardScene({
+      workspaceId: context.workspaceId,
+      projectId,
+      userId: context.userId,
+      storyboardId: current.storyboard.id,
+      sceneId,
+      generated: generatedScene,
+      lockedFields: prefixedLockedFields,
+    });
+    if (!updated) {
+      throw new NotFoundException(
+        "This scene was not found on the current storyboard",
+      );
+    }
+
+    return RegenerateStoryboardSceneResultSchema.parse({
+      project: {
+        ...updated.project,
+        updatedAt: updated.project.updatedAt.toISOString(),
+      },
+      storyboard: updated.storyboard,
+    });
+  }
+
+  private async generateSingleScene(
+    source: StoryboardSourceRecord,
+    storyboard: ProjectStoryboardRecord,
+    targetScene: ProjectSceneRecord,
+    input: RegenerateStoryboardSceneInput,
+    context: { workspaceId: string; creatorProfileId: string },
+    lockOptions: { lockedFields: string[]; strict: boolean },
+  ): Promise<GeneratedStoryboardScene> {
+    const dna = await this.creatorDna
+      .getForWorkspaceContext(context)
+      .catch(() => null);
+    const otherScenes = storyboard.scenes
+      .filter((scene) => scene.id !== targetScene.id)
+      .map(
+        (scene) =>
+          `Scene ${scene.position} (${scene.heading}): ${scene.description}`,
+      )
+      .join("\n");
+    try {
+      return await this.generator.generate({
+        prompt: [
+          "Regenerate exactly one scene of this vertical-video storyboard, keeping it consistent with the rest of the sequence and the underlying script.",
+          `Script hook: ${source.script.hook}`,
+          `Script body: ${source.script.body}`,
+          `Scene to regenerate: ${targetScene.position} — currently "${targetScene.heading}".`,
+          otherScenes ? `Other scenes for context:\n${otherScenes}` : "",
+          `Requested change: ${input.instruction ?? "Improve this scene while keeping it consistent with the rest of the sequence."}`,
+          ...buildStoryboardLockPromptLines(
+            lockOptions.lockedFields,
+            storyboard,
+            lockOptions.strict,
+          ),
+          buildHardConstraintsPromptLine(dna?.traits ?? []),
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        schema: GeneratedStoryboardSceneSchema,
+        jsonSchema: storyboardSceneJsonSchema,
+      });
+    } catch {
+      // Deterministic fallback: no prompt channel to "try harder" with, so
+      // keep the scene unchanged rather than block the edit with a hard
+      // failure — trivially satisfies any lock on this scene.
+      return {
+        heading: targetScene.heading,
+        description: targetScene.description,
+        shotType: targetScene.shotType,
+        voiceover: targetScene.voiceover,
+        onScreenText: targetScene.onScreenText,
+        bRoll: targetScene.bRoll,
+        transition: targetScene.transition,
+        requiredAsset: targetScene.requiredAsset,
+        sound: targetScene.sound,
+        editingNote: targetScene.editingNote,
+        referenceFrameUrl: targetScene.referenceFrameUrl,
+        durationSeconds: targetScene.durationSeconds ?? 1,
+      };
+    }
+  }
+
+  private spliceGeneratedScene(
+    storyboard: ProjectStoryboardRecord,
+    position: number,
+    scene: GeneratedStoryboardScene,
+  ): GeneratedStoryboard {
+    const scenes = storyboard.scenes.map((existing) =>
+      existing.position === position
+        ? scene
+        : ({
+            heading: existing.heading,
+            description: existing.description,
+            shotType: existing.shotType,
+            voiceover: existing.voiceover,
+            onScreenText: existing.onScreenText,
+            bRoll: existing.bRoll,
+            transition: existing.transition,
+            requiredAsset: existing.requiredAsset,
+            sound: existing.sound,
+            editingNote: existing.editingNote,
+            referenceFrameUrl: existing.referenceFrameUrl,
+            durationSeconds: existing.durationSeconds ?? 0,
+          } satisfies GeneratedStoryboardScene),
+    );
+    return {
+      title: storyboard.title,
+      aspectRatio: storyboard.aspectRatio,
+      durationSeconds: scenes.reduce(
+        (total, scene) => total + scene.durationSeconds,
+        0,
+      ),
+      scenes,
+    };
+  }
+
+  /**
+   * `PATCH /projects/:id/storyboard/scenes/reorder`: renumbers the
+   * storyboard's scenes to match `input.sceneIds`. Purely mechanical (no
+   * generation, no locks) so it never calls the generator or quality gate.
+   */
+  async reorderStoryboardScenes(
+    principal: AuthPrincipal,
+    projectId: string,
+    input: ReorderStoryboardScenesInput,
+  ): Promise<ReorderStoryboardScenesResult> {
+    const context = await this.workspaces.resolve(principal);
+    const current = await this.repository.findExistingStoryboardUpgrade(
+      context.workspaceId,
+      projectId,
+    );
+    if (!current) {
+      throw new NotFoundException("A storyboard-ready project was not found");
+    }
+
+    const updated = await this.repository.reorderStoryboardScenes({
+      workspaceId: context.workspaceId,
+      projectId,
+      userId: context.userId,
+      storyboardId: current.storyboard.id,
+      orderedSceneIds: input.sceneIds,
+    });
+    if (!updated) {
+      throw new BadRequestException(
+        "The requested scene order does not match this storyboard's current scenes",
+      );
+    }
+
+    return ReorderStoryboardScenesResultSchema.parse({
+      project: {
+        ...updated.project,
+        updatedAt: updated.project.updatedAt.toISOString(),
+      },
+      storyboard: updated.storyboard,
+    });
   }
 
   private videoSourceText(source: VideoSourceRecord): string {

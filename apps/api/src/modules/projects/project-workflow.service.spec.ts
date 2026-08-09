@@ -1,4 +1,9 @@
-import { HttpException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  HttpException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { StructuredGenerator } from "../ai/structured-generator.js";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
@@ -214,6 +219,66 @@ function videoUpgradeRecord(
   };
 }
 
+function currentStoryboardAfterSceneUpdate(
+  sceneId: string,
+  generatedScene: Record<string, unknown>,
+) {
+  const base = upgradeRecord();
+  const merged = base.storyboard.scenes.map((scene) =>
+    scene.id === sceneId ? { ...scene, ...generatedScene } : scene,
+  );
+  let startSeconds = 0;
+  const scenes = merged.map((scene) => {
+    const result = { ...scene, startSeconds };
+    startSeconds += scene.durationSeconds ?? 0;
+    return result;
+  });
+  return {
+    project: {
+      ...base.project,
+      currentVersion: base.project.currentVersion + 1,
+    },
+    storyboard: {
+      ...base.storyboard,
+      durationSeconds: scenes.reduce(
+        (total, scene) => total + (scene.durationSeconds ?? 0),
+        0,
+      ),
+      scenes,
+    },
+  };
+}
+
+function currentStoryboardAfterReorder(orderedSceneIds: string[]) {
+  const base = upgradeRecord();
+  let startSeconds = 0;
+  const scenes = orderedSceneIds.map((id, index) => {
+    const scene = base.storyboard.scenes.find(
+      (candidate) => candidate.id === id,
+    )!;
+    const result = { ...scene, position: index + 1, startSeconds };
+    startSeconds += scene.durationSeconds ?? 0;
+    return result;
+  });
+  return {
+    project: {
+      ...base.project,
+      currentVersion: base.project.currentVersion + 1,
+    },
+    storyboard: { ...base.storyboard, scenes },
+  };
+}
+
+function currentScriptAfterUpdate(generatedBlocks: Record<string, unknown>) {
+  return {
+    project: {
+      ...source.project,
+      currentVersion: source.project.currentVersion + 1,
+    },
+    script: { ...source.script, ...generatedBlocks },
+  };
+}
+
 function queuedJob(
   kind: "storyboard" | "video_render",
   overrides: Partial<InternalJobRecord> = {},
@@ -255,6 +320,7 @@ function setup(options?: {
   videoRejects?: boolean;
   storyboardGateRejects?: boolean;
   videoGateRejects?: boolean;
+  scriptGateRejects?: boolean;
   videoExisting?: boolean;
   videoIdempotent?: boolean;
 }) {
@@ -306,6 +372,21 @@ function setup(options?: {
       .fn()
       .mockImplementation(({ artifact }) =>
         Promise.resolve(videoUpgradeRecord(artifact)),
+      ),
+    updateStoryboardScene: vi
+      .fn()
+      .mockImplementation(({ sceneId, generated }) =>
+        Promise.resolve(currentStoryboardAfterSceneUpdate(sceneId, generated)),
+      ),
+    reorderStoryboardScenes: vi
+      .fn()
+      .mockImplementation(({ orderedSceneIds }) =>
+        Promise.resolve(currentStoryboardAfterReorder(orderedSceneIds)),
+      ),
+    updateScriptBlocks: vi
+      .fn()
+      .mockImplementation(({ generated }) =>
+        Promise.resolve(currentScriptAfterUpdate(generated)),
       ),
   } as unknown as ProjectsRepository;
   const credits = {
@@ -368,8 +449,23 @@ function setup(options?: {
       },
     ],
   };
+  const scriptRejection = {
+    passed: false,
+    violations: [
+      {
+        code: "missing_call_to_action" as const,
+        message: "The script is missing a clear call to action.",
+      },
+    ],
+  };
   const qualityGate = {
-    evaluateScript: vi.fn(),
+    evaluateScript: vi
+      .fn()
+      .mockResolvedValue(
+        options?.scriptGateRejects
+          ? scriptRejection
+          : { passed: true, violations: [] },
+      ),
     evaluateStoryboard: vi
       .fn()
       .mockResolvedValue(
@@ -1113,5 +1209,321 @@ describe("ProjectWorkflowService.executeQueuedStoryboardUpgrade", () => {
 
     expect(jobs.markRunning).not.toHaveBeenCalled();
     expect(repository.createStoryboardUpgrade).not.toHaveBeenCalled();
+  });
+});
+
+const generatedScriptBlocks = {
+  hook: "A punchier opening line.",
+  body: source.script.body,
+  callToAction: source.script.callToAction,
+  caption: source.script.caption,
+};
+
+describe("ProjectWorkflowService.regenerateScriptBlock", () => {
+  it("regenerates the targeted block synchronously, with no credits or job involved", async () => {
+    const { service, repository, generator, credits, enqueue } = setup();
+    vi.mocked(generator.generate).mockResolvedValueOnce(generatedScriptBlocks);
+
+    const result = await service.regenerateScriptBlock(principal, projectId, {
+      field: "hook",
+      instruction: "Make the hook punchier",
+      lockedFields: ["body"],
+    });
+
+    expect(generator.generate).toHaveBeenCalledTimes(1);
+    expect(repository.updateScriptBlocks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: context.workspaceId,
+        projectId,
+        scriptId: source.script.id,
+        generated: generatedScriptBlocks,
+        lockedFields: ["body"],
+      }),
+    );
+    expect(result).toMatchObject({
+      script: expect.objectContaining({ hook: generatedScriptBlocks.hook }),
+    });
+    // Synchronous and free — unlike storyboard/video /upgrade.
+    expect(credits.reserve).not.toHaveBeenCalled();
+    expect(enqueue.createAndEnqueue).not.toHaveBeenCalled();
+  });
+
+  it("rejects up front when the block being changed is also locked", async () => {
+    const { service, generator } = setup();
+
+    await expect(
+      service.regenerateScriptBlock(principal, projectId, {
+        field: "hook",
+        instruction: "Make the hook punchier",
+        lockedFields: ["hook"],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(generator.generate).not.toHaveBeenCalled();
+  });
+
+  it("carries a locked block through a regeneration while an unlocked one changes freely", async () => {
+    const { service, repository, generator } = setup();
+    vi.mocked(generator.generate).mockResolvedValueOnce({
+      ...generatedScriptBlocks,
+      hook: source.script.hook, // locked, compliant
+      body: "A completely different body.", // unlocked, free to change
+    });
+
+    await service.regenerateScriptBlock(principal, projectId, {
+      field: "body",
+      instruction: "Rewrite the body",
+      lockedFields: ["hook"],
+    });
+
+    expect(generator.generate).toHaveBeenCalledTimes(1); // compliant, no retry
+    expect(repository.updateScriptBlocks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        generated: expect.objectContaining({
+          hook: source.script.hook,
+          body: "A completely different body.",
+        }),
+      }),
+    );
+  });
+
+  it("retries once with a stricter prompt, then rejects instead of persisting a locked-block violation", async () => {
+    const { service, repository, generator } = setup();
+    vi.mocked(generator.generate)
+      .mockResolvedValueOnce({
+        ...generatedScriptBlocks,
+        hook: "Ignoring the lock v1",
+      })
+      .mockResolvedValueOnce({
+        ...generatedScriptBlocks,
+        hook: "Ignoring the lock v2",
+      });
+
+    await expect(
+      service.regenerateScriptBlock(principal, projectId, {
+        field: "body",
+        instruction: "Rewrite the body",
+        lockedFields: ["hook"],
+      }),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+
+    expect(generator.generate).toHaveBeenCalledTimes(2);
+    expect(generator.generate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        prompt: expect.stringContaining("STRICT REQUIREMENT"),
+      }),
+    );
+    expect(repository.updateScriptBlocks).not.toHaveBeenCalled();
+  });
+
+  it("uses a deterministic local fallback when the generator is unavailable, leaving non-target blocks untouched", async () => {
+    const { service, repository } = setup({ generatorRejects: true });
+
+    await service.regenerateScriptBlock(principal, projectId, {
+      field: "body",
+      instruction: "Tighten this up",
+      lockedFields: ["hook", "callToAction"],
+    });
+
+    expect(repository.updateScriptBlocks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        generated: expect.objectContaining({
+          hook: source.script.hook, // untouched
+          callToAction: source.script.callToAction, // untouched
+          body: expect.stringContaining("Tighten this up"),
+        }),
+      }),
+    );
+  });
+
+  it("rejects a script that fails the pre-publish quality gate without persisting it", async () => {
+    const { service, repository, generator } = setup({
+      scriptGateRejects: true,
+    });
+    vi.mocked(generator.generate).mockResolvedValueOnce(generatedScriptBlocks);
+
+    await expect(
+      service.regenerateScriptBlock(principal, projectId, {
+        field: "hook",
+        instruction: "Make the hook punchier",
+        lockedFields: [],
+      }),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(repository.updateScriptBlocks).not.toHaveBeenCalled();
+  });
+
+  it("fails clearly when the project has no script yet", async () => {
+    const { service } = setup({ missing: true });
+
+    await expect(
+      service.regenerateScriptBlock(principal, projectId, {
+        field: "hook",
+        instruction: "Make the hook punchier",
+        lockedFields: [],
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe("ProjectWorkflowService.regenerateStoryboardScene", () => {
+  const sceneId = "0198f3a2-82dd-7000-8000-000000000031"; // position 1
+  const generatedScene = {
+    heading: "A brand new opening",
+    description: "Reworked opening beat.",
+    shotType: "Extreme close-up",
+    voiceover: "Hold the empty room.",
+    onScreenText: "Before the drop",
+    bRoll: "Dust moving through the studio light.",
+    transition: "Hard cut on the needle touch.",
+    requiredAsset: "Studio speaker close-up",
+    sound: "Room tone only",
+    editingNote: "Keep the first frame still for two seconds.",
+    referenceFrameUrl: null,
+    durationSeconds: 8,
+  };
+
+  it("regenerates exactly one scene, leaving the others as generated (i.e. untouched by this call)", async () => {
+    const { service, repository, generator } = setup({ existing: true });
+    vi.mocked(generator.generate).mockResolvedValueOnce(generatedScene);
+
+    const result = await service.regenerateStoryboardScene(
+      principal,
+      projectId,
+      sceneId,
+      { instruction: "Open on something else", lockedFields: [] },
+    );
+
+    expect(generator.generate).toHaveBeenCalledTimes(1);
+    expect(repository.updateStoryboardScene).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: context.workspaceId,
+        projectId,
+        sceneId,
+        generated: generatedScene,
+        lockedFields: [],
+      }),
+    );
+    expect(result.storyboard.scenes).toHaveLength(
+      upgradeRecord().storyboard.scenes.length,
+    );
+  });
+
+  it("rejects an unknown lock field name before calling the generator", async () => {
+    const { service, generator } = setup({ existing: true });
+
+    await expect(
+      service.regenerateStoryboardScene(principal, projectId, sceneId, {
+        lockedFields: ["notAField"],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(generator.generate).not.toHaveBeenCalled();
+  });
+
+  it("carries a locked scene field through the regeneration while an unlocked one changes freely", async () => {
+    const { service, repository, generator } = setup({ existing: true });
+    const previousScene = upgradeRecord().storyboard.scenes[0]!;
+    vi.mocked(generator.generate).mockResolvedValueOnce({
+      ...generatedScene,
+      voiceover: previousScene.voiceover, // locked, compliant
+      heading: "A brand new heading", // unlocked, free to change
+    });
+
+    await service.regenerateStoryboardScene(principal, projectId, sceneId, {
+      lockedFields: ["voiceover"],
+    });
+
+    expect(generator.generate).toHaveBeenCalledTimes(1); // compliant, no retry
+    expect(repository.updateStoryboardScene).toHaveBeenCalledWith(
+      expect.objectContaining({
+        generated: expect.objectContaining({
+          voiceover: previousScene.voiceover,
+          heading: "A brand new heading",
+        }),
+        lockedFields: ["scene:1:voiceover"],
+      }),
+    );
+  });
+
+  it("retries once, then rejects instead of persisting a locked scene-field violation — leaving other scenes unaffected", async () => {
+    const { service, repository, generator } = setup({ existing: true });
+    vi.mocked(generator.generate)
+      .mockResolvedValueOnce({
+        ...generatedScene,
+        voiceover: "Ignoring the lock v1",
+      })
+      .mockResolvedValueOnce({
+        ...generatedScene,
+        voiceover: "Ignoring the lock v2",
+      });
+
+    await expect(
+      service.regenerateStoryboardScene(principal, projectId, sceneId, {
+        lockedFields: ["voiceover"],
+      }),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+
+    expect(generator.generate).toHaveBeenCalledTimes(2);
+    // Never persisted — scene 2 and beyond, and the locked field on scene
+    // 1, are all left exactly as they were.
+    expect(repository.updateStoryboardScene).not.toHaveBeenCalled();
+  });
+
+  it("404s when the scene id does not belong to the current storyboard", async () => {
+    const { service } = setup({ existing: true });
+
+    await expect(
+      service.regenerateStoryboardScene(
+        principal,
+        projectId,
+        "0198f3a2-82dd-7000-8000-000000000099",
+        { lockedFields: [] },
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe("ProjectWorkflowService.reorderStoryboardScenes", () => {
+  it("reorders the scenes and bumps the project version with no generation involved", async () => {
+    const { service, repository, generator } = setup({ existing: true });
+    const scenes = upgradeRecord().storyboard.scenes;
+    const reversedIds = [...scenes].reverse().map((scene) => scene.id);
+
+    const result = await service.reorderStoryboardScenes(principal, projectId, {
+      sceneIds: reversedIds,
+    });
+
+    expect(repository.reorderStoryboardScenes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: context.workspaceId,
+        projectId,
+        storyboardId: upgradeRecord().storyboard.id,
+        orderedSceneIds: reversedIds,
+      }),
+    );
+    expect(result.storyboard.scenes.map((scene) => scene.id)).toEqual(
+      reversedIds,
+    );
+    expect(generator.generate).not.toHaveBeenCalled();
+  });
+
+  it("rejects an order that is not a permutation of the storyboard's current scenes", async () => {
+    const { service, repository } = setup({ existing: true });
+    vi.mocked(repository.reorderStoryboardScenes).mockResolvedValueOnce(null);
+
+    await expect(
+      service.reorderStoryboardScenes(principal, projectId, {
+        sceneIds: ["0198f3a2-82dd-7000-8000-000000000099"],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("404s when the project has no storyboard yet", async () => {
+    const { service } = setup();
+
+    await expect(
+      service.reorderStoryboardScenes(principal, projectId, {
+        sceneIds: ["0198f3a2-82dd-7000-8000-000000000031"],
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

@@ -27,27 +27,7 @@ import {
   GenerationJobFailedError,
   pollGenerationJob,
 } from "../generation/poll-generation-job";
-
-/**
- * Mirrors the per-scene field set the API accepts for a `"scene:<pos>:<field>"`
- * lock key (see apps/api/src/modules/projects/locked-fields.ts,
- * STORYBOARD_SCENE_LOCKABLE_FIELDS). Kept in sync manually — a full
- * per-field scene editor is a separate, not-yet-done task, so today the UI
- * only offers "lock this whole scene", which expands to every field below.
- */
-const STORYBOARD_SCENE_LOCKABLE_FIELDS = [
-  "heading",
-  "description",
-  "shotType",
-  "voiceover",
-  "onScreenText",
-  "bRoll",
-  "transition",
-  "requiredAsset",
-  "sound",
-  "editingNote",
-  "durationSeconds",
-] as const;
+import { STORYBOARD_SCENE_LOCKABLE_FIELDS } from "./storyboard-lock-fields";
 
 function storyboardErrorMessage(status: number): string {
   if (status === 401 || status === 403) {

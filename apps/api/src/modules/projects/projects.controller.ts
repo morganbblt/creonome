@@ -5,6 +5,7 @@ import {
   Headers,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
   Res,
@@ -20,12 +21,20 @@ import type {
   ProjectDetail,
   ProjectList,
   QueuedGenerationJob,
+  RegenerateScriptBlockResult,
+  RegenerateStoryboardSceneResult,
+  ReorderStoryboardScenesResult,
   UpgradeProjectResult,
   UpgradeVideoResult,
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import type { FastifyReply } from "fastify";
 import { CurrentUser } from "../auth/current-user.decorator.js";
+import {
+  RegenerateScriptBlockDto,
+  RegenerateStoryboardSceneDto,
+  ReorderStoryboardScenesDto,
+} from "./edit-project.dto.js";
 import { ProjectVideoService } from "./project-video.service.js";
 import { ProjectWorkflowService } from "./project-workflow.service.js";
 import { ProjectsService } from "./projects.service.js";
@@ -105,6 +114,52 @@ export class ProjectsController {
       projectId,
       input,
       idempotencyKey ?? "",
+    );
+  }
+
+  @Patch(":id/script")
+  @ApiOperation({
+    summary:
+      "Regenerate a script block (hook/body/CTA/caption) from a targeted instruction",
+  })
+  @ApiOkResponse({ description: "The updated project and script" })
+  regenerateScriptBlock(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("id") projectId: string,
+    @Body() input: RegenerateScriptBlockDto,
+  ): Promise<RegenerateScriptBlockResult> {
+    return this.workflow.regenerateScriptBlock(principal, projectId, input);
+  }
+
+  // Registered before the ":sceneId" route below so the literal "reorder"
+  // segment is never swallowed as a scene id (find-my-way disambiguates
+  // static vs. parametric routes correctly regardless of declaration
+  // order, but this keeps the intent obvious on read).
+  @Patch(":id/storyboard/scenes/reorder")
+  @ApiOperation({ summary: "Reorder the storyboard's scenes" })
+  @ApiOkResponse({ description: "The updated project and storyboard" })
+  reorderStoryboardScenes(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("id") projectId: string,
+    @Body() input: ReorderStoryboardScenesDto,
+  ): Promise<ReorderStoryboardScenesResult> {
+    return this.workflow.reorderStoryboardScenes(principal, projectId, input);
+  }
+
+  @Patch(":id/storyboard/scenes/:sceneId")
+  @ApiOperation({ summary: "Regenerate one storyboard scene in place" })
+  @ApiOkResponse({ description: "The updated project and storyboard" })
+  regenerateStoryboardScene(
+    @CurrentUser() principal: AuthPrincipal,
+    @Param("id") projectId: string,
+    @Param("sceneId") sceneId: string,
+    @Body() input: RegenerateStoryboardSceneDto,
+  ): Promise<RegenerateStoryboardSceneResult> {
+    return this.workflow.regenerateStoryboardScene(
+      principal,
+      projectId,
+      sceneId,
+      input,
     );
   }
 }

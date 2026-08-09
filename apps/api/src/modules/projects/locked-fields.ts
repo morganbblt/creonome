@@ -1,7 +1,12 @@
 import { BadRequestException } from "@nestjs/common";
+import {
+  SCRIPT_BLOCK_FIELDS,
+  type ScriptBlockField,
+} from "@creonome/contracts";
 import type {
   GeneratedStoryboard,
   GeneratedStoryboardScene,
+  ProjectScriptRecord,
   ProjectStoryboardRecord,
   ProjectVideoRecord,
 } from "./projects.repository.js";
@@ -51,6 +56,138 @@ export const VIDEO_LOCKABLE_FIELDS = [
 ] as const;
 
 export type VideoLockableField = (typeof VIDEO_LOCKABLE_FIELDS)[number];
+
+/**
+ * The script block field names a `PATCH /projects/:id/script` caller may
+ * lock (bible §15.3/§9.6). Re-exported here (rather than only living in
+ * `@creonome/contracts`) so every lockable-field allow-list in this module
+ * is discoverable from one place, matching the storyboard/video constants
+ * above.
+ */
+export const SCRIPT_LOCKABLE_FIELDS = SCRIPT_BLOCK_FIELDS;
+
+function isScriptLockableField(field: string): field is ScriptBlockField {
+  return (SCRIPT_LOCKABLE_FIELDS as readonly string[]).includes(field);
+}
+
+/**
+ * Throws a 400 if `field` (the block the caller is asking the AI to
+ * change) is itself included in `lockedFields` — a contradiction, since a
+ * block can't be simultaneously "the thing to change" and "the thing to
+ * preserve exactly" — or if any locked field name isn't a real script
+ * block.
+ */
+export function validateScriptLockedFieldNames(
+  field: ScriptBlockField,
+  lockedFields: string[],
+): void {
+  for (const locked of lockedFields) {
+    if (!isScriptLockableField(locked)) {
+      throw new BadRequestException(
+        `"${locked}" is not a lockable script field. Use one of ${SCRIPT_LOCKABLE_FIELDS.join(", ")}.`,
+      );
+    }
+  }
+  if (lockedFields.includes(field)) {
+    throw new BadRequestException(
+      `"${field}" is the block being changed and cannot also be locked.`,
+    );
+  }
+}
+
+export type GeneratedScriptBlocks = {
+  hook: string;
+  body: string;
+  callToAction: string | null;
+  caption: string | null;
+};
+
+function scriptBlockValue(
+  script: GeneratedScriptBlocks,
+  field: ScriptBlockField,
+): string | null {
+  return script[field];
+}
+
+/**
+ * Diffs a freshly regenerated set of script blocks against the previously
+ * persisted script for every locked field. Mirrors
+ * {@link findStoryboardLockViolations}.
+ */
+export function findScriptLockViolations(
+  previous: ProjectScriptRecord | null,
+  next: GeneratedScriptBlocks,
+  lockedFields: string[],
+): LockViolation[] {
+  if (!previous || lockedFields.length === 0) return [];
+  const violations: LockViolation[] = [];
+  for (const field of lockedFields) {
+    if (!isScriptLockableField(field)) continue;
+    const previousValue = scriptBlockValue(previous, field);
+    const nextValue = scriptBlockValue(next, field);
+    if (previousValue !== nextValue) {
+      violations.push({
+        field,
+        message: `Locked field "${field}" changed from ${JSON.stringify(previousValue)} to ${JSON.stringify(nextValue)}.`,
+      });
+    }
+  }
+  return violations;
+}
+
+/**
+ * Force-overwrites locked blocks with the previous script's values. Used
+ * only by the deterministic local fallback (no LLM available), which has
+ * no prompt channel to "try harder" with — mirrors
+ * {@link applyStoryboardLocks}.
+ */
+export function applyScriptLocks(
+  script: GeneratedScriptBlocks,
+  lockedFields: string[],
+  previous: ProjectScriptRecord | null,
+): GeneratedScriptBlocks {
+  if (!previous || lockedFields.length === 0) return script;
+  const next: GeneratedScriptBlocks = { ...script };
+  for (const field of lockedFields) {
+    if (!isScriptLockableField(field)) continue;
+    // Explicit per-field assignment (rather than a generic `next[field] =`)
+    // because `hook`/`body` are non-nullable while `callToAction`/`caption`
+    // are nullable — TS can't prove a write through a union key is safe
+    // across property types that differ, even though each branch here is.
+    if (field === "hook") next.hook = previous.hook;
+    else if (field === "body") next.body = previous.body;
+    else if (field === "callToAction")
+      next.callToAction = previous.callToAction;
+    else if (field === "caption") next.caption = previous.caption;
+  }
+  return next;
+}
+
+/**
+ * Builds the prompt lines instructing the model which script blocks must
+ * be copied through unchanged. Mirrors
+ * {@link buildStoryboardLockPromptLines}.
+ */
+export function buildScriptLockPromptLines(
+  lockedFields: string[],
+  previous: ProjectScriptRecord | null,
+  strict = false,
+): string[] {
+  if (lockedFields.length === 0 || !previous) return [];
+  const lines: string[] = [
+    strict
+      ? "STRICT REQUIREMENT: the previous attempt failed to preserve one or more locked blocks verbatim. Copy the exact value shown below into the matching block, unchanged, character for character."
+      : "The following blocks are locked by the creator and must be carried through EXACTLY as given, unchanged:",
+  ];
+  for (const field of lockedFields) {
+    if (!isScriptLockableField(field)) continue;
+    const value = scriptBlockValue(previous, field);
+    if (value !== null && value !== undefined) {
+      lines.push(`- ${field}: ${JSON.stringify(value)}`);
+    }
+  }
+  return lines.length > 1 ? lines : [];
+}
 
 const SCENE_FIELD_PATTERN = /^scene:([1-9][0-9]*):([a-zA-Z]+)$/;
 
