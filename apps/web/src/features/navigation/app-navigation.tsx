@@ -4,14 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/src/lib/utils";
-import { isNavigationItemActive } from "./navigation-state";
-
-const navigation = [
-  { href: "/today", label: "Today" },
-  { href: "/projects", label: "Projects" },
-  { href: "/library", label: "Library" },
-  { href: "/creator-dna", label: "Creator DNA" },
-];
+import { isNavigationItemActive, primaryNavigationItems } from "./navigation-state";
 
 export function AppNavigation({ className }: { className?: string }) {
   const pathname = usePathname();
@@ -30,7 +23,7 @@ export function AppNavigation({ className }: { className?: string }) {
         )}
         aria-label="Primary navigation"
       >
-        {navigation.map((item) => {
+        {primaryNavigationItems.map((item) => {
           const active = isNavigationItemActive(pathname, item.href);
           return (
             <Link
