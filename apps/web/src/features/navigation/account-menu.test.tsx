@@ -31,13 +31,13 @@ describe("AccountMenu", () => {
     ).toBe("/settings/privacy");
   });
 
-  it("does not link to billing while /settings/billing has no real destination", async () => {
+  it("links to billing now that /settings/billing has a real (demo) destination", async () => {
     const user = userEvent.setup();
     render(<AccountMenu name="Morgan Boubault" initials="MB" />);
 
     await user.click(screen.getByRole("button", { name: "Morgan Boubault" }));
 
-    await screen.findByRole("menuitem", { name: /credits/i });
-    expect(screen.queryByRole("menuitem", { name: /billing/i })).toBeNull();
+    const billing = await screen.findByRole("menuitem", { name: /billing/i });
+    expect(billing.getAttribute("href")).toBe("/settings/billing");
   });
 });
