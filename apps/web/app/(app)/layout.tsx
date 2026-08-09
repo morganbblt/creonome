@@ -4,6 +4,7 @@ import { BrandWordmark } from "../../src/features/brand/brand-wordmark";
 import { AccountMenu } from "../../src/features/navigation/account-menu";
 import { AppNavigation } from "../../src/features/navigation/app-navigation";
 import { CreditBalance } from "../../src/features/navigation/credit-balance";
+import { MobileTabBar } from "../../src/features/navigation/mobile-tab-bar";
 import { createServerApiClient } from "../../src/lib/api/server-client";
 import { getAuth } from "../../src/lib/auth/server";
 
@@ -61,13 +62,14 @@ export default async function AppLayout({
         >
           <BrandWordmark className="max-[520px]:w-[134px] max-[520px]:max-w-none" />
         </Link>
-        <AppNavigation />
+        <AppNavigation className="hidden min-[761px]:flex" />
         <div className="ml-auto flex items-center gap-2">
           <CreditBalance initialAvailable={availableCredits} />
           <AccountMenu name={identity.name} initials={identity.initials} />
         </div>
       </header>
-      {children}
+      <div className="max-[760px]:pb-16">{children}</div>
+      <MobileTabBar />
     </div>
   );
 }
