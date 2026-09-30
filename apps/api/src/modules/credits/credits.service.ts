@@ -4,11 +4,14 @@ import {
   HttpStatus,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import {
   CreditLedgerSchema,
+  CreditSpendCapSchema,
   CreditsResponseSchema,
   type CreditLedger,
+  type CreditSpendCap,
   type CreditsResponse,
 } from "@creonome/contracts";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
@@ -28,6 +31,15 @@ export const creditCosts = {
 } as const;
 
 export type CreditOperation = keyof typeof creditCosts;
+
+/**
+ * The cost of the most expensive generation currently offered. Used both
+ * as the default "low balance" warning threshold on the web nav pill and
+ * as the ceiling clients see when configuring a per-generation spend cap
+ * (bible §12.3 "Prévenir avant solde faible" / "Permettre un plafond par
+ * génération").
+ */
+export const maxCreditCost = Math.max(...Object.values(creditCosts));
 
 @Injectable()
 export class CreditsService {
@@ -74,12 +86,46 @@ export class CreditsService {
     };
   }
 
+  async getSpendCap(principal: AuthPrincipal): Promise<CreditSpendCap> {
+    const context = await this.workspaces.resolve(principal);
+    const spendCap = await this.repository.getSpendCap(context.workspaceId);
+    if (spendCap === undefined) {
+      throw new NotFoundException("Credit account was not found");
+    }
+    return this.toSpendCapContract(spendCap);
+  }
+
+  async setSpendCap(
+    principal: AuthPrincipal,
+    spendCap: number | null,
+  ): Promise<CreditSpendCap> {
+    const context = await this.workspaces.resolve(principal);
+    const updated = await this.repository.setSpendCap(
+      context.workspaceId,
+      spendCap,
+    );
+    if (!updated) {
+      throw new NotFoundException("Credit account was not found");
+    }
+    return this.toSpendCapContract(spendCap);
+  }
+
   async reserve(
     workspaceId: string,
     amount: number,
     idempotencyKey: string,
     description: string,
   ): Promise<CreditsResponse> {
+    // Checked before the atomic reservation rather than inside it so the
+    // caller gets an explicit "over your cap" error instead of the generic
+    // insufficient-credits one. A cap changed concurrently with this call
+    // only applies from the next reservation, which is acceptable.
+    const cap = await this.repository.getSpendCap(workspaceId);
+    if (cap != null && amount > cap) {
+      throw new UnprocessableEntityException(
+        `Cette action dépasse votre plafond de ${cap} crédits par génération.`,
+      );
+    }
     const account = await this.repository.reserve(
       workspaceId,
       amount,
@@ -134,6 +180,13 @@ export class CreditsService {
     return CreditsResponseSchema.parse({
       ...account,
       available: account.balance - account.reserved,
+    });
+  }
+
+  private toSpendCapContract(spendCap: number | null): CreditSpendCap {
+    return CreditSpendCapSchema.parse({
+      spendCap,
+      maxOperationCost: maxCreditCost,
     });
   }
 }

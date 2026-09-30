@@ -973,10 +973,20 @@ export const creditAccounts = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     balance: integer("balance").notNull().default(0),
     reserved: integer("reserved").notNull().default(0),
+    /**
+     * Optional per-generation ceiling (bible §12.3 "Permettre un plafond
+     * par génération"): a single reservation may not claim more credits
+     * than this. Null means no cap is configured.
+     */
+    spendCap: integer("spend_cap"),
     updatedAt: updatedAt(),
   },
   (table) => [
     check("credit_accounts_balance_check", sql`${table.balance} >= 0`),
+    check(
+      "credit_accounts_spend_cap_check",
+      sql`${table.spendCap} is null or ${table.spendCap} > 0`,
+    ),
     check("credit_accounts_reserved_check", sql`${table.reserved} >= 0`),
     check(
       "credit_accounts_available_check",

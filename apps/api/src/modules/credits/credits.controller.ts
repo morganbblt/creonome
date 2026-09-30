@@ -5,12 +5,14 @@ import {
   Inject,
   NotImplementedException,
   Post,
+  Put,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { AuthPrincipal } from "../auth/auth-token-verifier.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import { CreditsService } from "./credits.service.js";
 import { EstimateCreditsDto } from "./estimate-credits.dto.js";
+import { UpdateCreditSpendCapDto } from "./update-credit-spend-cap.dto.js";
 
 @ApiTags("credits")
 @ApiBearerAuth()
@@ -47,5 +49,24 @@ export class CreditsController {
     throw new NotImplementedException(
       "Credit purchases are disabled during the hackathon",
     );
+  }
+
+  @Get("spend-cap")
+  @ApiOperation({
+    summary: "Get the configured per-generation credit spend cap, if any",
+  })
+  getSpendCap(@CurrentUser() principal: AuthPrincipal) {
+    return this.credits.getSpendCap(principal);
+  }
+
+  @Put("spend-cap")
+  @ApiOperation({
+    summary: "Set or clear the per-generation credit spend cap",
+  })
+  setSpendCap(
+    @CurrentUser() principal: AuthPrincipal,
+    @Body() input: UpdateCreditSpendCapDto,
+  ) {
+    return this.credits.setSpendCap(principal, input.spendCap);
   }
 }

@@ -36,3 +36,27 @@ export const CreditLedgerSchema = z.object({
 export type CreditsResponse = z.infer<typeof CreditsResponseSchema>;
 export type CreditLedger = z.infer<typeof CreditLedgerSchema>;
 export type CreditLedgerEntry = z.infer<typeof CreditLedgerEntrySchema>;
+
+/**
+ * Bible §12.3 "Permettre un plafond par génération": an optional, per
+ * workspace ceiling on how many credits a single generation reservation
+ * may claim. `spendCap: null` means no cap is configured.
+ */
+export const UpdateCreditSpendCapSchema = z.object({
+  spendCap: z.number().int().positive().nullable(),
+});
+
+/**
+ * `maxOperationCost` rides along on every read so clients can explain the
+ * cap (and warn about low balances) relative to the most expensive
+ * generation currently offered, without hard-coding that number. See
+ * `maxCreditCost` in apps/api/src/modules/credits/credits.service.ts.
+ */
+export const CreditSpendCapSchema = UpdateCreditSpendCapSchema.extend({
+  maxOperationCost: z.number().int().positive(),
+});
+
+export type UpdateCreditSpendCapInput = z.infer<
+  typeof UpdateCreditSpendCapSchema
+>;
+export type CreditSpendCap = z.infer<typeof CreditSpendCapSchema>;
