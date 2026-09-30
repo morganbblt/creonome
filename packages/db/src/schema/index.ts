@@ -308,6 +308,25 @@ export const memoryCandidates = pgTable(
     scope: text("scope").notNull().default("creator"),
     content: text("content").notNull(),
     evidence: jsonb("evidence").$type<JsonObject>().notNull().default({}),
+    /**
+     * Full P37/bible §10.4 candidate lifecycle. A candidate is born
+     * "pending" (bible: "proposée") and ends in exactly one terminal state:
+     * - "approved" ("acceptée"): a human reviewed and accepted it
+     *   (memory-candidates.service#approve).
+     * - "rejected" ("refusée"): a human reviewed and declined it
+     *   (memory-candidates.service#reject).
+     * - "auto_accepted" ("auto-acceptée après confirmations répétées"),
+     *   "expired" ("expirée") and "superseded" ("remplacée"): allowed by the
+     *   check constraint so the lifecycle can be rolled out without another
+     *   migration, but NOT written by any code path yet. The transition
+     *   rules live as pure helpers in
+     *   apps/api/src/modules/memory/memory-candidate-lifecycle.ts
+     *   (computeLifecycleTransitions / findSupersededCandidateIds); wiring
+     *   them into memory-candidates.service and widening the
+     *   MemoryCandidate history contract in @creonome/contracts must land
+     *   together, since the contract currently only accepts
+     *   "approved" | "rejected" in history.
+     */
     status: text("status").notNull().default("pending"),
     /**
      * Heuristic confidence (0..1) that this candidate reflects a durable
@@ -335,7 +354,7 @@ export const memoryCandidates = pgTable(
     index("memory_candidates_reviewed_by_idx").on(table.reviewedByUserId),
     check(
       "memory_candidates_status_check",
-      sql`${table.status} in ('pending', 'approved', 'rejected')`,
+      sql`${table.status} in ('pending', 'approved', 'rejected', 'auto_accepted', 'expired', 'superseded')`,
     ),
     check(
       "memory_candidates_scope_check",

@@ -1,0 +1,2 @@
+ALTER TABLE "memory_candidates" DROP CONSTRAINT "memory_candidates_status_check";--> statement-breakpoint
+ALTER TABLE "memory_candidates" ADD CONSTRAINT "memory_candidates_status_check" CHECK ("memory_candidates"."status" in ('pending', 'approved', 'rejected', 'auto_accepted', 'expired', 'superseded'));
