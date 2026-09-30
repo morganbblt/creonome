@@ -240,6 +240,7 @@ export function AssetPicker({
           className="max-h-72 overflow-y-auto rounded-control border border-border"
           role="list"
           aria-label="Library assets"
+          aria-busy={items === null}
         >
           {items === null ? (
             <p className="p-4 text-sm text-muted-foreground">Loading…</p>
@@ -252,34 +253,38 @@ export function AssetPicker({
               const Icon = kindIcons[item.kind];
               const selected = item.id === currentAssetId;
               return (
-                <button
+                <div
                   key={item.id}
-                  type="button"
                   role="listitem"
-                  className={cn(
-                    "flex w-full items-center gap-2.5 border-b border-border px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-secondary/60 disabled:opacity-60",
-                    selected && "bg-accent-soft",
-                  )}
-                  onClick={() => void select(item.id)}
-                  disabled={pendingId !== null}
+                  className="border-b border-border last:border-b-0"
                 >
-                  <Icon
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                  {pendingId === item.id ? (
-                    <Loader2Icon
-                      className="size-4 shrink-0 animate-spin text-muted-foreground"
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:bg-secondary/60 disabled:opacity-60",
+                      selected && "bg-accent-soft",
+                    )}
+                    onClick={() => void select(item.id)}
+                    disabled={pendingId !== null}
+                  >
+                    <Icon
+                      className="size-4 shrink-0 text-muted-foreground"
                       aria-hidden="true"
                     />
-                  ) : selected ? (
-                    <CheckCircle2Icon
-                      className="size-4 shrink-0 text-accent"
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                </button>
+                    <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                    {pendingId === item.id ? (
+                      <Loader2Icon
+                        className="size-4 shrink-0 animate-spin text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    ) : selected ? (
+                      <CheckCircle2Icon
+                        className="size-4 shrink-0 text-accent"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </button>
+                </div>
               );
             })
           )}

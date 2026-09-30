@@ -37,7 +37,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -181,31 +181,40 @@ function ProgressHeader({ view }: { view: View }) {
 }
 
 function AssetStatusBadge({ status }: { status: OnboardingAsset["status"] }) {
+  let badge: ReactNode;
   if (status === "analyzing") {
-    return (
+    badge = (
       <Badge className="border-transparent bg-accent-soft text-accent-soft-foreground">
         <Loader2Icon className="animate-spin" /> Analyzing
       </Badge>
     );
-  }
-  if (status === "ready") {
-    return (
+  } else if (status === "ready") {
+    badge = (
       <Badge variant="success">
         <CircleCheckIcon /> Analyzed
       </Badge>
     );
-  }
-  if (status === "failed") {
-    return (
+  } else if (status === "failed") {
+    badge = (
       <Badge variant="destructive">
         <TriangleAlertIcon /> Failed
       </Badge>
     );
+  } else {
+    badge = (
+      <Badge variant="outline">
+        <UploadCloudIcon /> Needs analysis
+      </Badge>
+    );
   }
+  // Each source's analysis status changes asynchronously (analyzing -> ready
+  // or failed) without any user interaction to anchor a screen reader
+  // announcement, so this per-asset region needs its own live region rather
+  // than relying on a single page-level one.
   return (
-    <Badge variant="outline">
-      <UploadCloudIcon /> Needs analysis
-    </Badge>
+    <span aria-live="polite" aria-atomic="true">
+      {badge}
+    </span>
   );
 }
 

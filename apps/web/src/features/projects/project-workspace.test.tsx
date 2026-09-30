@@ -1,6 +1,7 @@
 import type { ProjectDetail } from "@creonome/contracts";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { axe } from "vitest-axe";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectWorkspace } from "./project-workspace";
 
@@ -153,7 +154,9 @@ describe("ProjectWorkspace", () => {
     expect(
       screen.getByRole("tab", { name: "Video" }).getAttribute("aria-selected"),
     ).toBe("true");
-    expect(screen.getByLabelText("Generated vertical video")).toBeTruthy();
+    expect(
+      screen.getByLabelText(/generated vertical 9:16 video preview/i),
+    ).toBeTruthy();
     expect(
       screen
         .getByRole("link", { name: /download video/i })
@@ -169,5 +172,32 @@ describe("ProjectWorkspace", () => {
     expect(
       screen.getByRole("button", { name: /generate video · 12 cr/i }),
     ).toBeTruthy();
+  });
+  it("has no axe violations on the generated video deliverable", async () => {
+    const { container } = render(
+      <ProjectWorkspace
+        project={{
+          ...project,
+          currentLevel: "video",
+          currentVersion: 4,
+          hasVideo: true,
+          video: {
+            id: "0198f3a2-82dd-7000-8000-000000000050",
+            projectId: project.id,
+            previewUrl: "/demo/creonome-vertical-demo.mp4",
+            mimeType: "video/mp4",
+            durationSeconds: 35,
+            width: 540,
+            height: 960,
+            provider: "creonome",
+            model: "deterministic-motion-preview-v1",
+            simulated: true,
+            createdAt: "2026-08-02T12:04:00.000Z",
+          },
+        }}
+      />,
+    );
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

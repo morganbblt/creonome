@@ -294,7 +294,7 @@ export function CreatorDnaView({
               <div className="flex min-w-0 items-center gap-3">
                 <Avatar className="size-14 border border-border">
                   <AvatarImage
-                    alt={`People reference: ${currentDna.peopleReferenceImage.fileName}`}
+                    alt={`Portrait reference photo Veo uses for this creator's on-screen likeness (${currentDna.peopleReferenceImage.fileName})`}
                     src={`/api/creonome/assets/${currentDna.peopleReferenceImage.id}/content`}
                   />
                 </Avatar>
@@ -364,6 +364,13 @@ export function CreatorDnaView({
               ) : null}
             </div>
           </div>
+          <p role="status" className="sr-only">
+            {referenceBusy
+              ? "Saving your Veo people reference image…"
+              : currentDna.peopleReferenceImage
+                ? `Reference image saved: ${currentDna.peopleReferenceImage.fileName}`
+                : ""}
+          </p>
           {referenceError ? (
             <Alert variant="destructive">
               <TriangleAlertIcon />
@@ -465,7 +472,11 @@ export function CreatorDnaView({
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                  <Progress className="h-1" value={confidence ?? 0} />
+                  <Progress
+                    className="h-1"
+                    value={confidence ?? 0}
+                    aria-label={`${trait.label} confidence`}
+                  />
                   <span className="text-xs font-medium text-muted-foreground">
                     {confidence === null
                       ? "Unscored"

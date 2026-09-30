@@ -227,7 +227,7 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                       muted
                       playsInline
                       preload="metadata"
-                      aria-label="Generated vertical video"
+                      aria-label={`Generated vertical 9:16 video preview of "${project.title}"`}
                       className="block aspect-9/16 w-full max-w-[330px] rounded-[10px] border border-white/15 bg-black object-cover shadow-lg max-h-[70vh]"
                     >
                       <source
@@ -305,7 +305,11 @@ export function ProjectWorkspace({ project }: { project: ProjectDetail }) {
                 <p className="m-0 mb-2 font-mono text-[9.5px] tracking-[0.1em] text-muted-foreground uppercase">
                   Latest generation
                 </p>
-                <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
                   <span
                     className={cn(
                       "size-1.75 rounded-full",

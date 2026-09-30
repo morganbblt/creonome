@@ -60,6 +60,7 @@
     "@vitejs/plugin-react": "catalog:",
     "jsdom": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "vitest-axe": "catalog:"
   }
 }

@@ -1,6 +1,7 @@
 import type { Library } from "@creonome/contracts";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 import { AssetPicker } from "./asset-picker";
 
 const library: Library = {
@@ -195,5 +196,24 @@ describe("AssetPicker", () => {
     );
 
     await waitFor(() => expect(onAttach).toHaveBeenCalledWith(null));
+  });
+  it("has no axe violations once the Library has loaded", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValue(Response.json(library)),
+    );
+
+    render(
+      <AssetPicker
+        open
+        currentAssetId={null}
+        onOpenChange={vi.fn()}
+        onAttach={vi.fn().mockResolvedValue(true)}
+      />,
+    );
+    await screen.findByText("warehouse-tapes-v1.mp4");
+
+    // The picker is a portalled dialog, so audit the whole document.
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 });
