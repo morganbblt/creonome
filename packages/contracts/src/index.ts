@@ -41,9 +41,13 @@ export {
   CreditLedgerEntrySchema,
   CreditLedgerSchema,
   CreditsResponseSchema,
+  CreditSpendCapSchema,
+  UpdateCreditSpendCapSchema,
   type CreditLedger,
   type CreditLedgerEntry,
   type CreditsResponse,
+  type CreditSpendCap,
+  type UpdateCreditSpendCapInput,
 } from "./credits.js";
 export {
   GenerationJobSchema,

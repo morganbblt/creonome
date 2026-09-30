@@ -15,6 +15,10 @@ export type CreditLedgerRecord = {
 export interface CreditsRepository {
   getAccount(workspaceId: string): Promise<CreditAccountRecord | null>;
   listLedger(workspaceId: string): Promise<CreditLedgerRecord[]>;
+  /** Resolves `undefined` when the workspace has no credit account. */
+  getSpendCap(workspaceId: string): Promise<number | null | undefined>;
+  /** Resolves `false` when the workspace has no credit account. */
+  setSpendCap(workspaceId: string, spendCap: number | null): Promise<boolean>;
   reserve(
     workspaceId: string,
     amount: number,

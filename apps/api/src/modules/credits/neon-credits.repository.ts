@@ -48,6 +48,27 @@ export class NeonCreditsRepository implements CreditsRepository {
       .limit(100);
   }
 
+  async getSpendCap(workspaceId: string): Promise<number | null | undefined> {
+    const [account] = await this.requireDatabase()
+      .select({ spendCap: creditAccounts.spendCap })
+      .from(creditAccounts)
+      .where(eq(creditAccounts.workspaceId, workspaceId))
+      .limit(1);
+    return account ? account.spendCap : undefined;
+  }
+
+  async setSpendCap(
+    workspaceId: string,
+    spendCap: number | null,
+  ): Promise<boolean> {
+    const updated = await this.requireDatabase()
+      .update(creditAccounts)
+      .set({ spendCap, updatedAt: new Date() })
+      .where(eq(creditAccounts.workspaceId, workspaceId))
+      .returning({ workspaceId: creditAccounts.workspaceId });
+    return updated.length > 0;
+  }
+
   reserve(
     workspaceId: string,
     amount: number,

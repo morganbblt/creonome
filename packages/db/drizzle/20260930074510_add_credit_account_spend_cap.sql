@@ -1,0 +1,2 @@
+ALTER TABLE "credit_accounts" ADD COLUMN "spend_cap" integer;--> statement-breakpoint
+ALTER TABLE "credit_accounts" ADD CONSTRAINT "credit_accounts_spend_cap_check" CHECK ("credit_accounts"."spend_cap" is null or "credit_accounts"."spend_cap" > 0);
