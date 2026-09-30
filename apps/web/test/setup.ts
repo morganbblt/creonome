@@ -1,4 +1,19 @@
 import "@testing-library/jest-dom/vitest";
+import * as axeMatchers from "vitest-axe/matchers";
+import type { AxeMatchers } from "vitest-axe/matchers";
+import { expect } from "vitest";
+
+// vitest-axe 0.1.0 only augments the legacy global `Vi.Assertion`
+// namespace, which Vitest 4 no longer reads, so the matcher types are
+// declared on the `vitest` module here and registered at runtime below.
+declare module "vitest" {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  interface Assertion<T> extends AxeMatchers {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  interface AsymmetricMatchersContaining extends AxeMatchers {}
+}
+
+expect.extend(axeMatchers);
 
 if (
   typeof window !== "undefined" &&

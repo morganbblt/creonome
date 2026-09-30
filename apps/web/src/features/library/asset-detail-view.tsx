@@ -91,14 +91,16 @@ export function AssetDetailView({ asset }: { asset: AssetDetail }) {
             {asset.name}
           </h1>
         </div>
-        <Badge variant={status.variant} className="shrink-0 gap-1">
-          <StatusIcon
-            className={
-              asset.status === "analyzing" ? "animate-spin" : undefined
-            }
-          />
-          {status.label}
-        </Badge>
+        <span className="shrink-0" aria-live="polite" aria-atomic="true">
+          <Badge variant={status.variant} className="gap-1">
+            <StatusIcon
+              className={
+                asset.status === "analyzing" ? "animate-spin" : undefined
+              }
+            />
+            {status.label}
+          </Badge>
+        </span>
       </header>
 
       <div className="grid grid-cols-[minmax(0,260px)_1fr] gap-4 max-[620px]:grid-cols-1">
@@ -109,7 +111,7 @@ export function AssetDetailView({ asset }: { asset: AssetDetail }) {
             // an optimizable public URL.
             <img
               src={`/api/creonome/assets/${asset.id}/content`}
-              alt={asset.name}
+              alt={`Full-size preview of the image asset “${asset.name}”`}
               className="size-full object-cover"
             />
           ) : (
@@ -162,74 +164,76 @@ export function AssetDetailView({ asset }: { asset: AssetDetail }) {
         <h2 className="mb-2 text-sm font-semibold text-foreground">
           Analysis evidence
         </h2>
-        {asset.analysis ? (
-          <Card className="flex flex-col gap-3 p-4">
-            <p className="m-0 text-sm text-foreground">
-              {asset.analysis.summary}
-            </p>
-            <p className="m-0 text-sm text-muted-foreground">
-              {asset.analysis.creativeSignature}
-            </p>
-            <div className="grid grid-cols-2 gap-3 text-xs max-[500px]:grid-cols-1">
-              {asset.analysis.disciplines.length > 0 ? (
+        <div aria-live="polite" aria-atomic="true">
+          {asset.analysis ? (
+            <Card className="flex flex-col gap-3 p-4">
+              <p className="m-0 text-sm text-foreground">
+                {asset.analysis.summary}
+              </p>
+              <p className="m-0 text-sm text-muted-foreground">
+                {asset.analysis.creativeSignature}
+              </p>
+              <div className="grid grid-cols-2 gap-3 text-xs max-[500px]:grid-cols-1">
+                {asset.analysis.disciplines.length > 0 ? (
+                  <div>
+                    <p className="m-0 mb-1 font-mono tracking-wide text-muted-foreground uppercase">
+                      Disciplines
+                    </p>
+                    <p className="m-0 text-foreground">
+                      {asset.analysis.disciplines.join(", ")}
+                    </p>
+                  </div>
+                ) : null}
+                {asset.analysis.genres.length > 0 ? (
+                  <div>
+                    <p className="m-0 mb-1 font-mono tracking-wide text-muted-foreground uppercase">
+                      Genres
+                    </p>
+                    <p className="m-0 text-foreground">
+                      {asset.analysis.genres.join(", ")}
+                    </p>
+                  </div>
+                ) : null}
+                {asset.analysis.themes.length > 0 ? (
+                  <div>
+                    <p className="m-0 mb-1 font-mono tracking-wide text-muted-foreground uppercase">
+                      Themes
+                    </p>
+                    <p className="m-0 text-foreground">
+                      {asset.analysis.themes.join(", ")}
+                    </p>
+                  </div>
+                ) : null}
                 <div>
                   <p className="m-0 mb-1 font-mono tracking-wide text-muted-foreground uppercase">
-                    Disciplines
+                    Target audience
                   </p>
                   <p className="m-0 text-foreground">
-                    {asset.analysis.disciplines.join(", ")}
+                    {asset.analysis.targetAudience}
                   </p>
                 </div>
-              ) : null}
-              {asset.analysis.genres.length > 0 ? (
-                <div>
-                  <p className="m-0 mb-1 font-mono tracking-wide text-muted-foreground uppercase">
-                    Genres
-                  </p>
-                  <p className="m-0 text-foreground">
-                    {asset.analysis.genres.join(", ")}
-                  </p>
-                </div>
-              ) : null}
-              {asset.analysis.themes.length > 0 ? (
-                <div>
-                  <p className="m-0 mb-1 font-mono tracking-wide text-muted-foreground uppercase">
-                    Themes
-                  </p>
-                  <p className="m-0 text-foreground">
-                    {asset.analysis.themes.join(", ")}
-                  </p>
-                </div>
-              ) : null}
-              <div>
-                <p className="m-0 mb-1 font-mono tracking-wide text-muted-foreground uppercase">
-                  Target audience
-                </p>
-                <p className="m-0 text-foreground">
-                  {asset.analysis.targetAudience}
-                </p>
               </div>
-            </div>
-            {asset.analysis.evidence.length > 0 ? (
-              <div>
-                <p className="m-0 mb-1 font-mono text-xs tracking-wide text-muted-foreground uppercase">
-                  Evidence
-                </p>
-                <ul className="m-0 list-disc pl-5 text-sm text-foreground">
-                  {asset.analysis.evidence.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </Card>
-        ) : (
-          <Card className="p-4 text-sm text-muted-foreground">
-            {asset.status === "analyzing"
-              ? "Analysis is still running for this asset."
-              : "No analysis has run for this asset yet."}
-          </Card>
-        )}
+              {asset.analysis.evidence.length > 0 ? (
+                <div>
+                  <p className="m-0 mb-1 font-mono text-xs tracking-wide text-muted-foreground uppercase">
+                    Evidence
+                  </p>
+                  <ul className="m-0 list-disc pl-5 text-sm text-foreground">
+                    {asset.analysis.evidence.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </Card>
+          ) : (
+            <Card className="p-4 text-sm text-muted-foreground">
+              {asset.status === "analyzing"
+                ? "Analysis is still running for this asset."
+                : "No analysis has run for this asset yet."}
+            </Card>
+          )}
+        </div>
       </section>
     </main>
   );

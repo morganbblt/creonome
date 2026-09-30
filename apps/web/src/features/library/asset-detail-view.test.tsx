@@ -1,6 +1,7 @@
 import type { AssetDetail } from "@creonome/contracts";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 import { AssetDetailView } from "./asset-detail-view";
 
 const baseAsset: AssetDetail = {
@@ -79,5 +80,31 @@ describe("AssetDetailView", () => {
     expect(link.getAttribute("href")).toBe(
       "/projects/0198f3a2-82dd-7000-8000-000000000020",
     );
+  });
+  it("has no axe violations for an image asset with analysis evidence", async () => {
+    const { container } = render(
+      <AssetDetailView
+        asset={{
+          ...baseAsset,
+          name: "studio-portrait.png",
+          kind: "image",
+          mimeType: "image/png",
+          durationSeconds: null,
+          status: "analyzing",
+          analysis: {
+            summary: "A portrait in a small ceramics studio.",
+            disciplines: ["ceramics"],
+            genres: ["portrait"],
+            creativeSignature: "Warm window light.",
+            themes: ["craft"],
+            targetAudience: "Hobbyist makers.",
+            boundaries: [],
+            evidence: ["Soft side lighting."],
+          },
+        }}
+      />,
+    );
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

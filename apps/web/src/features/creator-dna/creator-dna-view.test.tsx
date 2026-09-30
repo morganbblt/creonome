@@ -1,6 +1,7 @@
 import type { CreatorDna } from "@creonome/contracts";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 import { CreatorDnaView } from "./creator-dna-view";
 
 const dna: CreatorDna = {
@@ -191,5 +192,12 @@ describe("CreatorDnaView", () => {
       `/api/creonome/creator-dna/traits/${dna.traits[0]!.id}`,
       expect.objectContaining({ method: "PATCH" }),
     );
+  });
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <CreatorDnaView dna={dna} memories={memories} />,
+    );
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
