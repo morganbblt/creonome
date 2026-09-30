@@ -212,14 +212,14 @@ function levenshteinDistance(a: string, b: string): number {
     for (let j = 1; j <= b.length; j++) {
       const substitutionCost = a[i - 1] === b[j - 1] ? 0 : 1;
       currentRow[j] = Math.min(
-        previousRow[j] + 1, // deletion
-        currentRow[j - 1] + 1, // insertion
-        previousRow[j - 1] + substitutionCost, // substitution
+        previousRow[j]! + 1, // deletion
+        currentRow[j - 1]! + 1, // insertion
+        previousRow[j - 1]! + substitutionCost, // substitution
       );
     }
     [previousRow, currentRow] = [currentRow, previousRow];
   }
-  return previousRow[b.length];
+  return previousRow[b.length]!;
 }
 
 /**
@@ -762,7 +762,7 @@ export class QualityGateService {
       for (const word of segment.keywords) allScriptKeywords.add(word);
     }
     storyboard.scenes.forEach((scene, index) => {
-      const sceneWords = sceneKeywordSets[index];
+      const sceneWords = sceneKeywordSets[index]!;
       if (sceneWords.size === 0) return; // nothing distinctive to align on
       if (!sharesSignificantWord(sceneWords, allScriptKeywords)) {
         violations.push({
