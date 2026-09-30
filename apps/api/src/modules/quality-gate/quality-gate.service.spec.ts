@@ -64,7 +64,7 @@ describe("QualityGateService.evaluateScript", () => {
       caption: "The room is part of the arrangement.",
     });
 
-    expect(result).toEqual({ passed: true, violations: [] });
+    expect(result).toEqual({ passed: true, violations: [], warnings: [] });
   });
 
   it("rejects a script that mentions a forbidden topic from the creator boundaries", async () => {
@@ -162,6 +162,126 @@ describe("QualityGateService.evaluateScript", () => {
   });
 });
 
+describe("QualityGateService.evaluateScript possible_close_reproduction", () => {
+  it("passes a script whose reference texts share nothing with the generated content", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: "Hold the empty room.",
+      body: "Lower the needle, wait for the first kick, then reveal the session.",
+      callToAction: "What arrives after your silence?",
+      caption: null,
+      referenceTexts: [
+        "The best way to master a chorus is to isolate the vocal take and loop the transition sixteen times before touching the mix.",
+      ],
+    });
+
+    expect(result).toEqual({ passed: true, violations: [], warnings: [] });
+  });
+
+  it("rejects a script whose hook is a near-verbatim copy of a reference/trend source sentence", async () => {
+    const { service } = setup();
+
+    const sharedSentence =
+      "Hold the empty room and wait for the drop before you say a single word.";
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: sharedSentence,
+      body: "Lower the needle, wait for the first kick, then reveal the session.",
+      callToAction: "What arrives after your silence?",
+      caption: null,
+      referenceTexts: [sharedSentence],
+    });
+
+    expect(result.passed).toBe(false);
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "possible_close_reproduction" }),
+      ]),
+    );
+  });
+
+  it("does not run the close-reproduction check when no reference texts are provided", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: "Hold the empty room.",
+      body: "Lower the needle, wait for the first kick, then reveal the session.",
+      callToAction: "What arrives after your silence?",
+      caption: null,
+    });
+
+    expect(result).toEqual({ passed: true, violations: [], warnings: [] });
+  });
+});
+
+describe("QualityGateService.evaluateScript unverified_claim", () => {
+  it("passes a script whose only percentage figure is backed by a cited source", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: "Meet the vocalist who records every take live in one breath.",
+      body: "According to a recent study, 42% of listeners finish the full track when the hook lands in the first three seconds.",
+      callToAction: "Press play and hear the difference for yourself.",
+      caption: null,
+    });
+
+    expect(result).toEqual({ passed: true, violations: [], warnings: [] });
+  });
+
+  it("flags an absolute, guarantee-shaped promise as a warning without failing the gate", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: "This routine is guaranteed to fix your vocal fatigue overnight.",
+      body: "It always works, no matter your genre or your studio setup.",
+      callToAction: "Try it and you will never need another warmup again.",
+      caption: null,
+    });
+
+    expect(result.passed).toBe(true);
+    expect(result.violations).toEqual([]);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "unverified_claim" }),
+      ]),
+    );
+  });
+
+  it("flags an unsourced percentage claim as a warning without failing the gate", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: "Here's the trick nobody talks about for high notes.",
+      body: "This warmup improves your range by 73% in under a week.",
+      callToAction: "Save this for your next session.",
+      caption: null,
+    });
+
+    expect(result.passed).toBe(true);
+    expect(result.violations).toEqual([]);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "unverified_claim" }),
+      ]),
+    );
+  });
+
+  it("does not fail a script over a rhetorical 'never' in its hook", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateScript(creatorProfileId, {
+      hook: "Tu ne vas jamais deviner ce que ce sample cache.",
+      body: "Lower the needle, wait for the first kick, then reveal the session.",
+      callToAction: "What arrives after your silence?",
+      caption: null,
+    });
+
+    expect(result.passed).toBe(true);
+    expect(result.violations).toEqual([]);
+  });
+});
+
 describe("QualityGateService.evaluateStoryboard", () => {
   const baseScene = {
     heading: "Hold the room",
@@ -182,7 +302,7 @@ describe("QualityGateService.evaluateStoryboard", () => {
       ],
     });
 
-    expect(result).toEqual({ passed: true, violations: [] });
+    expect(result).toEqual({ passed: true, violations: [], warnings: [] });
   });
 
   it("rejects a storyboard that references a forbidden topic in a scene", async () => {
@@ -256,7 +376,7 @@ describe("QualityGateService.evaluateVideo", () => {
       height: 1280,
     });
 
-    expect(result).toEqual({ passed: true, violations: [] });
+    expect(result).toEqual({ passed: true, violations: [], warnings: [] });
   });
 
   it("rejects a video that is not rendered in 9:16", async () => {
@@ -290,5 +410,80 @@ describe("QualityGateService.evaluateVideo", () => {
         expect.objectContaining({ code: "forbidden_topic" }),
       ]),
     );
+  });
+});
+
+describe("QualityGateService.evaluateStoryboard script consistency", () => {
+  const script = {
+    hook: "Hold the empty room.",
+    body: "Lower the needle on the vinyl. Reveal the finished session.",
+    callToAction: "Subscribe for the next session.",
+    caption: null,
+  };
+  const scene = (heading: string, description: string) => ({
+    heading,
+    description,
+    voiceover: null,
+    onScreenText: null,
+    durationSeconds: 10,
+  });
+
+  it("does not run the consistency check when no script is provided", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateStoryboard(creatorProfileId, {
+      durationSeconds: 30,
+      scenes: [
+        scene("Kitchen", "A chef slices onions."),
+        scene("Garden", "Watering tomatoes."),
+        scene("Street", "Traffic passes by."),
+      ],
+    });
+
+    expect(result).toEqual({ passed: true, violations: [], warnings: [] });
+  });
+
+  it("passes a storyboard whose scenes follow the script", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateStoryboard(
+      creatorProfileId,
+      {
+        durationSeconds: 30,
+        scenes: [
+          scene("Empty room", "Wide shot of the empty room."),
+          scene("Needle drop", "Close-up as the needle meets the vinyl."),
+          scene("Finished session", "Reveal the finished session; subscribe."),
+        ],
+      },
+      script,
+    );
+
+    expect(result).toEqual({ passed: true, violations: [], warnings: [] });
+  });
+
+  it("warns, without failing, about orphan scenes and dropped script beats", async () => {
+    const { service } = setup();
+
+    const result = await service.evaluateStoryboard(
+      creatorProfileId,
+      {
+        durationSeconds: 30,
+        scenes: [
+          scene("Empty room", "Wide shot of the empty room."),
+          scene("Needle drop", "Close-up as the needle meets the vinyl."),
+          scene("Kitchen", "A chef slices onions."),
+        ],
+      },
+      script,
+    );
+
+    expect(result.passed).toBe(true);
+    expect(result.violations).toEqual([]);
+    expect(result.warnings.map(({ code }) => code).sort()).toEqual([
+      "script_segment_without_scene",
+      "script_segment_without_scene",
+      "storyboard_orphan_scene",
+    ]);
   });
 });
