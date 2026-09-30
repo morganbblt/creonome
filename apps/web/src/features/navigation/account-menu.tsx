@@ -5,6 +5,7 @@ import {
   CreditCardIcon,
   LogOutIcon,
   PlugIcon,
+  SettingsIcon,
   ShieldIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -59,6 +60,12 @@ export function AccountMenu({
             {name}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/settings">
+              <SettingsIcon />
+              Settings
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings/billing">
               <CreditCardIcon />
