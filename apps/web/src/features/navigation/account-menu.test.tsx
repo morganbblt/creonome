@@ -40,4 +40,16 @@ describe("AccountMenu", () => {
     const billing = await screen.findByRole("menuitem", { name: /billing/i });
     expect(billing.getAttribute("href")).toBe("/settings/billing");
   });
+
+  it("links to the settings hub so the page is reachable from navigation", async () => {
+    const user = userEvent.setup();
+    render(<AccountMenu name="Morgan Boubault" initials="MB" />);
+
+    await user.click(screen.getByRole("button", { name: "Morgan Boubault" }));
+
+    const settings = await screen.findByRole("menuitem", {
+      name: /^settings$/i,
+    });
+    expect(settings.getAttribute("href")).toBe("/settings");
+  });
 });
